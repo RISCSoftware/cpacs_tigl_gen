@@ -1075,9 +1075,6 @@ namespace tigl {
     CodeGen::CodeGen(const std::string& outputLocation, TypeSystem& types, Tables& m_tables)
         : m_types(std::move(types)), m_tables(m_tables) {
 
-        // output directory should already have been created by cmake when runtime files were copied
-        //boost::filesystem::create_directories(outputLocation);
-
         for (const auto& p : m_types.classes) {
             const auto c = p.second;
             const auto hppFileName = outputLocation + "/" + c.name + ".h";

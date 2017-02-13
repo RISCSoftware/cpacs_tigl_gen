@@ -7,6 +7,14 @@
 #include "Tables.h"
 
 namespace tigl {
+    const auto runtimeFiles = {
+        "TixiDocument.h",
+        "TixiHelper.h",
+        "TixiHelper.cpp",
+        "Optional.hpp",
+        "UniquePtr.h",
+    };
+
     void run(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory) {
         // load tables
         Tables tables(inputDirectory);
@@ -35,12 +43,7 @@ namespace tigl {
         genCode(outputDirectory, typeSystem, tables);
 
         std::cout << "Copying runtime" << std::endl;
-        for (const auto& file : {
-            "TixiDocument.h",
-            "TixiHelper.h",
-            "TixiHelper.cpp",
-            "Optional.hpp",
-        }) {
+        for (const auto& file : runtimeFiles) {
             std::cout << file << std::endl;
             boost::filesystem::copy_file(srcDirectory + "/" + file, outputDirectory + "/" + file, boost::filesystem::copy_option::overwrite_if_exists);
         }

@@ -172,9 +172,8 @@ namespace tigl {
                     return typeName;
                 case Cardinality::Vector:
                 {
-                    const bool makePointer = m_types.classes.find(field.typeName) != std::end(m_types.classes);
-                    if (makePointer)
-                        return "std::vector<std::unique_ptr<" + typeName + ">>";
+                    if (m_types.classes.find(field.typeName) != std::end(m_types.classes))
+                        return "std::vector<unique_ptr<" + typeName + ">>";
                     else
                         return "std::vector<" + typeName + ">";
                 }
@@ -386,13 +385,8 @@ namespace tigl {
                     case Cardinality::Vector:
                         if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase)
                             throw std::runtime_error("Attributes, simpleContents and bases cannot be vectors");
-                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", [&](const std::string& childXPath) {";
-                        {
-                            Scope s(cpp);
-                            assert(!isAtt);
-                            cpp << "return " << tixiHelperNamespace << "::TixiGet" << type << "Element(tixiHandle, childXPath);";
-                        }
-                        cpp << "});";
+                        assert(!isAtt);
+                        cpp << tixiHelperNamespace << "::TixiReadPrimitiveElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", &" << tixiHelperNamespace << "::TixiGet" << type << "Element);";
                         break;
                 }
 
@@ -448,14 +442,7 @@ namespace tigl {
                             cpp << f.fieldName() << ".ReadCPACS(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
                             break;
                         case Cardinality::Vector:
-                            cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", [&](const std::string& childXPath) {";
-                            {
-                                Scope s(cpp);
-                                cpp << "auto child = std_make_unique<" << customReplacedType(f.typeName, m_tables) << ">(" << (requiresParentPointer ? parentPointerThis(c) : "") << ");";
-                                cpp << "child->ReadCPACS(tixiHandle, childXPath);";
-                                cpp << "return child;";
-                            }
-                            cpp << "});";
+                            cpp << tixiHelperNamespace << "::TixiReadClassElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << (requiresParentPointer ? ", " + parentPointerThis(c) : "") << ");";
                             break;
                     }
                     return;
@@ -483,13 +470,8 @@ namespace tigl {
                     case Cardinality::Vector:
                         if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase)
                             throw std::runtime_error("Attributes, simpleContents and bases cannot be vectors");
-                        cpp << tixiHelperNamespace << "::TixiSaveElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", [&](const std::string& childXPath, const " << customReplacedType(f.typeName, m_tables) << "& child) {";
-                        {
-                            Scope s(cpp);
-                            assert(!isAtt);
-                            cpp << tixiHelperNamespace << "::TixiSaveElement(tixiHandle, childXPath + \"/" << f.cpacsName << "\", child);";
-                        }
-                        cpp << "});";
+                        assert(!isAtt);
+                        cpp << tixiHelperNamespace << "::TixiSavePrimitiveElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ");";
                         break;
                 }
 
@@ -527,12 +509,7 @@ namespace tigl {
                             cpp << f.fieldName() << ".WriteCPACS(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
                             break;
                         case Cardinality::Vector:
-                            cpp << tixiHelperNamespace << "::TixiSaveElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", [&](const std::string& childXPath, const std::unique_ptr<" << customReplacedType(f.typeName, m_tables) << ">& child) {";
-                            {
-                                Scope s(cpp);
-                                cpp << "child->WriteCPACS(tixiHandle, childXPath);";
-                            }
-                            cpp << "});";
+                            cpp << tixiHelperNamespace << "::TixiSaveClassElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ");";
                             break;
                     }
                     return;
@@ -693,9 +670,9 @@ namespace tigl {
             }
             if (vectorHeader) {
                 deps.hppIncludes.push_back("<vector>");
-                deps.hppIncludes.push_back("<memory>"); // for unique_ptr
-                if (makeUnique) // TODO: remove this when C++14 becomes available for Tigl
-                    deps.cppIncludes.push_back("\"std_make_unique.h\"");
+                if (makeUnique) {
+                    deps.hppIncludes.push_back("\"UniquePtr.h\"");
+                }
             }
             if (optionalHeader)
                 deps.hppIncludes.push_back("\"Optional.hpp\"");
@@ -943,14 +920,20 @@ namespace tigl {
                     {
                         Scope s(hpp);
 
-                        // copy ctor and assign
+                        // copy ctor and assign, move ctor and assign
+                        hpp << "#ifdef HAVE_CPP11";
                         hpp << "TIGL_EXPORT " << c.name << "(const " << c.name << "&) = delete;";
                         hpp << "TIGL_EXPORT " << c.name << "& operator=(const " << c.name << "&) = delete;";
                         hpp << "";
-
-                        // move ctor and assign
                         hpp << "TIGL_EXPORT " << c.name << "(" << c.name << "&&) = delete;";
                         hpp << "TIGL_EXPORT " << c.name << "& operator=(" << c.name << "&&) = delete;";
+                        hpp << "#else";
+                        hpp << "TIGL_EXPORT " << c.name << "(const " << c.name << "&);";
+                        hpp << "TIGL_EXPORT " << c.name << "& operator=(const " << c.name << "&);";
+                        hpp << "";
+                        hpp << "TIGL_EXPORT " << c.name << "(" << c.name << "&&);";
+                        hpp << "TIGL_EXPORT " << c.name << "& operator=(" << c.name << "&&);";
+                        hpp << "#endif";
                     }
                     hpp << "};";
                 }

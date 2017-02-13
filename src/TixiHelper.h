@@ -7,6 +7,7 @@
 #include <iostream>
 #include <ctime>
 
+#include "UniquePtr.h"
 #include "Optional.hpp"
 
 namespace tigl {
@@ -129,6 +130,31 @@ namespace tigl {
                 children.push_back(readChild(xpath + "[" + std::to_string(i + 1) + "]"));
         }
 
+        template<typename ChildType, typename GetElementFunc>
+        void TixiReadPrimitiveElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, std::vector<ChildType>& children, GetElementFunc getElementFunc, int minOccurs = -1, int maxOccurs = -1) {
+            TixiReadElements(tixiHandle, xpath, children, [&](const std::string& childXPath) {
+                return getElementFunc(tixiHandle, childXPath);
+            }, minOccurs, maxOccurs);
+        }
+
+        template<typename ChildType>
+        void TixiReadClassElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, std::vector<unique_ptr<ChildType>>& children, int minOccurs = -1, int maxOccurs = -1) {
+            TixiReadElements(tixiHandle, xpath, children, [&](const std::string& childXPath) {
+                unique_ptr<ChildType> child = make_unique<ChildType>();
+                child->ReadCPACS(tixiHandle, childXPath);
+                return child;
+            }, minOccurs, maxOccurs);
+        }
+
+        template<typename ChildType, typename Parent>
+        void TixiReadClassElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, std::vector<unique_ptr<ChildType>>& children, Parent* parent, int minOccurs = -1, int maxOccurs = -1) {
+            TixiReadElements(tixiHandle, xpath, children, [&](const std::string& childXPath) {
+                unique_ptr<ChildType> child = make_unique<ChildType>(parent);
+                child->ReadCPACS(tixiHandle, childXPath);
+                return child;
+            }, minOccurs, maxOccurs);
+        }
+
         template<typename ChildType, typename WriteChildFunc>
         void TixiSaveElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::vector<ChildType>& children, WriteChildFunc writeChild) {
             const auto sp = splitXPath(xpath);
@@ -176,6 +202,20 @@ namespace tigl {
                 // parent node must not exist if there are no child nodes
                 tixiRemoveElement(tixiHandle, sp.parentXPath.c_str());
             }
+        }
+
+        template<typename ChildType>
+        void TixiSavePrimitiveElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::vector<ChildType>& children) {
+            TixiSaveElements(tixiHandle, xpath, children, [&](const std::string& childXPath, const ChildType& child) {
+                TixiSaveElement(tixiHandle, childXPath, child);
+            });
+        }
+
+        template<typename ChildType>
+        void TixiSaveClassElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::vector<unique_ptr<ChildType>>& children) {
+            TixiSaveElements(tixiHandle, xpath, children, [&](const std::string& childXPath, const unique_ptr<ChildType>& child) {
+                child->WriteCPACS(tixiHandle, childXPath);
+            });
         }
     }
 }

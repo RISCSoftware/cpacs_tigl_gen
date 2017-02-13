@@ -32,7 +32,7 @@ namespace tigl {
 
         // generate code
         std::cout << "Generating classes" << std::endl;
-        CodeGen codegen(outputDirectory, typeSystem, tables);
+        genCode(outputDirectory, typeSystem, tables);
 
         std::cout << "Copying runtime" << std::endl;
         for (const auto& file : {
@@ -42,7 +42,7 @@ namespace tigl {
             "Optional.hpp",
         }) {
             std::cout << file << std::endl;
-            boost::filesystem::copy_file(srcDirectory + "/" + file, outputDirectory + "/" + file, boost::filesystem::copy_option::none);
+            boost::filesystem::copy_file(srcDirectory + "/" + file, outputDirectory + "/" + file, boost::filesystem::copy_option::overwrite_if_exists);
         }
     }
 }

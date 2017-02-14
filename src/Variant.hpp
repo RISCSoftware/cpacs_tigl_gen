@@ -1,8 +1,7 @@
 #pragma once
 
 #include <boost/variant.hpp>
-
-#include "Optional.hpp"
+#include <boost/optional.hpp>
 
 namespace tigl {
     template <typename... Ts>
@@ -71,6 +70,6 @@ namespace tigl {
             Func m_func;
         };
 
-        Optional<boost::variant<Ts...>> m_data;
+        boost::optional<boost::variant<Ts...>> m_data;
     };
 }

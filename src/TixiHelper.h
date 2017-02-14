@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/optional.hpp>
 #include <tixi.h>
 
 #include <vector>
@@ -8,7 +9,6 @@
 #include <ctime>
 
 #include "UniquePtr.h"
-#include "Optional.hpp"
 
 namespace tigl {
     namespace tixihelper {
@@ -64,8 +64,10 @@ namespace tigl {
         void TixiSaveAttribute(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute, int                value);
 
         template <typename T>
-        void TixiSaveAttribute(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute, const Optional<T>& value) {
-            if (value) TixiSaveAttribute(tixiHandle, xpath, attribute, *value);
+        void TixiSaveAttribute(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute, const boost::optional<T>& value) {
+            if (value) {
+                TixiSaveAttribute(tixiHandle, xpath, attribute, *value);
+            }
         }
 
         void TixiSaveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const char*        value);
@@ -76,13 +78,13 @@ namespace tigl {
         void TixiSaveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath, std::time_t        value);
 
         template <typename T>
-        void TixiSaveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const Optional<T>& value) {
+        void TixiSaveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const boost::optional<T>& value) {
             if (value) {
                 TixiSaveElement(tixiHandle, xpath, *value);
             }
         }
 
-        inline void TixiSaveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const Optional<double>& value, const std::string& format = "%g") {
+        inline void TixiSaveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const boost::optional<double>& value, const std::string& format = "%g") {
             if (value) {
                 TixiSaveElement(tixiHandle, xpath, *value, format);
             }

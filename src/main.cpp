@@ -11,7 +11,6 @@ namespace tigl {
         "TixiDocument.h",
         "TixiHelper.h",
         "TixiHelper.cpp",
-        "Optional.hpp",
         "UniquePtr.h",
     };
 

@@ -185,7 +185,7 @@ namespace tigl {
         auto fieldType(const Field& field) const -> std::string {
             switch (field.cardinality) {
                 case Cardinality::Optional:
-                    return "Optional<" + getterSetterType(field) + ">";
+                    return "boost::optional<" + getterSetterType(field) + ">";
                 default:
                     return getterSetterType(field);
             }
@@ -418,10 +418,7 @@ namespace tigl {
                 if (itC != std::end(m_types.classes)) {
                     switch (f.cardinality) {
                         case Cardinality::Optional:
-                            if (requiresParentPointer)
-                                cpp << f.fieldName() << ".construct(" << parentPointerThis(c) << ");";
-                            else
-                                cpp << f.fieldName() << ".construct();";
+                            cpp << f.fieldName() << " = boost::in_place(" << (requiresParentPointer ? parentPointerThis(c) : "") << ");";
                             if (c_generateTryCatchAroundOptionalClassReads) {
                                 cpp << "try {";
                                 {
@@ -432,7 +429,7 @@ namespace tigl {
                                 {
                                     Scope s(cpp);
                                     cpp << "LOG(ERROR) << \"Failed to read " << f.cpacsName << " at xpath << \" << xpath << \": \" << e.what();";
-                                    cpp << f.fieldName() << ".destroy();";
+                                    cpp << f.fieldName() << " = boost::none;";
                                 }
                                 cpp << "}";
                             } else
@@ -675,7 +672,7 @@ namespace tigl {
                 }
             }
             if (optionalHeader)
-                deps.hppIncludes.push_back("\"Optional.hpp\"");
+                deps.hppIncludes.push_back("<boost/optional.hpp>");
 
             deps.hppIncludes.push_back("\"tigl_internal.h\"");
 
@@ -930,19 +927,24 @@ namespace tigl {
                         hpp << "#else";
                         hpp << c.name << "(const " << c.name << "&);";
                         hpp << c.name << "& operator=(const " << c.name << "&);";
-                        hpp << "";
-                        hpp << c.name << "(" << c.name << "&&);";
-                        hpp << c.name << "& operator=(" << c.name << "&&);";
                         hpp << "#endif";
                     }
                     hpp << "};";
                 }
                 hpp << "}";
+                hpp << "";
+
                 // export non-custom types into tigl namespace
-                if (!m_tables.m_customTypes.contains(c.name)) {
-                    hpp << "";
-                    hpp << "// This type is not customized, export it into tigl namespace";
-                    hpp << "using generated::" << c.name << ";";
+                const auto& customName = m_tables.m_customTypes.find(c.name);
+                if (!customName) {
+                    hpp << "// This type is not customized, create alias in tigl namespace";
+                    hpp << "#ifdef CPP11";
+                    hpp << "using C" << c.name << " = generated::" << c.name << ";";
+                    hpp << "#else";
+                    hpp << "typedef generated::" << c.name << " C" << c.name << ";";
+                    hpp << "#endif";
+                } else {
+                    hpp << "// This type is customized, use type " << *customName;
                 }
                 if (includes.hppForwards.size() > 0) {
                     hpp << "";

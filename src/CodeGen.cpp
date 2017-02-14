@@ -369,24 +369,22 @@ namespace tigl {
             const bool isAtt = isAttribute(f.xmlType);
 
             // fundamental types
-            const auto pf = m_tables.m_fundamentalTypes.find(f.typeName);
-            if (pf) {
-                const auto& type = *pf;
+            if (m_tables.m_fundamentalTypes.contains(f.typeName)) {
                 switch (f.cardinality) {
                     case Cardinality::Optional:
                     case Cardinality::Mandatory:
                         if (isAtt)
-                            cpp << f.fieldName() << " = " << tixiHelperNamespace << "::TixiGet" << type << "Attribute(tixiHandle, xpath, \"" + f.cpacsName + "\");";
+                            cpp << f.fieldName() << " = " << tixiHelperNamespace << "::TixiGetAttribute<" << f.typeName << ">(tixiHandle, xpath, \"" + f.cpacsName + "\");";
                         else {
                             const auto isSimpleContent = f.xmlType == XMLConstruct::SimpleContent;
-                            cpp << f.fieldName() << " = " << tixiHelperNamespace << "::TixiGet" << type << "Element(tixiHandle, xpath" << (isSimpleContent ? "" : " + \"/" + f.cpacsName + "\"") << ");";
+                            cpp << f.fieldName() << " = " << tixiHelperNamespace << "::TixiGetElement<" << f.typeName << ">(tixiHandle, xpath" << (isSimpleContent ? "" : " + \"/" + f.cpacsName + "\"") << ");";
                         }
                         break;
                     case Cardinality::Vector:
                         if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase)
                             throw std::runtime_error("Attributes, simpleContents and bases cannot be vectors");
                         assert(!isAtt);
-                        cpp << tixiHelperNamespace << "::TixiReadPrimitiveElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", &" << tixiHelperNamespace << "::TixiGet" << type << "Element);";
+                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ");";
                         break;
                 }
 
@@ -401,9 +399,9 @@ namespace tigl {
                     case Cardinality::Optional:
                     case Cardinality::Mandatory:
                         if (isAtt)
-                            cpp << f.fieldName() << " = " << readFunc << "(" << tixiHelperNamespace << "::TixiGetTextAttribute(tixiHandle, xpath, \"" + f.cpacsName + "\"));";
+                            cpp << f.fieldName() << " = " << readFunc << "(" << tixiHelperNamespace << "::TixiGetAttribute<std::string>(tixiHandle, xpath, \"" + f.cpacsName + "\"));";
                         else
-                            cpp << f.fieldName() << " = " << readFunc << "(" << tixiHelperNamespace << "::TixiGetTextElement(tixiHandle, xpath + \"/" + f.cpacsName + "\"));";
+                            cpp << f.fieldName() << " = " << readFunc << "(" << tixiHelperNamespace << "::TixiGetElement<std::string>(tixiHandle, xpath + \"/" + f.cpacsName + "\"));";
                         break;
                     case Cardinality::Vector:
                         throw NotImplementedException("Reading enum vectors is not implemented");
@@ -439,7 +437,7 @@ namespace tigl {
                             cpp << f.fieldName() << ".ReadCPACS(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
                             break;
                         case Cardinality::Vector:
-                            cpp << tixiHelperNamespace << "::TixiReadClassElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << (requiresParentPointer ? ", " + parentPointerThis(c) : "") << ");";
+                            cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << (requiresParentPointer ? ", " + parentPointerThis(c) : "") << ");";
                             break;
                     }
                     return;
@@ -468,7 +466,7 @@ namespace tigl {
                         if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase)
                             throw std::runtime_error("Attributes, simpleContents and bases cannot be vectors");
                         assert(!isAtt);
-                        cpp << tixiHelperNamespace << "::TixiSavePrimitiveElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ");";
+                        cpp << tixiHelperNamespace << "::TixiSaveElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ");";
                         break;
                 }
 
@@ -506,7 +504,7 @@ namespace tigl {
                             cpp << f.fieldName() << ".WriteCPACS(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
                             break;
                         case Cardinality::Vector:
-                            cpp << tixiHelperNamespace << "::TixiSaveClassElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ");";
+                            cpp << tixiHelperNamespace << "::TixiSaveElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ");";
                             break;
                     }
                     return;
@@ -518,11 +516,10 @@ namespace tigl {
 
         void writeReadBaseImplementation(IndentingStreamWrapper& cpp, const std::string& type) {
             // fundamental types
-            const auto pf = m_tables.m_fundamentalTypes.find(type);
-            if (pf) {
+            if (m_tables.m_fundamentalTypes.contains(type)) {
                 // reading a base class which is a fundamental type is very cricital
                 // this case basically covers the case where the base is std::string, as other fundamental types cannot be inherited (int etc.)
-                cpp << "*this = " << tixiHelperNamespace << "::TixiGet" << *pf << "Element(tixiHandle, xpath);";
+                cpp << "*this = " << tixiHelperNamespace << "::TixiGetElement<" << type << ">(tixiHandle, xpath);";
                 return;
             }
 

@@ -1,7 +1,7 @@
-// maps fundamental types to their Tixi IO functions
+// fundamental types which have special Tixi IO functions
 
-std::string Text
-double      Double
-bool        Bool
-int         Int
-time_t      TimeT
+std::string 
+double
+bool
+int
+time_t

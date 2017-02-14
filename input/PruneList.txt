@@ -2,7 +2,43 @@
 CPACSAirports
 CPACSFleets
 CPACSMissions
-CPACSToolspecific
+
+// in <toolspecific>
+CPACSSectmeshPamcrashTool
+CPACSAeroFuseTool
+CPACSAeroPoleTool
+CPACSAirportFeesTool
+CPACSBoxBeamTool
+CPACSCabinTool
+//CPACSCFDTool
+CPACSCmuTool
+CPACSComradeTool
+CPACSDelisToolspecific
+CPACSDirectOC
+CPACSELWiSTool
+CPACSFDesignTool
+CPACSFDesignRCTool
+CPACSFDSTool
+CPACSGeogenTool
+CPACSHandbookAeroTool
+CPACSHaremTool
+CPACSHostTool
+CPACSLgDesignTool
+CPACSLiftingLineTool
+CPACSMapet2CTool
+CPACSMaseratiTool
+CPACSMisSimTool
+CPACSModGenTool
+CPACSPanamTool
+CPACSParamamSbotTool
+CPACSRofumaTool
+CPACSSBotTool
+CPACSSteffs
+CPACSTornadoTool
+CPACSTrafumoTool
+CPACSTWDatTool
+CPACSVampZeroTool
+CPACSVSAeroTool
 
 // in <vehicles>
 CPACSEngines

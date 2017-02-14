@@ -8,7 +8,6 @@
 
 namespace tigl {
     const auto runtimeFiles = {
-        "TixiDocument.h",
         "TixiHelper.h",
         "TixiHelper.cpp",
         "UniquePtr.h",

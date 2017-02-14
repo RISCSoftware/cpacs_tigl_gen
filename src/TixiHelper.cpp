@@ -61,7 +61,7 @@ namespace tigl {
         }
 
         SplitXPath splitXPath(const std::string& xpath) {
-            const auto pos = xpath.find_last_of('/');
+            const std::size_t pos = xpath.find_last_of('/');
             SplitXPath result;
             result.parentXPath = pos != std::string::npos ? xpath.substr(0, pos)  : "";
             result.element     = pos != std::string::npos ? xpath.substr(pos + 1) : xpath;
@@ -70,7 +70,7 @@ namespace tigl {
 
         TixiDocumentHandle TixiCreateDocument(const std::string& rootElement) {
             TixiDocumentHandle handle;
-            const auto ret = tixiCreateDocument(rootElement.c_str(), &handle);
+            const ReturnCode ret = tixiCreateDocument(rootElement.c_str(), &handle);
             if (ret != ReturnCode::SUCCESS)
                 throw TixiError(ret, "Failed to create tixi document with root element: " + rootElement);
             return handle;
@@ -78,7 +78,7 @@ namespace tigl {
 
         TixiDocumentHandle TixiOpenDocument(const std::string& filename) {
             TixiDocumentHandle handle;
-            const auto ret = tixiOpenDocument(filename.c_str(), &handle);
+            const ReturnCode ret = tixiOpenDocument(filename.c_str(), &handle);
             if (ret != ReturnCode::SUCCESS)
                 throw TixiError(ret, "Failed to open tixi document: " + filename);
             return handle;
@@ -86,14 +86,14 @@ namespace tigl {
 
         TixiDocumentHandle TixiImportFromString(const std::string& xml) {
             TixiDocumentHandle handle;
-            const auto ret = tixiImportFromString(xml.c_str(), &handle);
+            const ReturnCode ret = tixiImportFromString(xml.c_str(), &handle);
             if (ret != ReturnCode::SUCCESS)
                 throw TixiError(ret, "Failed to import tixi document from string. " + xml);
             return handle;
         }
 
         void TixiAddCpacsHeader(const TixiDocumentHandle& tixiHandle, const std::string& name, const std::string& creator, const std::string& version, const std::string& description, const std::string& cpacsVersion) {
-            const auto ret = tixiAddCpacsHeader(tixiHandle, name.c_str(), creator.c_str(), version.c_str(), description.c_str(), cpacsVersion.c_str());
+            const ReturnCode ret = tixiAddCpacsHeader(tixiHandle, name.c_str(), creator.c_str(), version.c_str(), description.c_str(), cpacsVersion.c_str());
             if(ret != ReturnCode::SUCCESS)
                 throw TixiError(ret,
                     "Failed to add CPACS Header\n"
@@ -106,7 +106,7 @@ namespace tigl {
         }
 
         bool TixiCheckAttribute(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute) {
-               const auto ret = tixiCheckAttribute(tixiHandle, xpath.c_str(), attribute.c_str());
+               const ReturnCode ret = tixiCheckAttribute(tixiHandle, xpath.c_str(), attribute.c_str());
             if (ret == ReturnCode::SUCCESS)
                 return true;
             else if (ret == ReturnCode::ATTRIBUTE_NOT_FOUND)
@@ -120,7 +120,7 @@ namespace tigl {
         }
 
         bool TixiCheckElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath) {
-            const auto ret = tixiCheckElement(tixiHandle, xpath.c_str());
+            const ReturnCode ret = tixiCheckElement(tixiHandle, xpath.c_str());
             if (ret == ReturnCode::SUCCESS)
                 return true;
             else if (ret == ReturnCode::ELEMENT_NOT_FOUND)
@@ -133,9 +133,9 @@ namespace tigl {
         }
 
         int TixiGetNamedChildrenCount(const TixiDocumentHandle& tixiHandle, const std::string& xpath) {
-            const auto sp = splitXPath(xpath);
+            const SplitXPath sp = splitXPath(xpath);
             int count = 0;
-            auto ret = tixiGetNamedChildrenCount(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str(), &count);
+            ReturnCode ret = tixiGetNamedChildrenCount(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str(), &count);
             if (ret != ReturnCode::SUCCESS)
                 throw TixiError(ret);
             return count;
@@ -143,14 +143,14 @@ namespace tigl {
 
         std::vector<std::string> TixiGetAttributeNames(const TixiDocumentHandle& tixiHandle, const std::string& xpath) {
             int count = 0;
-            const auto ret = tixiGetNumberOfAttributes(tixiHandle, xpath.c_str(), &count);
+            const ReturnCode ret = tixiGetNumberOfAttributes(tixiHandle, xpath.c_str(), &count);
             if (ret != ReturnCode::SUCCESS)
                 throw TixiError(ret, "Failed to get number of attributes at xpath: " + xpath);
             std::vector<std::string> names;
             names.reserve(count);
             for (int i = 1; i <= count; i++) {
                 char* name = nullptr;
-                const auto ret = tixiGetAttributeName(tixiHandle, xpath.c_str(), i, &name);
+                const ReturnCode ret = tixiGetAttributeName(tixiHandle, xpath.c_str(), i, &name);
                 if (ret != ReturnCode::SUCCESS)
                     throw TixiError(ret,
                         "Failed to get the name an attribute\n"
@@ -166,7 +166,7 @@ namespace tigl {
             template <typename T, typename GetFunc>
             T TixiGetAttributeInternal(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute, GetFunc getFunc) {
                 T value;
-                const auto ret = getFunc(tixiHandle, xpath.c_str(), attribute.c_str(), &value);
+                const ReturnCode ret = getFunc(tixiHandle, xpath.c_str(), attribute.c_str(), &value);
                 if (ret != ReturnCode::SUCCESS)
                     throw TixiError(ret,
                         "Error getting std::string attribute value\n"
@@ -197,7 +197,7 @@ namespace tigl {
             template <typename T, typename GetFunc>
             T TixiGetElementInternal(const TixiDocumentHandle& tixiHandle, const std::string& xpath, GetFunc getFunc) {
                 T value;
-                const auto ret = getFunc(tixiHandle, xpath.c_str(), &value);
+                const ReturnCode ret = getFunc(tixiHandle, xpath.c_str(), &value);
                 if (ret != ReturnCode::SUCCESS) {
                     throw TixiError(ret,
                         "Error getting element value\n"
@@ -225,7 +225,7 @@ namespace tigl {
         }
 
         std::time_t TixiGetTimeTElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath) {
-            const auto str = TixiGetTextElement(tixiHandle, xpath);
+            const std::string str = TixiGetTextElement(tixiHandle, xpath);
             // TODO: implement conversion
             return std::time_t();
         }
@@ -233,7 +233,7 @@ namespace tigl {
         namespace {
             template<typename SaveFunc, typename... ValueAndFurtherArgs>
             void TixiSaveAttributeInternal(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute, SaveFunc saveFunc, ValueAndFurtherArgs&&... args) {
-                const auto ret1 = tixiCheckElement(tixiHandle, xpath.c_str());
+                const ReturnCode ret1 = tixiCheckElement(tixiHandle, xpath.c_str());
                 if (ret1 != SUCCESS) {
                     throw TixiError(ret1,
                         "Error setting attribute, element does not exist\n"
@@ -241,7 +241,7 @@ namespace tigl {
                     );
                 }
 
-                const auto ret2 = saveFunc(tixiHandle, xpath.c_str(), attribute.c_str(), std::forward<ValueAndFurtherArgs>(args)...);
+                const ReturnCode ret2 = saveFunc(tixiHandle, xpath.c_str(), attribute.c_str(), std::forward<ValueAndFurtherArgs>(args)...);
                 if (ret2 != SUCCESS) {
                     throw TixiError(ret2,
                         "Error setting attribute\n"
@@ -275,10 +275,10 @@ namespace tigl {
         namespace {
             template<typename SaveFunc, typename... ValueAndFurtherArgs>
             void TixiSaveElementInternal(const TixiDocumentHandle& tixiHandle, const std::string& xpath, SaveFunc saveFunc, ValueAndFurtherArgs&&... args) {
-                const auto sp = splitXPath(xpath);
+                const SplitXPath sp = splitXPath(xpath);
 
                 // check if the parent elements exist
-                const auto ret1 = tixiCheckElement(tixiHandle, sp.parentXPath.c_str());
+                const ReturnCode ret1 = tixiCheckElement(tixiHandle, sp.parentXPath.c_str());
                 if (ret1 != SUCCESS) {
                     throw TixiError(ret1,
                         "Error saving element, parent element does not exist\n"
@@ -288,7 +288,7 @@ namespace tigl {
 
                 // first, delete the element
                 if (TixiCheckElement(tixiHandle, xpath)) {
-                    const auto ret = tixiRemoveElement(tixiHandle, xpath.c_str());
+                    const ReturnCode ret = tixiRemoveElement(tixiHandle, xpath.c_str());
                     if (ret != SUCCESS) {
                         throw TixiError(ret,
                             "Error saving element, failed to remove previous element\n"
@@ -298,7 +298,7 @@ namespace tigl {
                 }
 
                 // then, the new element is created with the text
-                const auto ret2 = saveFunc(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str(), std::forward<ValueAndFurtherArgs>(args)...);
+                const ReturnCode ret2 = saveFunc(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str(), std::forward<ValueAndFurtherArgs>(args)...);
                 if (ret2 != SUCCESS) {
                     throw TixiError(ret2,
                         "Error saving element\n"
@@ -336,8 +336,8 @@ namespace tigl {
         }
 
         void TixiCreateElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath) {
-            const auto sp = splitXPath(xpath);
-            const auto ret = tixiCreateElement(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str());
+            const SplitXPath sp = splitXPath(xpath);
+            const ReturnCode ret = tixiCreateElement(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str());
             if (ret != ReturnCode::SUCCESS) {
                 throw TixiError(ret,
                     "Error creating element\n"
@@ -347,9 +347,9 @@ namespace tigl {
         }
 
         void TixiCreateElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath) {
-            auto pos = xpath.find_first_of('/', 1); // find first slash after initial one
+            std::size_t pos = xpath.find_first_of('/', 1); // find first slash after initial one
             while (pos != std::string::npos) {
-                const auto path = xpath.substr(0, pos);
+                const std::string path = xpath.substr(0, pos);
                 if (!TixiCheckElement(tixiHandle, path))
                     TixiCreateElement(tixiHandle, path);
                 pos = xpath.find_first_of('/', pos + 1);
@@ -358,7 +358,7 @@ namespace tigl {
         }
 
         void TixiRemoveAttribute(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute) {
-            const auto ret = tixiRemoveAttribute(tixiHandle, xpath.c_str(), attribute.c_str());
+            const ReturnCode ret = tixiRemoveAttribute(tixiHandle, xpath.c_str(), attribute.c_str());
             if (ret != ReturnCode::SUCCESS) {
                 throw TixiError(ret,
                     "Error removing attribute\n"
@@ -368,7 +368,7 @@ namespace tigl {
         }
 
         void TixiRemoveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath) {
-            const auto ret = tixiRemoveElement(tixiHandle, xpath.c_str());
+            const ReturnCode ret = tixiRemoveElement(tixiHandle, xpath.c_str());
             if (ret != ReturnCode::SUCCESS) {
                 throw TixiError(ret,
                     "Error removing element\n"
@@ -384,7 +384,7 @@ namespace tigl {
         }
 
         void TixiRegisterNamespacesFromDocument(const TixiDocumentHandle& tixiHandle) {
-            const auto ret = tixiRegisterNamespacesFromDocument(tixiHandle);
+            const ReturnCode ret = tixiRegisterNamespacesFromDocument(tixiHandle);
             if (ret != ReturnCode::SUCCESS)
                 throw TixiError(ret, "Failed to register all document namespaces");
         }

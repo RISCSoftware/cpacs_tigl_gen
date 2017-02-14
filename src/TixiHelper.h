@@ -192,7 +192,7 @@ namespace tigl {
 
         template<typename T, typename WriteChildFunc>
         void TixiSaveElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::vector<T>& children, WriteChildFunc writeChild) {
-            const auto sp = splitXPath(xpath);
+            const SplitXPath sp = splitXPath(xpath);
 
             // get number of children
             int childCount = 0;
@@ -203,12 +203,12 @@ namespace tigl {
                 // it the container node does not exist, create it
                 // TODO: is this really needed?
                 if (tixiCheckElement(tixiHandle, sp.parentXPath.c_str()) == ELEMENT_NOT_FOUND) {
-                    const auto pos = sp.parentXPath.find_last_of('/');
+                    const std::size_t pos = sp.parentXPath.find_last_of('/');
                     if (pos == std::string::npos)
                         throw std::invalid_argument("parentXPath must contain a /");
                     const std::string pathBeforeParentElement = sp.parentXPath.substr(0, pos);
                     const std::string parentName = sp.parentXPath.substr(pos + 1);
-                    const auto ret = tixiCreateElement(tixiHandle, pathBeforeParentElement.c_str(), parentName.c_str());
+                    const ReturnCode ret = tixiCreateElement(tixiHandle, pathBeforeParentElement.c_str(), parentName.c_str());
                     if (ret != SUCCESS) {
                         throw TixiError(ret, "tixiCreateElement failed creating element \"" + parentName + "\" at path \"" + pathBeforeParentElement + "\"");
                     }
@@ -219,7 +219,7 @@ namespace tigl {
                     // if child node does not exist, create it
                     const std::string childPath = xpath + "[" + std::to_string(i) + "]";
                     if (tixiCheckElement(tixiHandle, childPath.c_str()) == ELEMENT_NOT_FOUND) {
-                        const auto ret = tixiCreateElement(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str());
+                        const ReturnCode ret = tixiCreateElement(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str());
                         if (ret != SUCCESS) {
                             throw TixiError(ret, "tixiCreateElement failed creating element \"" + sp.element + "\" at path \"" + sp.parentXPath + "\"");
                         }

@@ -292,6 +292,7 @@ namespace tigl {
                     hpp << "P* GetParent() const {";
                     {
                         Scope s(hpp);
+                        hpp << "#ifdef HAVE_CPP11";
                         hpp << "static_assert(";
                         for (const auto& dep : c.deps.parents) {
                             if (&dep != &c.deps.parents[0])
@@ -299,6 +300,7 @@ namespace tigl {
                             hpp.raw() << "std::is_same<P, " << customReplacedType(dep->name, m_tables) << ">::value";
                         }
                         hpp.raw() << ", \"template argument for P is not a parent class of " << c.name << "\");";
+                        hpp << "#endif";
                         hpp << "if (m_parent == nullptr) {";
                         {
                             Scope s(hpp);

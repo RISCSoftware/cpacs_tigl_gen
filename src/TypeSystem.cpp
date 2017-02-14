@@ -448,5 +448,27 @@ namespace tigl {
         for (auto& p : enums)
             if (p.second.pruned)
                 std::cout << "\tEnum: " << p.second.name << std::endl;
+
+        // remove pruned classes from fields and bases
+        auto isPruned = [&](const std::string& name) {
+            const auto& cit = classes.find(name);
+            if (cit != std::end(classes) && cit->second.pruned)
+                return true;
+            const auto& eit = enums.find(name);
+            if (eit != std::end(enums) && eit->second.pruned)
+                return true;
+            return false;
+        };
+
+        for (auto& c : classes) {
+            auto& fields = c.second.fields;
+            fields.erase(std::remove_if(std::begin(fields), std::end(fields), [&](const Field& f) {
+                return isPruned(f.typeName);
+            }), std::end(fields));
+
+            auto& baseName = c.second.base;
+            if (isPruned(baseName))
+                baseName.clear();
+        }
     }
 }

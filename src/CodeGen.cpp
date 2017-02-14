@@ -922,17 +922,17 @@ namespace tigl {
 
                         // copy ctor and assign, move ctor and assign
                         hpp << "#ifdef HAVE_CPP11";
-                        hpp << "TIGL_EXPORT " << c.name << "(const " << c.name << "&) = delete;";
-                        hpp << "TIGL_EXPORT " << c.name << "& operator=(const " << c.name << "&) = delete;";
+                        hpp << c.name << "(const " << c.name << "&) = delete;";
+                        hpp << "" << c.name << "& operator=(const " << c.name << "&) = delete;";
                         hpp << "";
-                        hpp << "TIGL_EXPORT " << c.name << "(" << c.name << "&&) = delete;";
-                        hpp << "TIGL_EXPORT " << c.name << "& operator=(" << c.name << "&&) = delete;";
+                        hpp << c.name << "(" << c.name << "&&) = delete;";
+                        hpp << c.name << "& operator=(" << c.name << "&&) = delete;";
                         hpp << "#else";
-                        hpp << "TIGL_EXPORT " << c.name << "(const " << c.name << "&);";
-                        hpp << "TIGL_EXPORT " << c.name << "& operator=(const " << c.name << "&);";
+                        hpp << c.name << "(const " << c.name << "&);";
+                        hpp << c.name << "& operator=(const " << c.name << "&);";
                         hpp << "";
-                        hpp << "TIGL_EXPORT " << c.name << "(" << c.name << "&&);";
-                        hpp << "TIGL_EXPORT " << c.name << "& operator=(" << c.name << "&&);";
+                        hpp << c.name << "(" << c.name << "&&);";
+                        hpp << c.name << "& operator=(" << c.name << "&&);";
                         hpp << "#endif";
                     }
                     hpp << "};";

@@ -238,7 +238,8 @@ namespace tigl {
             for (const auto& f : fields) {
                 const auto op = f.cardinality == Cardinality::Optional;
                 if (op) {
-                    cpp << "bool " << className << "::Has" << CapitalizeFirstLetter(f.name()) << "() const {";
+                    cpp << "bool " << className << "::Has" << CapitalizeFirstLetter(f.name()) << "() const";
+                    cpp << "{";
                     {
                         Scope s(cpp);
                         cpp << "return static_cast<bool>(" << f.fieldName() << ");";
@@ -247,7 +248,8 @@ namespace tigl {
                     cpp << "";
                 }
 
-                cpp << "const " << getterSetterType(f) << "& " << className << "::Get" << CapitalizeFirstLetter(f.name()) << "() const {";
+                cpp << "const " << getterSetterType(f) << "& " << className << "::Get" << CapitalizeFirstLetter(f.name()) << "() const";
+                cpp << "{";
                 {
                     Scope s(cpp);
                     cpp << "return " << (op ? "*" : "") << f.fieldName() << ";";
@@ -258,14 +260,16 @@ namespace tigl {
                 const bool isClassType = m_types.classes.find(f.typeName) == std::end(m_types.classes);
                 // generate setter only for fundamental and enum types
                 if (isClassType) {
-                    cpp << "void " << className << "::Set" << CapitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value) {";
+                    cpp << "void " << className << "::Set" << CapitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value)";
+                    cpp << "{";
                     {
                         Scope s(cpp);
                         cpp << f.fieldName() << " = value;";
                     }
                     cpp << "}";
                 } else {
-                    cpp << getterSetterType(f) << "& " << className << "::Get" << CapitalizeFirstLetter(f.name()) << "() {";
+                    cpp << getterSetterType(f) << "& " << className << "::Get" << CapitalizeFirstLetter(f.name()) << "()";
+                    cpp << "{";
                     {
                         Scope s(cpp);
                         cpp << "return " << (op ? "*" : "") << f.fieldName() << ";";
@@ -281,7 +285,8 @@ namespace tigl {
                 if (c.deps.parents.size() > 1) {
                     hpp << "// getter for parent classes";
                     hpp << "template<typename P>";
-                    hpp << "bool IsParent() const {";
+                    hpp << "bool IsParent() const";
+                    hpp << "{";
                     {
                         Scope s(hpp);
                         hpp << "return m_parentType != nullptr && *m_parentType == typeid(P);";
@@ -289,7 +294,8 @@ namespace tigl {
                     hpp << "}";
                     hpp << "";
                     hpp << "template<typename P>";
-                    hpp << "P* GetParent() const {";
+                    hpp << "P* GetParent() const";
+                    hpp << "{";
                     {
                         Scope s(hpp);
                         hpp << "#ifdef HAVE_CPP11";
@@ -301,12 +307,14 @@ namespace tigl {
                         }
                         hpp.raw() << ", \"template argument for P is not a parent class of " << c.name << "\");";
                         hpp << "#endif";
-                        hpp << "if (m_parent == nullptr) {";
-                        {
-                            Scope s(hpp);
-                            hpp << "return nullptr;";
+                        if (c_generateDefaultCtorsForParentPointerTypes) {
+                            hpp << "if (m_parent == nullptr) {";
+                            {
+                                Scope s(hpp);
+                                hpp << "return nullptr;";
+                            }
+                            hpp << "}";
                         }
-                        hpp << "}";
                         hpp << "if (!IsParent<P>()) {";
                         {
                             Scope s(hpp);
@@ -327,7 +335,8 @@ namespace tigl {
         void writeParentPointerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() == 1) {
-                    cpp << customReplacedType(c.deps.parents[0]->name, m_tables) << "* " << c.name << "::GetParent() const {";
+                    cpp << customReplacedType(c.deps.parents[0]->name, m_tables) << "* " << c.name << "::GetParent() const";
+                    cpp << "{";
                     {
                         Scope s(cpp);
                         cpp << "return m_parent;";
@@ -553,7 +562,8 @@ namespace tigl {
         }
 
         void writeReadImplementation(IndentingStreamWrapper& cpp, const Class& c, const std::vector<Field>& fields) {
-            cpp << "void " << c.name << "::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) {";
+            cpp << "void " << c.name << "::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)";
+            cpp << "{";
             {
                 Scope s(cpp);
 
@@ -597,7 +607,8 @@ namespace tigl {
         }
 
         void writeWriteImplementation(IndentingStreamWrapper& cpp, const Class& c, const std::vector<Field>& fields) {
-            cpp << "void " << c.name << "::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const {";
+            cpp << "void " << c.name << "::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const";
+            cpp << "{";
             {
                 Scope s(cpp);
 
@@ -621,23 +632,23 @@ namespace tigl {
         }
 
         void writeLicenseHeader(IndentingStreamWrapper& f) {
-            f << "// Copyright (c) 2016 RISC Software GmbH";
-            f << "//";
-            f << "// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).";
-            f << "// Do not edit, all changes are lost when files are re-generated.";
-            f << "//";
-            f << "// Licensed under the Apache License, Version 2.0 (the \"License\")";
-            f << "// you may not use this file except in compliance with the License.";
-            f << "// You may obtain a copy of the License at";
-            f << "//";
-            f << "//     http://www.apache.org/licenses/LICENSE-2.0";
-            f << "//";
-            f << "// Unless required by applicable law or agreed to in writing, software";
-            f << "// distributed under the License is distributed on an \"AS IS\" BASIS,";
-            f << "// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.";
-            f << "// See the License for the specific language governing permissions and";
-            f << "// limitations under the License.";
-            f << "";
+            f.raw() << "// Copyright (c) 2016 RISC Software GmbH";
+            f       << "//";
+            f       << "// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).";
+            f       << "// Do not edit, all changes are lost when files are re-generated.";
+            f       << "//";
+            f       << "// Licensed under the Apache License, Version 2.0 (the \"License\")";
+            f       << "// you may not use this file except in compliance with the License.";
+            f       << "// You may obtain a copy of the License at";
+            f       << "//";
+            f       << "//     http://www.apache.org/licenses/LICENSE-2.0";
+            f       << "//";
+            f       << "// Unless required by applicable law or agreed to in writing, software";
+            f       << "// distributed under the License is distributed on an \"AS IS\" BASIS,";
+            f       << "// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.";
+            f       << "// See the License for the specific language governing permissions and";
+            f       << "// limitations under the License.";
+            f       << "";
         }
 
         auto resolveIncludes(const Class& c) -> Includes {
@@ -792,7 +803,7 @@ namespace tigl {
                 if (c_generateDefaultCtorsForParentPointerTypes) {
                     cpp << c.name << "::" << c.name << "()";
                     writeParentPointerFieldInitializers();
-                    cpp.raw() << " {";
+                    cpp << "{";
                     {
                         Scope s(cpp);
                         cpp << "m_parent = nullptr;";
@@ -805,7 +816,7 @@ namespace tigl {
                 if (c.deps.parents.size() == 1) {
                     cpp << c.name << "::" << c.name << "(" << customReplacedType(c.deps.parents[0]->name, m_tables) << "* parent)";
                     writeParentPointerFieldInitializers();
-                    cpp.raw() << " {";
+                    cpp << "{";
                     {
                         Scope s(cpp);
                         cpp << "//assert(parent != nullptr);";
@@ -818,7 +829,7 @@ namespace tigl {
                         const auto rn = customReplacedType(dep->name, m_tables);
                         cpp << c.name << "::" << c.name << "(" << rn << "* parent)";
                         writeParentPointerFieldInitializers();
-                        cpp.raw() << " {";
+                        cpp << "{";
                         {
                             Scope s(cpp);
                             cpp << "//assert(parent != nullptr);";
@@ -837,11 +848,11 @@ namespace tigl {
         }
 
         void writeHeader(IndentingStreamWrapper& hpp, const Class& c, const Includes& includes) {
-            hpp << "#pragma once";
-            hpp << "";
-
             // file header
             writeLicenseHeader(hpp);
+
+            hpp << "#pragma once";
+            hpp << "";
 
             // includes
             for (const auto& inc : includes.hppIncludes)
@@ -850,7 +861,8 @@ namespace tigl {
                 hpp << "";
 
             // namespace
-            hpp << "namespace tigl {";
+            hpp << "namespace tigl";
+            hpp << "{";
             {
                 Scope s(hpp);
 
@@ -860,7 +872,8 @@ namespace tigl {
                 if (includes.hppCustomForwards.size() > 0)
                     hpp << "";
 
-                hpp << "namespace generated {";
+                hpp << "namespace generated";
+                hpp << "{";
                 {
                     Scope s(hpp);
 
@@ -880,7 +893,8 @@ namespace tigl {
                     hpp << "// generated from " << c.origin->xpath << "";
 
                     // class name and base class
-                    hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + c.base) << " {";
+                    hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + c.base);
+                    hpp << "{";
                     hpp << "public:";
                     {
                         Scope s(hpp);
@@ -966,11 +980,13 @@ namespace tigl {
                 cpp << "";
 
             // namespace
-            cpp << "namespace tigl {";
+            cpp << "namespace tigl";
+            cpp << "{";
             {
                 Scope s(cpp);
 
-                cpp << "namespace generated {";
+                cpp << "namespace generated";
+                cpp << "{";
                 {
                     Scope s(cpp);
 
@@ -1023,12 +1039,11 @@ namespace tigl {
         }
 
         void writeEnum(IndentingStreamWrapper& hpp, const Enum& e) {
+            // file header
+            writeLicenseHeader(hpp);
 
             hpp << "#pragma once";
             hpp << "";
-
-            // file header
-            writeLicenseHeader(hpp);
 
             // includes
             hpp << "#include <stdexcept>";
@@ -1038,11 +1053,13 @@ namespace tigl {
             hpp << "";
 
             // namespace
-            hpp << "namespace tigl {";
+            hpp << "namespace tigl";
+            hpp << "{";
             {
                 Scope s(hpp);
 
-                hpp << "namespace generated {";
+                hpp << "namespace generated";
+                hpp << "{";
                 {
                     Scope s(hpp);
 
@@ -1055,7 +1072,12 @@ namespace tigl {
                     hpp << "// generated from " << e.origin->xpath;
 
                     // enum name
-                    hpp << "enum class " << e.name << " {";
+                    hpp << "#ifdef HAVE_CPP11";
+                    hpp << "enum class " << e.name;
+                    hpp << "#else";
+                    hpp << "enum " << e.name;
+                    hpp << "#endif";
+                    hpp << "{";
                     {
                         Scope s(hpp);
 
@@ -1067,12 +1089,13 @@ namespace tigl {
                     hpp << "";
 
                     // enum to string function
-                    hpp << "inline std::string " << enumToStringFunc(e, m_tables) << "(const " << e.name << "& value) {";
+                    hpp << "inline std::string " << enumToStringFunc(e, m_tables) << "(const " << e.name << "& value)";
+                    hpp << "{";
                     {
                         Scope s(hpp);
                         hpp << "switch(value) {";
                         {
-                            Scope s(hpp);
+                            //Scope s(hpp);
                             for (const auto& v : e.values)
                                 hpp << "case " << e.name << "::" << enumCppName(v.name, m_tables) << ": return \"" << v.name << "\";";
                             hpp << "default: throw std::runtime_error(\"Invalid enum value \\\"\" + std::to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
@@ -1082,7 +1105,8 @@ namespace tigl {
                     hpp << "}";
 
                     // string to enum function
-                    hpp << "inline " << e.name << " " << stringToEnumFunc(e, m_tables) << "(const std::string& value) {";
+                    hpp << "inline " << e.name << " " << stringToEnumFunc(e, m_tables) << "(const std::string& value)";
+                    hpp << "{";
                     {
                         Scope s(hpp);
                         if (c_generateCaseSensitiveStringToEnumConversion) {
@@ -1090,9 +1114,9 @@ namespace tigl {
                                 hpp << "if (value == \"" << v.name << "\") return " << e.name << "::" << enumCppName(v.name, m_tables) << ";";
                         } else {
                             auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
-                            hpp << "auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };";
+                            hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c) }; return str; };";
                             for (const auto& v : e.values)
-                                hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") return " << e.name << "::" << enumCppName(v.name, m_tables) << ";";
+                                hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") { return " << e.name << "::" << enumCppName(v.name, m_tables) << "; }";
                         }
 
                         hpp << "throw std::runtime_error(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";

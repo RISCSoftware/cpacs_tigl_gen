@@ -1114,7 +1114,7 @@ namespace tigl {
                                 hpp << "if (value == \"" << v.name << "\") return " << e.name << "::" << enumCppName(v.name, m_tables) << ";";
                         } else {
                             auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
-                            hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c) }; return str; };";
+                            hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
                             for (const auto& v : e.values)
                                 hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") { return " << e.name << "::" << enumCppName(v.name, m_tables) << "; }";
                         }

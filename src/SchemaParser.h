@@ -59,7 +59,7 @@ namespace tigl {
     };
 
     struct ComplexType : Type {
-        Variant<Group, All, Choice, Sequence, SimpleContent> content;
+        Variant<Group, All, Choice, Sequence, SimpleContent, Any> content;
         std::vector<Attribute> attributes;
     };
 
@@ -101,5 +101,6 @@ namespace tigl {
         auto generateUniqueTypeName(const std::string& newNameSuggestion) -> std::string;
     };
 
-    auto stripTypeSuffix(std::string name) -> std::string;
+    auto stripTypeSuffix(const std::string& name) -> std::string;
+    auto stripSimpleContentSuffix(const std::string& name) -> std::string;
 }

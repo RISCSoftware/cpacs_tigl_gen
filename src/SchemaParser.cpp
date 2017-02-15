@@ -173,8 +173,8 @@ namespace tigl {
              if (document.checkElement(xpath + "/xsd:all"))      type.content = readAll     (xpath + "/xsd:all",      stripTypeSuffix(type.name));
         else if (document.checkElement(xpath + "/xsd:sequence")) type.content = readSequence(xpath + "/xsd:sequence", stripTypeSuffix(type.name));
         else if (document.checkElement(xpath + "/xsd:choice"))   type.content = readChoice  (xpath + "/xsd:choice",   stripTypeSuffix(type.name));
-        else if (document.checkElement(xpath + "/xsd:group"))    throw NotImplementedException("XSD complexType group is not implemented");
-        else if (document.checkElement(xpath + "/xsd:any"))      throw NotImplementedException("XSD complexType any is not implemented");
+        else if (document.checkElement(xpath + "/xsd:group"))    type.content = readGroup   (xpath + "/xsd:group",    stripTypeSuffix(type.name));
+        else if (document.checkElement(xpath + "/xsd:any"))      type.content = readAny     (xpath + "/xsd:any",      stripTypeSuffix(type.name));
 
              if (document.checkElement(xpath + "/xsd:complexContent")) readComplexContent(xpath + "/xsd:complexContent", type);
         else if (document.checkElement(xpath + "/xsd:simpleContent"))  readSimpleContent (xpath + "/xsd:simpleContent",  type);
@@ -319,7 +319,7 @@ namespace tigl {
         if (document.checkAttribute(xpath, "id"))
             throw NotImplementedException("XSD complextype id is not implemented");
 
-        if (document.checkElement(xpath + "/xsd:restriction")) readRestriction(xpath + "/xsd:restriction", type);
+             if (document.checkElement(xpath + "/xsd:restriction")) readRestriction(xpath + "/xsd:restriction", type);
         else if (document.checkElement(xpath + "/xsd:list"))        throw NotImplementedException("XSD simpleType list is not implemented");
         else if (document.checkElement(xpath + "/xsd:union"))       throw NotImplementedException("XSD simpleType union is not implemented");
 
@@ -375,7 +375,7 @@ namespace tigl {
             if (id == 0)
                 return std::string();
             else
-                return std::to_string(id);
+                return "_" + std::to_string(id);
         };
 
         unsigned int id = 0;
@@ -385,9 +385,20 @@ namespace tigl {
         return n;
     }
 
-    std::string stripTypeSuffix(std::string name) {
-        if (name.size() > 4 && name.compare(name.size() - 4, 4, "Type") == 0)
-            name.erase(std::end(name) - 4, std::end(name));
-        return name;
+    namespace {
+        std::string stripSuffix(std::string name, const std::string& suffix) {
+            const auto& s = suffix.size();
+            if (name.size() > s && name.compare(name.size() - s, s, suffix) == 0)
+                name.erase(std::end(name) - s, std::end(name));
+            return name;
+        }
+    }
+
+    auto stripTypeSuffix(const std::string& name) -> std::string {
+        return stripSuffix(name, "Type");
+    }
+
+    auto stripSimpleContentSuffix(const std::string& name) -> std::string {
+        return stripSuffix(name, "_SimpleContent");
     }
 }

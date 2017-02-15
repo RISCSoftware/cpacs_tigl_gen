@@ -24,7 +24,7 @@ namespace tigl {
             return name;
         }
 
-        auto resolveType(const SchemaParser& schema, const std::string& name, Tables& tables) -> std::string {
+        auto resolveType(const SchemaParser& schema, const std::string& name, const Tables& tables) -> std::string {
             // search simple and complex types
             const auto& types = schema.types();
             const auto cit = types.find(name);
@@ -44,7 +44,7 @@ namespace tigl {
             throw std::runtime_error("Unknown type: " + name);
         }
 
-        auto buildFieldList(const SchemaParser& schema, const ComplexType& type, Tables& tables) -> std::vector<Field> {
+        auto buildFieldList(const SchemaParser& schema, const ComplexType& type, const Tables& tables) -> std::vector<Field> {
             std::vector<Field> members;
 
             // attributes
@@ -63,7 +63,7 @@ namespace tigl {
 
             // elements
             struct ContentVisitor : public boost::static_visitor<> {
-                ContentVisitor(const SchemaParser& schema, std::vector<Field>& members, Tables& tables)
+                ContentVisitor(const SchemaParser& schema, std::vector<Field>& members, const Tables& tables)
                     : schema(schema), members(members), tables(tables) {}
 
                 void operator()(const Element& e) const {
@@ -158,7 +158,7 @@ namespace tigl {
             private:
                 const SchemaParser& schema;
                 std::vector<Field>& members;
-                Tables& tables;
+                const Tables& tables;
             };
 
             type.content.visit(ContentVisitor(schema, members, tables));
@@ -167,7 +167,7 @@ namespace tigl {
         }
     }
 
-    TypeSystem::TypeSystem(SchemaParser& schema, Tables& tables)
+    TypeSystem::TypeSystem(const SchemaParser& schema, const Tables& tables)
         : tables(tables) {
         std::cout << "Creating type system" << std::endl;
 
@@ -175,7 +175,7 @@ namespace tigl {
             const auto& type = p.second;
 
             struct TypeVisitor {
-                TypeVisitor(SchemaParser& schema, TypeSystem& types, Tables& tables)
+                TypeVisitor(const SchemaParser& schema, TypeSystem& types, const Tables& tables)
                     : schema(schema), types(types), tables(tables) {}
 
                 void operator()(const ComplexType& type) {
@@ -219,9 +219,9 @@ namespace tigl {
                 }
 
             private:
-                SchemaParser& schema;
+                const SchemaParser& schema;
                 TypeSystem& types;
-                Tables& tables;
+                const Tables& tables;
             };
 
             type.visit(TypeVisitor(schema, *this, tables));
@@ -264,13 +264,11 @@ namespace tigl {
             for (auto& f : c.fields) {
                 const auto eit = enums.find(f.typeName);
                 if (eit != std::end(enums)) {
-                    //f.type = &eit->second;
                     c.deps.enumChildren.push_back(&eit->second);
                     eit->second.deps.parents.push_back(&c);
                 } else {
                     const auto cit = classes.find(f.typeName);
                     if (cit != std::end(classes)) {
-                        //f.type = &cit->second;
                         c.deps.children.push_back(&cit->second);
                         cit->second.deps.parents.push_back(&c);
                     }
@@ -382,7 +380,7 @@ namespace tigl {
     }
 
     namespace {
-        void includeNode(Enum& e, Table& pruneList) {
+        void includeNode(Enum& e, const Table& pruneList) {
             // if this enum is already marked, return
             if (e.pruned == false)
                 return;
@@ -395,7 +393,7 @@ namespace tigl {
             e.pruned = false;
         }
 
-        void includeNode(Class& cls, Table& pruneList) {
+        void includeNode(Class& cls, const Table& pruneList) {
             // if this class is already marked, return
             if (cls.pruned == false)
                 return;
@@ -470,5 +468,13 @@ namespace tigl {
             if (isPruned(baseName))
                 baseName.clear();
         }
+    }
+
+    auto buildTypeSystem(const SchemaParser& schema, const Tables& tables) -> TypeSystem {
+        TypeSystem typeSystem(schema, tables);
+        typeSystem.buildDependencies();
+        typeSystem.collapseEnums();
+        typeSystem.runPruneList();
+        return typeSystem;
     }
 }

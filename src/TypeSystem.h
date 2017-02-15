@@ -46,7 +46,6 @@ namespace tigl {
         Variant<const Attribute*, const Element*, const SimpleContent*> origin;
         std::string cpacsName;
         std::string typeName;
-        //Variant<Class*, Enum*> type;
         XMLConstruct xmlType;
         Cardinality cardinality;
 
@@ -113,14 +112,16 @@ namespace tigl {
 
     class TypeSystem {
     public:
-        TypeSystem(SchemaParser& schema, Tables& tables);
+        TypeSystem(const SchemaParser& schema, const Tables& tables);
 
         void buildDependencies();
         void collapseEnums();
         void runPruneList();
 
-        Tables& tables;
+        const Tables& tables;
         std::unordered_map<std::string, Class> classes;
         std::unordered_map<std::string, Enum> enums;
     };
+
+    auto buildTypeSystem(const SchemaParser& schema, const Tables& tables) -> TypeSystem;
 }

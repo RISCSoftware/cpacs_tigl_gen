@@ -23,7 +23,7 @@ namespace tigl {
     }
 
     namespace {
-        auto customReplacedType(const std::string& type, Tables& tables) -> const std::string& {
+        auto customReplacedType(const std::string& type, const Tables& tables) -> const std::string& {
             const auto p = tables.m_customTypes.find(type);
             return p ? *p : type;
         }
@@ -37,11 +37,11 @@ namespace tigl {
             return str;
         }
 
-        auto enumToStringFunc(const Enum& e, Tables& tables) -> std::string {
+        auto enumToStringFunc(const Enum& e, const Tables& tables) -> std::string {
             return customReplacedType(e.name, tables) + "ToString";
         }
 
-        auto stringToEnumFunc(const Enum& e, Tables& tables) -> std::string {
+        auto stringToEnumFunc(const Enum& e, const Tables& tables) -> std::string {
             return "stringTo" + CapitalizeFirstLetter(customReplacedType(e.name, tables));
         }
 
@@ -111,8 +111,8 @@ namespace tigl {
 
     class CodeGen {
     public:
-        CodeGen(const std::string& outputLocation, TypeSystem& types, Tables& tables)
-            : m_types(std::move(types)), m_tables(tables) {
+        CodeGen(const std::string& outputLocation, const TypeSystem& types, const Tables& tables)
+            : m_types(types), m_tables(tables) {
 
             for (const auto& p : m_types.classes) {
                 const auto c = p.second;
@@ -161,8 +161,8 @@ namespace tigl {
             std::vector<std::string> cppIncludes;
         };
 
-        TypeSystem& m_types;
-        Tables&     m_tables;
+        const TypeSystem& m_types;
+        const Tables&     m_tables;
 
         auto getterSetterType(const Field& field) const -> std::string {
             const auto typeName = customReplacedType(field.typeName, m_tables);
@@ -1019,7 +1019,7 @@ namespace tigl {
             writeSource(cpp, c, includes);
         }
 
-        auto enumCppName(std::string name, Tables& tables) {
+        auto enumCppName(std::string name, const Tables& tables) {
             // prefix numbers with "num" and replace minus with "neg"
             if (std::isdigit(name[0]))
                 name = "_" + name;
@@ -1130,7 +1130,7 @@ namespace tigl {
         }
     };
 
-    void genCode(const std::string& outputLocation, TypeSystem& types, Tables& tables) {
+    void genCode(const std::string& outputLocation, const TypeSystem& types, const Tables& tables) {
         CodeGen gen(outputLocation, types, tables);
     }
 }

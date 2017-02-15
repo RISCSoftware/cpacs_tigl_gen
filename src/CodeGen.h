@@ -6,5 +6,5 @@ namespace tigl {
     class TypeSystem;
     class Tables;
 
-    void genCode(const std::string& outputLocation, TypeSystem& types, Tables& tables);
+    void genCode(const std::string& outputLocation, const TypeSystem& types, const Tables& tables);
 }

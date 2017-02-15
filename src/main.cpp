@@ -23,15 +23,7 @@ namespace tigl {
         SchemaParser schema(cpacsLocation);
 
         // generate type system from schema
-        TypeSystem typeSystem(schema, tables);
-
-        // build dependencies
-        typeSystem.buildDependencies();
-
-        // apply a few reductions and cleanups
-        typeSystem.collapseEnums();
-
-        typeSystem.runPruneList();
+        const auto& typeSystem = buildTypeSystem(schema, tables);
 
         // create output directory
         boost::filesystem::create_directories(outputDirectory);

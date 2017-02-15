@@ -243,7 +243,7 @@ namespace tigl {
         };
     }
 
-    void TypeSystem::buildDependencies() {
+    void TypeSystem::buildDependencies(const std::unordered_map<std::string, std::string>& replacedEnums) {
         std::cout << "Building dependencies" << std::endl;
 
         for (auto& p : classes) {
@@ -262,6 +262,11 @@ namespace tigl {
 
             // fields
             for (auto& f : c.fields) {
+                // check if this type has been replaced
+                const auto& rit = replacedEnums.find(f.typeName);
+                if (rit != std::end(replacedEnums))
+                    f.typeName = rit->second;
+
                 const auto eit = enums.find(f.typeName);
                 if (eit != std::end(enums)) {
                     c.deps.enumChildren.push_back(&eit->second);
@@ -294,89 +299,80 @@ namespace tigl {
         }
     }
 
-    void TypeSystem::collapseEnums() {
-        return; // TODO: this modifies the enum collection and invalidates the dependency pointers !!!!
+    auto TypeSystem::collapseEnums() -> std::unordered_map<std::string, std::string> {
+        std::cout << "Collapsing enums" << std::endl;
 
         // convert enum unordered_map to vector for easier processing
-        std::vector<Enum> enums;
-        enums.reserve(this->enums.size());
-        for (const auto& p : this->enums)
-            enums.push_back(p.second);
+        std::vector<Enum> enumVec;
+        enumVec.reserve(enums.size());
+        for (const auto& p : enums)
+            enumVec.push_back(p.second);
 
-        for (std::size_t i = 0; i < enums.size(); i++) {
-            auto& e1 = enums[i];
-            for (std::size_t j = i + 1; j < enums.size(); j++) {
-                auto& e2 = enums[j];
+        std::unordered_map<std::string, std::string> replacedEnums;
+
+        for (std::size_t i = 0; i < enumVec.size(); i++) {
+            auto& e1 = enumVec[i];
+            for (std::size_t j = i + 1; j < enumVec.size(); j++) {
+                auto& e2 = enumVec[j];
 
                 auto stripNumber = [](std::string name) {
+                    // handle inline enum types
+                    // generated names are of the form: <containing type name>_<element name>[_SimpleContent][_<counter>]
+
+                    // remove optional digits and underscore at the end
                     while (!name.empty() && std::isdigit(name.back()))
                         name.pop_back();
+                    if (name.back() == '_')
+                        name.erase(name.length() - 1);
+                    
+                    // remove _SimpleContent
+                    name = stripSimpleContentSuffix(name);
+
+                    // if type contains an underscore, remove preceding part
+                    const auto& pos = name.find_last_of('_');
+                    if (pos != std::string::npos)
+                        name.erase(0, pos + 1);
+
+                    // make proper name
+                    name = makeClassName(name);
+
                     return name;
                 };
 
-                if (e1.values.size() == e2.values.size() &&
-                    stripNumber(e1.name) == stripNumber(e2.name) &&
-                    std::equal(std::begin(e1.values), std::end(e1.values), std::begin(e2.values))) {
-                    // choose new name
-                    const std::string newName = std::min(e1.name, e2.name);
+                if (e1.values.size() == e2.values.size()) {
+                    // strip name decorators
+                    const auto& e1StrippedName = stripNumber(e1.name);
+                    const auto& e2StrippedName = stripNumber(e2.name);
+                    if (e1StrippedName == e2StrippedName && std::equal(std::begin(e1.values), std::end(e1.values), std::begin(e2.values))) {
+                        // choose new name
+                        const auto newName = [&] {
+                            // if the stripped name is not already taken, use it. Otherwise, take the shorter of the two enum names
+                            if (classes.count(e1StrippedName) == 0 && enums.count(e1StrippedName) == 0)
+                                return e1StrippedName;
+                            else
+                                return std::min(e1.name, e2.name);
+                        }();
 
-                    if (newName == e2.name) {
-                        // the algorithm is implemented to delete e2, swap e1 and e2 therefore
-                        using std::swap;
-                        swap(e1, e2);
+                        // register replacements
+                        if (e1.name != newName) replacedEnums[e1.name] = newName;
+                        if (e2.name != newName) replacedEnums[e2.name] = newName;
+
+                        std::cout << "Collapsed enums " << e1.name << " and " << e2.name << " to " << newName << std::endl;
+
+                        // remove e2 and rename e1
+                        enumVec.erase(std::begin(enumVec) + j);
+                        e1.name = newName;
                     }
-
-                    std::cout << "Collapsed enums " << e1.name << " and " << e2.name << " to " << newName << std::endl;
-                    //for (auto& e : { e1, e2 }) {
-                    //	std::cout << "Enum " << e.name << std::endl;
-                    //	for (const auto& v : e.values)
-                    //		std::cout << "\t" << v.name << " " << std::endl;
-                    //}
-
-                    // remove e2 from other types
-                    for (auto& c : e2.deps.parents) {
-                        //std::cout << "\t\tparent: " << c->name << std::endl;
-                        auto& ec = c->deps.enumChildren;
-
-                        // delete e2 from c's dependencies
-                        const auto e2it = std::find_if(std::begin(ec), std::end(ec), [&](const Enum* e) {
-                            return e->name == e2.name;
-                        });
-                        if (e2it != std::end(ec))
-                            ec.erase(e2it);
-
-                        // add e1 to c's dependencies
-                        const auto e1it = std::find_if(std::begin(ec), std::end(ec), [&](const Enum* e) {
-                            return e->name == e1.name;
-                        });
-                        if (e1it == std::end(ec))
-                            ec.push_back(&e1);
-
-                        // add c to e1's parents
-                        const auto e1pit = std::find(std::begin(e1.deps.parents), std::end(e1.deps.parents), c);
-                        if (e1pit == std::end(e1.deps.parents))
-                            e1.deps.parents.push_back(c);
-
-                        // change type of c's fields which are of type e2
-                        for (auto& f : c->fields) {
-                            if (f.typeName == e2.name)
-                                f.typeName = newName;
-                        }
-                    }
-
-                    // remove e2
-                    enums.erase(std::begin(enums) + j);
-
-                    // rename e1
-                    e1.name = newName;
                 }
             }
         }
 
         // fill enum back again from vector
-        this->enums.clear();
-        for (auto& e : enums)
-            this->enums[e.name] = std::move(e);
+        enums.clear();
+        for (auto& e : enumVec)
+            enums[e.name] = std::move(e);
+
+        return replacedEnums;
     }
 
     namespace {
@@ -440,12 +436,16 @@ namespace tigl {
         includeNode(root, tables.m_pruneList);
 
         std::cout << "The following types have been pruned:" << std::endl;
-        for (auto& p : classes)
+        std::vector<std::string> prunedTypeNames;
+        for (const auto& p : classes)
             if(p.second.pruned)
-                std::cout << "\tClass: " << p.second.name << std::endl;
-        for (auto& p : enums)
+                prunedTypeNames.push_back("Class: " + p.second.name);
+        for (const auto& p : enums)
             if (p.second.pruned)
-                std::cout << "\tEnum: " << p.second.name << std::endl;
+                prunedTypeNames.push_back("Enum: " + p.second.name);
+        std::sort(std::begin(prunedTypeNames), std::end(prunedTypeNames));
+        for(const auto& name : prunedTypeNames)
+            std::cout << "\t" << name << std::endl;
 
         // remove pruned classes from fields and bases
         auto isPruned = [&](const std::string& name) {
@@ -472,8 +472,8 @@ namespace tigl {
 
     auto buildTypeSystem(const SchemaParser& schema, const Tables& tables) -> TypeSystem {
         TypeSystem typeSystem(schema, tables);
-        typeSystem.buildDependencies();
-        typeSystem.collapseEnums();
+        const auto& replacedEnums = typeSystem.collapseEnums();
+        typeSystem.buildDependencies(replacedEnums);
         typeSystem.runPruneList();
         return typeSystem;
     }

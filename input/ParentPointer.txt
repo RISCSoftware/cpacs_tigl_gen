@@ -24,8 +24,17 @@ CPACSSparSegment
 CPACSSparSegments
 CPACSComponentSegment
 CPACSComponentSegments
+
 CPACSFuselage
 CPACSFuselages
 CPACSFuselageSegment
 CPACSFuselageSegments
+
 CPACSRotorBlades
+CPACSRotor
+CPACSRotors
+CPACSRotorBladeAttachment
+CPACSRotorBladeAttachments
+CPACSRotorHub
+CPACSRotorHubHinge
+CPACSRotorHubHinges

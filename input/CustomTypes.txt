@@ -2,8 +2,7 @@
 // maps generated types to actual tigl types
 
 // enums
-CPACSWingType_symmetry             TiglSymmetryAxis
-CPACSFuselageType_symmetry         TiglSymmetryAxis
+CPACSSymmetry                      TiglSymmetryAxis
 CPACSPointAbsRelType_refType       ECPACSTranslationType
 CPACSFarField_type_SimpleContent   TiglFarFieldType
 
@@ -66,3 +65,13 @@ CPACSWeb                           CCPACSWingSparWeb
 CPACSCst2D                         CCPACSWingProfileCST
 CPACSCellPositioningSpanwise       CCPACSWingCellPositionSpanwise
 CPACSCellPositioningChordwise      CCPACSWingCellPositionChordwise
+
+CPACSRotor                         CCPACSRotor
+CPACSRotors                        CCPACSRotors
+CPACSRotorBladeAttachment          CCPACSRotorBladeAttachment
+CPACSRotorBladeAttachments         CCPACSRotorBladeAttachments
+CPACSRotorBlade                    CCPACSRotorBlade
+CPACSRotorBlades                   CCPACSRotorBlades
+CPACSRotorHub                      CCPACSRotorHub
+CPACSRotorHubHinge                 CCPACSRotorHinge
+CPACSRotorHubHinges                CCPACSRotorHinges

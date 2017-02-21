@@ -8,7 +8,8 @@ CPACSFarField_type_SimpleContent   TiglFarFieldType
 
 // classes
 CPACSHeader                        CCPACSHeader
-CPACSAircraftModel                 CCPACSModel
+CPACSAircraftModel                 CCPACSAircraftModel
+CPACSRotorcraftModel               CCPACSRotorcraftModel
 CPACSMaterialDefinition            CCPACSMaterial
 CPACSFarField                      CCPACSFarField
 CPACSGuideCurve                    CCPACSGuideCurve

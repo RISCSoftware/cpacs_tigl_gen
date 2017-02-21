@@ -26,13 +26,14 @@ endif()
 # source files
 file(GLOB ALL_SRCS src/*.cpp)
 file(GLOB ALL_HEADERS src/*.h*)
+file(GLOB ALL_INPUTS input/*.*)
 
 #includes
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${TIXI_INCLUDE_DIRS})
 
 # exe
-add_executable(${PROJECT_NAME} ${ALL_SRCS} ${ALL_HEADERS})
+add_executable(${PROJECT_NAME} ${ALL_SRCS} ${ALL_HEADERS} ${ALL_INPUTS})
 
 # library dependencies
 message("${Boost_LIBRARIES}")
@@ -41,6 +42,7 @@ target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${TIXI_LIBRARIES})
 
 source_group(" " FILES ${ALL_SRCS} ${ALL_HEADERS})
+source_group("inputs" FILES ${ALL_INPUTS})
 
 # add custom target step to generate files side by side to TIGL source
 add_custom_target(

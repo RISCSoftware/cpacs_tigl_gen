@@ -206,15 +206,19 @@ namespace tigl {
         };
 
         void writeFields(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
+            std::size_t length = 0;
+            for (const auto& f : fields)
+                length = std::max(length, fieldType(f).length());
+
             for (const auto& f : fields) {
                 //f.origin.visit(WriteGeneratedFromVisitor(hpp));
                 //f.origin.visit([&](const auto* attOrElem) {
                 //	hpp << "// generated from " << attOrElem->xpath;
                 //});
-                hpp << fieldType(f) << " " << f.fieldName() << ";";
+                hpp << std::left << std::setw(length) << fieldType(f) << " " << f.fieldName() << ";";
 
-                if (&f != &fields.back())
-                    hpp << "";
+                //if (&f != &fields.back())
+                //    hpp << "";
             }
             if (fields.size() > 0)
                 hpp << "";
@@ -283,7 +287,6 @@ namespace tigl {
         void writeParentPointerGetters(IndentingStreamWrapper& hpp, const Class& c) {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
-                    hpp << "// getter for parent classes";
                     hpp << "template<typename P>";
                     hpp << "bool IsParent() const";
                     hpp << "{";
@@ -294,7 +297,7 @@ namespace tigl {
                     hpp << "}";
                     hpp << "";
                     hpp << "template<typename P>";
-                    hpp << "P* GetParent() const";
+                    hpp << "TIGL_EXPORT P* GetParent() const";
                     hpp << "{";
                     {
                         Scope s(hpp);
@@ -325,8 +328,7 @@ namespace tigl {
                     }
                     hpp << "}";
                 } else if (c.deps.parents.size() == 1) {
-                    hpp << "// getter for parent class";
-                    hpp << customReplacedType(c.deps.parents[0]->name, m_tables) << "* GetParent() const;";
+                    hpp << "TIGL_EXPORT " << customReplacedType(c.deps.parents[0]->name, m_tables) << "* GetParent() const;";
                 }
                 hpp << "";
             }
@@ -763,11 +765,9 @@ namespace tigl {
         void writeParentPointerFields(IndentingStreamWrapper& hpp, const Class& c) {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
-                    hpp << "// pointer to parent classes";
                     hpp << "void* m_parent;";
                     hpp << "const std::type_info* m_parentType;";
                 } else if (c.deps.parents.size() == 1) {
-                    hpp << "// pointer to parent class";
                     hpp << customReplacedType(c.deps.parents[0]->name, m_tables) << "* m_parent;";
                 }
                 hpp << "";

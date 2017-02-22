@@ -389,8 +389,8 @@ namespace tigl {
                         if (isAtt)
                             cpp << f.fieldName() << " = " << tixiHelperNamespace << "::TixiGetAttribute<" << f.typeName << ">(tixiHandle, xpath, \"" + f.cpacsName + "\");";
                         else {
-                            const auto isSimpleContent = f.xmlType == XMLConstruct::SimpleContent;
-                            cpp << f.fieldName() << " = " << tixiHelperNamespace << "::TixiGetElement<" << f.typeName << ">(tixiHandle, xpath" << (isSimpleContent ? "" : " + \"/" + f.cpacsName + "\"") << ");";
+                            const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
+                            cpp << f.fieldName() << " = " << tixiHelperNamespace << "::TixiGetElement<" << f.typeName << ">(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ");";
                         }
                         break;
                     case Cardinality::Vector:
@@ -471,8 +471,8 @@ namespace tigl {
                         if (isAtt)
                             cpp << tixiHelperNamespace << "::TixiSaveAttribute(tixiHandle, xpath, \"" + f.cpacsName + "\", " << f.fieldName() << ");";
                         else {
-                            const auto isSimpleContent = f.xmlType == XMLConstruct::SimpleContent;
-                            cpp << tixiHelperNamespace << "::TixiSaveElement(tixiHandle, xpath" << (isSimpleContent ? "" : " + \"/" + f.cpacsName + "\"") << ", " << f.fieldName() << ");";
+                            const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
+                            cpp << tixiHelperNamespace << "::TixiSaveElement(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ", " << f.fieldName() << ");";
                         }
                         break;
                     case Cardinality::Vector:
@@ -529,12 +529,8 @@ namespace tigl {
 
         void writeReadBaseImplementation(IndentingStreamWrapper& cpp, const std::string& type) {
             // fundamental types
-            if (m_tables.m_fundamentalTypes.contains(type)) {
-                // reading a base class which is a fundamental type is very cricital
-                // this case basically covers the case where the base is std::string, as other fundamental types cannot be inherited (int etc.)
-                cpp << "*this = " << tixiHelperNamespace << "::TixiGetElement<" << type << ">(tixiHandle, xpath);";
-                return;
-            }
+            if (m_tables.m_fundamentalTypes.contains(type))
+                throw std::logic_error("fundamental types cannot be base classes"); // this should be prevented by TypeSystem
 
             // classes
             const auto itC = m_types.classes.find(type);
@@ -584,8 +580,8 @@ namespace tigl {
                     if (isAtt)
                         cpp << "if (" << tixiHelperNamespace << "::TixiCheckAttribute(tixiHandle, xpath, \"" << f.cpacsName << "\")) {";
                     else {
-                        const auto isSimpleContent = f.xmlType == XMLConstruct::SimpleContent;
-                        cpp << "if (" << tixiHelperNamespace << "::TixiCheckElement(tixiHandle, xpath" << (isSimpleContent ? "" : " + \"/" + f.cpacsName + "\"") << ")) {";
+                        const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
+                        cpp << "if (" << tixiHelperNamespace << "::TixiCheckElement(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ")) {";
                     }
                     {
                         Scope s(cpp);

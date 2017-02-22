@@ -188,7 +188,7 @@ namespace tigl {
 
                         // make base a field if fundamental type
                         if (tables.m_fundamentalTypes.contains(c.base)) {
-                            std::cout << "Warning: Type " << type.name << " has base class " << c.base << " which is a fundamental type. Generated field 'base' instead" << std::endl;
+                            std::cout << "\tWarning: Type " << type.name << " has base class " << c.base << " which is a fundamental type. Generated field 'base' instead" << std::endl;
 
                             Field f;
                             f.cpacsName = "";

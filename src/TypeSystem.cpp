@@ -333,8 +333,15 @@ namespace tigl {
                     if (pos != std::string::npos)
                         name.erase(0, pos + 1);
 
-                    // make proper name
-                    name = makeClassName(name);
+                    // capitalize first letter
+                    name[0] = std::toupper(name[0]);
+
+                    // strip Type suffix if exists
+                    name = stripTypeSuffix(name);
+
+                    // prefix CPACS if not exists
+                    if (name.compare(0, 5, "CPACS") != 0)
+                        name = "CPACS" + name;
 
                     return name;
                 };

@@ -38,3 +38,6 @@ CPACSRotorBladeAttachments
 CPACSRotorHub
 CPACSRotorHubHinge
 CPACSRotorHubHinges
+
+CPACSGenericGeometricComponent
+CPACSGenericGeometryComponents

@@ -10,6 +10,7 @@ CPACSFarField_type_SimpleContent   TiglFarFieldType
 CPACSHeader                        CCPACSHeader
 CPACSAircraftModel                 CCPACSAircraftModel
 CPACSRotorcraftModel               CCPACSRotorcraftModel
+CPACSProfiles                      CCPACSProfiles
 CPACSMaterialDefinition            CCPACSMaterial
 CPACSFarField                      CCPACSFarField
 CPACSGuideCurve                    CCPACSGuideCurve
@@ -24,6 +25,8 @@ CPACSTransformation                CCPACSTransformation
 CPACSStringVectorBase              CCPACSStringVector
 CPACSPointListXYZVector            CCPACSPointListXYZ
 CPACSPointListRelXYZVector         CCPACSPointListRelXYZ
+CPACSGenericGeometricComponent     CCPACSExternalObject
+CPACSGenericGeometryComponents     CCPACSExternalObjects
 
 CPACSFuselage                      CCPACSFuselage
 CPACSFuselages                     CCPACSFuselages
@@ -39,6 +42,7 @@ CPACSComponentSegment              CCPACSWingComponentSegment
 CPACSComponentSegments             CCPACSWingComponentSegments
 CPACSWing                          CCPACSWing
 CPACSWings                         CCPACSWings
+CPACSWingAirfoils                  CCPACSWingProfiles
 CPACSWingCell                      CCPACSWingCell
 CPACSWingCells                     CCPACSWingCells
 CPACSWingRibCrossSection           CCPACSWingRibCrossSection
@@ -69,6 +73,7 @@ CPACSCellPositioningChordwise      CCPACSWingCellPositionChordwise
 
 CPACSRotor                         CCPACSRotor
 CPACSRotors                        CCPACSRotors
+CPACSRotorAirfoils                 CCPACSRotorProfiles
 CPACSRotorBladeAttachment          CCPACSRotorBladeAttachment
 CPACSRotorBladeAttachments         CCPACSRotorBladeAttachments
 CPACSRotorBlade                    CCPACSRotorBlade

@@ -243,7 +243,7 @@ namespace tigl {
         };
     }
 
-    void TypeSystem::buildDependencies(const std::unordered_map<std::string, std::string>& replacedEnums) {
+    void TypeSystem::buildDependencies() {
         std::cout << "Building dependencies" << std::endl;
 
         for (auto& p : classes) {
@@ -262,11 +262,6 @@ namespace tigl {
 
             // fields
             for (auto& f : c.fields) {
-                // check if this type has been replaced
-                const auto& rit = replacedEnums.find(f.typeName);
-                if (rit != std::end(replacedEnums))
-                    f.typeName = rit->second;
-
                 const auto eit = enums.find(f.typeName);
                 if (eit != std::end(enums)) {
                     c.deps.enumChildren.push_back(&eit->second);
@@ -299,7 +294,7 @@ namespace tigl {
         }
     }
 
-    auto TypeSystem::collapseEnums() -> std::unordered_map<std::string, std::string> {
+    void TypeSystem::collapseEnums() {
         std::cout << "Collapsing enums" << std::endl;
 
         // convert enum unordered_map to vector for easier processing
@@ -364,7 +359,7 @@ namespace tigl {
                         if (e1.name != newName) replacedEnums[e1.name] = newName;
                         if (e2.name != newName) replacedEnums[e2.name] = newName;
 
-                        std::cout << "Collapsed enums " << e1.name << " and " << e2.name << " to " << newName << std::endl;
+                        std::cout << "\t" << e1.name << " and " << e2.name << " to " << newName << std::endl;
 
                         // remove e2 and rename e1
                         enumVec.erase(std::begin(enumVec) + j);
@@ -379,7 +374,27 @@ namespace tigl {
         for (auto& e : enumVec)
             enums[e.name] = std::move(e);
 
-        return replacedEnums;
+        // replace enum names
+        for (auto& p : classes) {
+            auto& c = p.second;
+            for (auto& f : c.fields) {
+                const auto& rit = replacedEnums.find(f.typeName);
+                if (rit != std::end(replacedEnums))
+                    f.typeName = rit->second;
+            }
+        }
+    }
+
+    void TypeSystem::prefixEnums() {
+        std::cout << "Prefixing enum values" << std::endl;
+        for (auto& p : enums) {
+            auto& e = p.second;
+            if (tables.m_prefixedEnums.contains(e.name)) {
+                std::cout << "\t" << e.name << std::endl;
+                for (auto& v : e.values)
+                    v.name = e.name + "_" + v.name;
+            }
+        }
     }
 
     namespace {
@@ -479,8 +494,9 @@ namespace tigl {
 
     auto buildTypeSystem(const SchemaParser& schema, const Tables& tables) -> TypeSystem {
         TypeSystem typeSystem(schema, tables);
-        const auto& replacedEnums = typeSystem.collapseEnums();
-        typeSystem.buildDependencies(replacedEnums);
+        typeSystem.collapseEnums();
+        typeSystem.prefixEnums();
+        typeSystem.buildDependencies();
         typeSystem.runPruneList();
         return typeSystem;
     }

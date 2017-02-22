@@ -34,7 +34,7 @@ namespace tigl {
 
         std::cout << "Copying runtime" << std::endl;
         for (const auto& file : runtimeFiles) {
-            std::cout << file << std::endl;
+            std::cout << "\t" << file << std::endl;
             boost::filesystem::copy_file(srcDirectory + "/" + file, outputDirectory + "/" + file, boost::filesystem::copy_option::overwrite_if_exists);
         }
     }

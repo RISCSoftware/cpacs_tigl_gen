@@ -1088,40 +1088,47 @@ namespace tigl {
                     hpp << "};";
                     hpp << "";
 
-                    // enum to string function
-                    hpp << "inline std::string " << enumToStringFunc(e, m_tables) << "(const " << e.name << "& value)";
-                    hpp << "{";
-                    {
-                        Scope s(hpp);
-                        hpp << "switch(value) {";
+                    auto writeToStringFuncs = [&](const std::string& prefix) {
+                        // enum to string function
+                        hpp << "inline std::string " << enumToStringFunc(e, m_tables) << "(const " << e.name << "& value)";
+                        hpp << "{";
                         {
-                            //Scope s(hpp);
-                            for (const auto& v : e.values)
-                                hpp << "case " << e.name << "::" << enumCppName(v.name, m_tables) << ": return \"" << v.name << "\";";
-                            hpp << "default: throw std::runtime_error(\"Invalid enum value \\\"\" + std::to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
+                            Scope s(hpp);
+                            hpp << "switch(value) {";
+                            {
+                                //Scope s(hpp);
+                                for (const auto& v : e.values)
+                                    hpp << "case " << prefix << enumCppName(v.name, m_tables) << ": return \"" << v.name << "\";";
+                                hpp << "default: throw std::runtime_error(\"Invalid enum value \\\"\" + std::to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
+                            }
+                            hpp << "}";
                         }
                         hpp << "}";
-                    }
-                    hpp << "}";
 
-                    // string to enum function
-                    hpp << "inline " << e.name << " " << stringToEnumFunc(e, m_tables) << "(const std::string& value)";
-                    hpp << "{";
-                    {
-                        Scope s(hpp);
-                        if (c_generateCaseSensitiveStringToEnumConversion) {
-                            for (const auto& v : e.values)
-                                hpp << "if (value == \"" << v.name << "\") return " << e.name << "::" << enumCppName(v.name, m_tables) << ";";
-                        } else {
-                            auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
-                            hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
-                            for (const auto& v : e.values)
-                                hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") { return " << e.name << "::" << enumCppName(v.name, m_tables) << "; }";
+                        // string to enum function
+                        hpp << "inline " << e.name << " " << stringToEnumFunc(e, m_tables) << "(const std::string& value)";
+                        hpp << "{";
+                        {
+                            Scope s(hpp);
+                            if (c_generateCaseSensitiveStringToEnumConversion) {
+                                for (const auto& v : e.values)
+                                    hpp << "if (value == \"" << v.name << "\") return " << prefix << enumCppName(v.name, m_tables) << ";";
+                            } else {
+                                auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
+                                hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
+                                for (const auto& v : e.values)
+                                    hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") { return " << prefix << enumCppName(v.name, m_tables) << "; }";
+                            }
+
+                            hpp << "throw std::runtime_error(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";
                         }
-
-                        hpp << "throw std::runtime_error(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";
-                    }
-                    hpp << "}";
+                        hpp << "}";
+                    };
+                    hpp << "#ifdef HAVE_CPP11";
+                    writeToStringFuncs(e.name + "::");
+                    hpp << "#else";
+                    writeToStringFuncs("");
+                    hpp << "#endif";
                 }
                 hpp << "}";
             }

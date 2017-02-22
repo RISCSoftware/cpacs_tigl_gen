@@ -114,8 +114,9 @@ namespace tigl {
     public:
         TypeSystem(const SchemaParser& schema, const Tables& tables);
 
-        auto collapseEnums() -> std::unordered_map<std::string, std::string>;
-        void buildDependencies(const std::unordered_map<std::string, std::string>& replacedEnums);
+        void collapseEnums();
+        void prefixEnums();
+        void buildDependencies();
         void runPruneList();
 
         const Tables& tables;

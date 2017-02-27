@@ -254,7 +254,7 @@ namespace tigl
                 // iteratore over all child nodes
                 for (std::size_t i = 0; i < children.size(); i++) {
                     // if child node does not exist, create it
-                    const std::string childPath = xpath + "[" + std::to_string(i) + "]";
+                    const std::string childPath = xpath + "[" + std::to_string(i + 1) + "]";
                     if (tixiCheckElement(tixiHandle, childPath.c_str()) == ELEMENT_NOT_FOUND) {
                         const ReturnCode ret = tixiCreateElement(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str());
                         if (ret != SUCCESS) {
@@ -266,12 +266,15 @@ namespace tigl
                     writeChild(tixiHandle, childPath, children[i]);
                 }
 
-                // delete old children which where not overwritten
-                for (std::size_t i = children.size() + 1; i <= childCount; i++) {
-                    tixiRemoveElement(tixiHandle, (xpath + "[" + std::to_string(i) + "]").c_str());
-                }
-            } else {
-                // parent node must not exist if there are no child nodes
+            } 
+            
+            // delete old children which where not overwritten
+            for (std::size_t i = children.size() + 1; i <= childCount; i++) {
+                tixiRemoveElement(tixiHandle, (xpath + "[" + std::to_string(i) + "]").c_str());
+            }
+            
+            // remove parent node if there are no child nodes
+            if(children.size() == 0) {
                 tixiRemoveElement(tixiHandle, sp.parentXPath.c_str());
             }
         }

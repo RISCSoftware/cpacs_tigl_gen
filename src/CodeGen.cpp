@@ -401,6 +401,18 @@ namespace tigl {
             if (m_tables.m_fundamentalTypes.contains(f.typeName)) {
                 switch (f.cardinality) {
                     case Cardinality::Optional:
+                        cpp << "if (" << f.fieldName() << ") {";
+                        {
+                            Scope s(cpp);
+                            if (isAtt)
+                                cpp << tixiHelperNamespace << "::TixiSaveAttribute(tixiHandle, xpath, \"" + f.cpacsName + "\", *" << f.fieldName() << ");";
+                            else {
+                                const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
+                                cpp << tixiHelperNamespace << "::TixiSaveElement(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ", *" << f.fieldName() << ");";
+                            }
+                        }
+                        cpp << "}";
+                        break;
                     case Cardinality::Mandatory:
                         if (isAtt)
                             cpp << tixiHelperNamespace << "::TixiSaveAttribute(tixiHandle, xpath, \"" + f.cpacsName + "\", " << f.fieldName() << ");";
@@ -425,8 +437,15 @@ namespace tigl {
             if (itE != std::end(m_types.enums)) {
                 switch (f.cardinality) {
                     case Cardinality::Optional:
+                        cpp << "if (" << f.fieldName() << ") {";
+                        {
+                            Scope s(cpp);
+                            cpp << tixiHelperNamespace << "::TixiSave" << (isAtt ? "Attribute" : "Element") << "(tixiHandle, xpath" << (isAtt ? ", \"" : " + \"/") << f.cpacsName + "\", " << enumToStringFunc(itE->second, m_tables) << "(*" << f.fieldName() << "));";
+                        }
+                        cpp << "}";
+                        break;
                     case Cardinality::Mandatory:
-                        cpp << tixiHelperNamespace << "::TixiSave" << (isAtt ? "Attribute" : "Element") << "(tixiHandle, xpath" << (isAtt ? ", \"" : " + \"/") << f.cpacsName + "\", " << enumToStringFunc(itE->second, m_tables) << "(" << (f.cardinality == Cardinality::Optional ? "*" : "") << f.fieldName() << "));";
+                        cpp << tixiHelperNamespace << "::TixiSave" << (isAtt ? "Attribute" : "Element") << "(tixiHandle, xpath" << (isAtt ? ", \"" : " + \"/") << f.cpacsName + "\", " << enumToStringFunc(itE->second, m_tables) << "(" << f.fieldName() << "));";
                         break;
                     case Cardinality::Vector:
                         throw NotImplementedException("Writing enum vectors is not implemented");

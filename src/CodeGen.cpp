@@ -10,6 +10,7 @@
 #include "TypeSystem.h"
 #include "NotImplementedException.h"
 #include "IndentingStreamWrapper.h"
+#include "WriteIfDifferentFiles.h"
 #include "CodeGen.h"
 
 namespace tigl {
@@ -44,69 +45,6 @@ namespace tigl {
         auto stringToEnumFunc(const Enum& e, const Tables& tables) -> std::string {
             return "stringTo" + CapitalizeFirstLetter(customReplacedType(e.name, tables));
         }
-
-        static std::size_t newlywritten = 0;
-        static std::size_t overwritten = 0;
-        static std::size_t skipped = 0;
-        static std::size_t deleted = 0;
-
-        auto fileExists(const std::string& path) {
-            std::ifstream f(path);
-            return f.good();
-        }
-
-        auto removeIfExists(const std::string& path) {
-            if (fileExists(path)) {
-                std::remove(path.c_str());
-                deleted++;
-            }
-        }
-
-        class WriteIfDifferentFile {
-        public:
-            WriteIfDifferentFile(const std::string& fileLocation)
-                : m_fileLocation(fileLocation) {}
-
-            auto stream() -> std::ostream& {
-                return m_stream;
-            }
-
-            ~WriteIfDifferentFile() {
-                const auto newContent = m_stream.str();
-
-                {
-                    // check if a file already exists
-                    std::ifstream existingFile(m_fileLocation);
-                    if (existingFile) {
-                        // read existing file to string and compare
-                        existingFile.seekg(0, existingFile.end);
-                        const auto length = existingFile.tellg();
-                        existingFile.seekg(0, existingFile.beg);
-                        std::string content;
-                        content.reserve(length);
-                        content.assign(std::istreambuf_iterator<char>{existingFile}, std::istreambuf_iterator<char>{});
-
-                        // if existing file has same content, skip overwriting it
-                        if (content == newContent) {
-                            skipped++;
-                            return;
-                        }
-
-                        overwritten++;
-                    } else
-                        newlywritten++;
-                }
-
-                // write new content to file
-                std::ofstream f(m_fileLocation);
-                f.exceptions(std::ios::failbit | std::ios::badbit);
-                f.write(newContent.c_str(), newContent.size());
-            }
-
-        private:
-            std::stringstream m_stream;
-            std::string m_fileLocation;
-        };
     }
 
     class CodeGen {
@@ -114,43 +52,39 @@ namespace tigl {
         CodeGen(const std::string& outputLocation, const TypeSystem& types, const Tables& tables)
             : m_types(types), m_tables(tables) {
 
+            WriteIfDifferentFiles files;
+
             for (const auto& p : m_types.classes) {
                 const auto c = p.second;
                 const auto hppFileName = outputLocation + "/" + c.name + ".h";
                 const auto cppFileName = outputLocation + "/" + c.name + ".cpp";
                 if (c.pruned) {
-                    removeIfExists(hppFileName.c_str());
-                    removeIfExists(cppFileName.c_str());
+                    files.removeIfExists(hppFileName.c_str());
+                    files.removeIfExists(cppFileName.c_str());
                     continue;
                 }
 
-                WriteIfDifferentFile hppFile(hppFileName);
-                IndentingStreamWrapper hpp(hppFile.stream());
-
-                WriteIfDifferentFile cppFile(cppFileName);
-                IndentingStreamWrapper cpp(cppFile.stream());
-
-                writeClass(hpp, cpp, c);
+                auto hpp = files.newFile(hppFileName);
+                auto cpp = files.newFile(cppFileName);
+                writeClass(IndentingStreamWrapper(hpp.stream()), IndentingStreamWrapper(cpp.stream()), c);
             }
 
             for (const auto& p : m_types.enums) {
                 const auto e = p.second;
                 const auto hppFileName = outputLocation + "/" + e.name + ".h";
                 if (e.pruned) {
-                    removeIfExists(hppFileName.c_str());
+                    files.removeIfExists(hppFileName.c_str());
                     continue;
                 }
 
-                WriteIfDifferentFile hppFile(hppFileName);
-                IndentingStreamWrapper hpp(hppFile.stream());
-
-                writeEnum(hpp, e);
+                auto hpp = files.newFile(hppFileName);
+                writeEnum(IndentingStreamWrapper(hpp.stream()), e);
             }
 
-            std::cout << "Wrote   " << std::setw(5) << newlywritten << " new files" << std::endl;
-            std::cout << "Updated " << std::setw(5) << overwritten << " existing files" << std::endl;
-            std::cout << "Skipped " << std::setw(5) << skipped << " files, no changes" << std::endl;
-            std::cout << "Deleted " << std::setw(5) << deleted << " files, pruned" << std::endl;
+            std::cout << "\tWrote   " << std::setw(5) << files.newlywritten << " new files" << std::endl;
+            std::cout << "\tUpdated " << std::setw(5) << files.overwritten << " existing files" << std::endl;
+            std::cout << "\tSkipped " << std::setw(5) << files.skipped << " files, no changes" << std::endl;
+            std::cout << "\tDeleted " << std::setw(5) << files.deleted << " files, pruned" << std::endl;
         }
 
     private:

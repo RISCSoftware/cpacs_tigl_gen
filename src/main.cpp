@@ -1,10 +1,12 @@
 #include <boost/filesystem.hpp>
 #include <iostream>
+#include <iomanip>
 
 #include "SchemaParser.h"
 #include "TypeSystem.h"
 #include "CodeGen.h"
 #include "Tables.h"
+#include "WriteIfDifferentFiles.h"
 
 namespace tigl {
     const auto runtimeFiles = {
@@ -33,10 +35,12 @@ namespace tigl {
         genCode(outputDirectory, typeSystem, tables);
 
         std::cout << "Copying runtime" << std::endl;
-        for (const auto& file : runtimeFiles) {
-            std::cout << "\t" << file << std::endl;
-            boost::filesystem::copy_file(srcDirectory + "/" + file, outputDirectory + "/" + file, boost::filesystem::copy_option::overwrite_if_exists);
-        }
+        WriteIfDifferentFiles files;
+        for (const auto& file : runtimeFiles)
+            files.newFile(outputDirectory + "/" + file).stream() << readFile(srcDirectory + "/" + file);
+        std::cout << "\tWrote   " << std::setw(5) << files.newlywritten << " new files" << std::endl;
+        std::cout << "\tUpdated " << std::setw(5) << files.overwritten << " existing files" << std::endl;
+        std::cout << "\tSkipped " << std::setw(5) << files.skipped << " files, no changes" << std::endl;
     }
 }
 

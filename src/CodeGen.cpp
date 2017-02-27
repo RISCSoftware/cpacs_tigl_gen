@@ -288,7 +288,7 @@ namespace tigl {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "template<typename P>";
-                    hpp << "bool IsParent() const";
+                    hpp << "TIGL_EXPORT bool IsParent() const";
                     hpp << "{";
                     {
                         Scope s(hpp);
@@ -321,7 +321,7 @@ namespace tigl {
                         hpp << "if (!IsParent<P>()) {";
                         {
                             Scope s(hpp);
-                            hpp << "throw std::runtime_error(\"bad parent\");";
+                            hpp << "throw CTiglError(\"bad parent\");";
                         }
                         hpp << "}";
                         hpp << "return static_cast<P*>(m_parent);";
@@ -1042,10 +1042,11 @@ namespace tigl {
             hpp << "";
 
             // includes
-            hpp << "#include <stdexcept>";
             hpp << "#include <string>";
             if (!c_generateCaseSensitiveStringToEnumConversion)
                 hpp << "#include <cctype>";
+            hpp << "";
+            hpp << "#include \"CTiglError.h\"";
             hpp << "";
 
             // namespace
@@ -1095,7 +1096,7 @@ namespace tigl {
                                 //Scope s(hpp);
                                 for (const auto& v : e.values)
                                     hpp << "case " << prefix << enumCppName(v.name, m_tables) << ": return \"" << v.name << "\";";
-                                hpp << "default: throw std::runtime_error(\"Invalid enum value \\\"\" + std::to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
+                                hpp << "default: throw CTiglError(\"Invalid enum value \\\"\" + std::to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
                             }
                             hpp << "}";
                         }
@@ -1116,7 +1117,7 @@ namespace tigl {
                                     hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") { return " << prefix << enumCppName(v.name, m_tables) << "; }";
                             }
 
-                            hpp << "throw std::runtime_error(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";
+                            hpp << "throw CTiglError(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";
                         }
                         hpp << "}";
                     };

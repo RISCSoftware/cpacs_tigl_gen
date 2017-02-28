@@ -6,10 +6,9 @@ cmake_minimum_required(VERSION 3.2)
 project(CPACSGen)
 
 # cache variables
-set(BOOST_ROOT                                          "" CACHE PATH "Boost installation prefix")
-set(TIXI_PATH                                           "" CACHE PATH "Tixi installation prefix")
-set(GENERATOR_OUTPUT_DIR                                "" CACHE PATH "Output directory for the generated CPACS classes (Tigl src/generated directory)")
-set(GENERATOR_INPUT_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/input CACHE PATH "Generator input files (CPACS schema, configuration tables ...)")
+set(BOOST_ROOT "" CACHE PATH "Boost installation prefix")
+set(TIXI_PATH  "" CACHE PATH "Tixi installation prefix")
+set(TIGL_PATH  "" CACHE PATH "Tigl installation prefix")
 
 # find boost
 set(Boost_USE_STATIC_LIBS ON)
@@ -36,13 +35,18 @@ include_directories(${TIXI_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME} ${ALL_SRCS} ${ALL_HEADERS} ${ALL_INPUTS})
 
 # library dependencies
-message("${Boost_LIBRARIES}")
-message("${Boost_INCLUDE_DIRS}")
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${TIXI_LIBRARIES})
 
 source_group(" " FILES ${ALL_SRCS} ${ALL_HEADERS})
 source_group("inputs" FILES ${ALL_INPUTS})
+
+if(TIGL_PATH)
+	set(GENERATOR_INPUT_DIR  ${TIGL_PATH}/cpacs_gen_input CACHE PATH "Generator input files (Tigl cpacs_gen_input directory)")
+	set(GENERATOR_OUTPUT_DIR ${TIGL_PATH}/src/generated   CACHE PATH "Output directory for the generated CPACS classes (Tigl src/generated directory)")
+else()
+	message(FATAL_ERROR "TIGL_PATH is not specified")
+endif()
 
 # add custom target step to generate files side by side to TIGL source
 add_custom_target(

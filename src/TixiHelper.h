@@ -83,12 +83,12 @@ namespace tigl
         int         TixiGetIntElement   (const TixiDocumentHandle& tixiHandle, const std::string& xpath);
         std::time_t TixiGetTimeTElement (const TixiDocumentHandle& tixiHandle, const std::string& xpath);
 
-        template <typename T> T TixiGetElement             (const TixiDocumentHandle& tixiHandle, const std::string& xpath);
-        template <> inline std::string TixiGetElement<std::string>(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetTextElement  (tixiHandle, xpath); }
-        template <> inline double      TixiGetElement<double     >(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetDoubleElement(tixiHandle, xpath); }
-        template <> inline bool        TixiGetElement<bool       >(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetBoolElement  (tixiHandle, xpath); }
-        template <> inline int         TixiGetElement<int        >(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetIntElement   (tixiHandle, xpath); }
-        template <> inline std::time_t TixiGetElement<std::time_t>(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetTimeTElement (tixiHandle, xpath); }
+        template <typename T> T           TixiGetElement             (const TixiDocumentHandle& tixiHandle, const std::string& xpath) { /* static_assert(false, "TixiGetElement<T> cannot be used for the given T"); */ }
+        template <> inline    std::string TixiGetElement<std::string>(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetTextElement  (tixiHandle, xpath); }
+        template <> inline    double      TixiGetElement<double     >(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetDoubleElement(tixiHandle, xpath); }
+        template <> inline    bool        TixiGetElement<bool       >(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetBoolElement  (tixiHandle, xpath); }
+        template <> inline    int         TixiGetElement<int        >(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetIntElement   (tixiHandle, xpath); }
+        template <> inline    std::time_t TixiGetElement<std::time_t>(const TixiDocumentHandle& tixiHandle, const std::string& xpath) { return TixiGetTimeTElement (tixiHandle, xpath); }
 
         void TixiSaveAttribute(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute, const char*        value);
         void TixiSaveAttribute(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute, const std::string& value);
@@ -103,8 +103,9 @@ namespace tigl
         void TixiSaveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath, int                value);
         void TixiSaveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath, std::time_t        value);
 
-        void TixiCreateElement (const TixiDocumentHandle& tixiHandle, const std::string& xpath);
-        void TixiCreateElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath);
+        void TixiCreateElement            (const TixiDocumentHandle& tixiHandle, const std::string& xpath);
+        void TixiCreateElementIfNotExists (const TixiDocumentHandle& tixiHandle, const std::string& xpath);
+        void TixiCreateElementsIfNotExists(const TixiDocumentHandle& tixiHandle, const std::string& xpath);
 
         void TixiRemoveAttribute(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::string& attribute);
         void TixiRemoveElement  (const TixiDocumentHandle& tixiHandle, const std::string& xpath);
@@ -204,54 +205,34 @@ namespace tigl
         template<typename T, typename WriteChildFunc>
         void TixiSaveElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::vector<T>& children, WriteChildFunc writeChild)
         {
-            const SplitXPath sp = splitXPath(xpath);
+            const SplitXPath& sp = splitXPath(xpath);
 
             // get number of children
-            int childCount = 0;
-            tixiGetNamedChildrenCount(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str(), &childCount); // this call is allowed to fail if the element at parentXPath does not exist
+            const int childCount = TixiGetNamedChildrenCount(tixiHandle, xpath);
 
             // test if we have children to write
             if (children.size() > 0) {
-                // it the container node does not exist, create it
-                // TODO: is this really needed?
-                if (tixiCheckElement(tixiHandle, sp.parentXPath.c_str()) == ELEMENT_NOT_FOUND) {
-                    const std::size_t pos = sp.parentXPath.find_last_of('/');
-                    if (pos == std::string::npos) {
-                        throw std::invalid_argument("parentXPath must contain a /");
-                    }
-                    const std::string pathBeforeParentElement = sp.parentXPath.substr(0, pos);
-                    const std::string parentName = sp.parentXPath.substr(pos + 1);
-                    const ReturnCode ret = tixiCreateElement(tixiHandle, pathBeforeParentElement.c_str(), parentName.c_str());
-                    if (ret != SUCCESS) {
-                        throw TixiError(ret, "tixiCreateElement failed creating element \"" + parentName + "\" at path \"" + pathBeforeParentElement + "\"");
-                    }
-                }
-
                 // iteratore over all child nodes
                 for (std::size_t i = 0; i < children.size(); i++) {
                     // if child node does not exist, create it
-                    const std::string childPath = xpath + "[" + std::to_string(i + 1) + "]";
-                    if (tixiCheckElement(tixiHandle, childPath.c_str()) == ELEMENT_NOT_FOUND) {
-                        const ReturnCode ret = tixiCreateElement(tixiHandle, sp.parentXPath.c_str(), sp.element.c_str());
-                        if (ret != SUCCESS) {
-                            throw TixiError(ret, "tixiCreateElement failed creating element \"" + sp.element + "\" at path \"" + sp.parentXPath + "\"");
-                        }
+                    const std::string& childPath = xpath + "[" + std::to_string(i + 1) + "]";
+                    if (!TixiCheckElement(tixiHandle, childPath)) {
+                        TixiCreateElement(tixiHandle, xpath);
                     }
 
                     // write child node
                     writeChild(tixiHandle, childPath, children[i]);
                 }
-
-            } 
+            }
             
             // delete old children which where not overwritten
             for (std::size_t i = children.size() + 1; i <= childCount; i++) {
-                tixiRemoveElement(tixiHandle, (xpath + "[" + std::to_string(i) + "]").c_str());
+                TixiRemoveElement(tixiHandle, xpath + "[" + std::to_string(i) + "]");
             }
             
             // remove parent node if there are no child nodes
             if(children.size() == 0) {
-                tixiRemoveElement(tixiHandle, sp.parentXPath.c_str());
+                TixiRemoveElement(tixiHandle, sp.parentXPath);
             }
         }
 

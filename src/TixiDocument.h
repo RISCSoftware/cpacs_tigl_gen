@@ -157,9 +157,13 @@ namespace tigl {
                 TixiCreateElement(m_handle, xpath);
             }
 
+            void createElementIfNotExists(const std::string& xpath) {
+                TixiCreateElementIfNotExists(m_handle, xpath);
+            }
+
             // includes creation of all parent elements
-            void createElements(const std::string& xpath) {
-                TixiCreateElements(m_handle, xpath);
+            void createElementsNotExists(const std::string& xpath) {
+                TixiCreateElementsIfNotExists(m_handle, xpath);
             }
 
             void removeAttribute(const std::string& xpath, const std::string& attribute) {

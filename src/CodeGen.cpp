@@ -396,6 +396,12 @@ namespace tigl {
 
         void writeWriteAttributeOrElementImplementation(IndentingStreamWrapper& cpp, const Field& f) {
             const auto isAtt = isAttribute(f.xmlType);
+            const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
+
+            auto createElement = [&] {
+                if (!empty)
+                    cpp << tixiHelperNamespace << "::TixiCreateElementIfNotExists(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
+            };
 
             // fundamental types
             if (m_tables.m_fundamentalTypes.contains(f.typeName)) {
@@ -404,22 +410,20 @@ namespace tigl {
                         cpp << "if (" << f.fieldName() << ") {";
                         {
                             Scope s(cpp);
+                            createElement();
                             if (isAtt)
                                 cpp << tixiHelperNamespace << "::TixiSaveAttribute(tixiHandle, xpath, \"" + f.cpacsName + "\", *" << f.fieldName() << ");";
-                            else {
-                                const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
+                            else
                                 cpp << tixiHelperNamespace << "::TixiSaveElement(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ", *" << f.fieldName() << ");";
-                            }
                         }
                         cpp << "}";
                         break;
                     case Cardinality::Mandatory:
+                        createElement();
                         if (isAtt)
                             cpp << tixiHelperNamespace << "::TixiSaveAttribute(tixiHandle, xpath, \"" + f.cpacsName + "\", " << f.fieldName() << ");";
-                        else {
-                            const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
+                        else
                             cpp << tixiHelperNamespace << "::TixiSaveElement(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ", " << f.fieldName() << ");";
-                        }
                         break;
                     case Cardinality::Vector:
                         if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase)
@@ -440,11 +444,13 @@ namespace tigl {
                         cpp << "if (" << f.fieldName() << ") {";
                         {
                             Scope s(cpp);
+                            createElement();
                             cpp << tixiHelperNamespace << "::TixiSave" << (isAtt ? "Attribute" : "Element") << "(tixiHandle, xpath" << (isAtt ? ", \"" : " + \"/") << f.cpacsName + "\", " << enumToStringFunc(itE->second, m_tables) << "(*" << f.fieldName() << "));";
                         }
                         cpp << "}";
                         break;
                     case Cardinality::Mandatory:
+                        createElement();
                         cpp << tixiHelperNamespace << "::TixiSave" << (isAtt ? "Attribute" : "Element") << "(tixiHandle, xpath" << (isAtt ? ", \"" : " + \"/") << f.cpacsName + "\", " << enumToStringFunc(itE->second, m_tables) << "(" << f.fieldName() << "));";
                         break;
                     case Cardinality::Vector:
@@ -462,11 +468,13 @@ namespace tigl {
                             cpp << "if (" << f.fieldName() << ") {";
                             {
                                 Scope s(cpp);
+                                createElement();
                                 cpp << f.fieldName() << "->WriteCPACS(tixiHandle, xpath + \"/" << f.cpacsName << "\");";
                             }
                             cpp << "}";
                             break;
                         case Cardinality::Mandatory:
+                            createElement();
                             cpp << f.fieldName() << ".WriteCPACS(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
                             break;
                         case Cardinality::Vector:
@@ -546,7 +554,7 @@ namespace tigl {
                         cpp << "else {";
                         {
                             Scope s(cpp);
-                            cpp << "LOG(WARNING) << \"Required " << construct << " " << f.cpacsName << " is missing\";";
+                            cpp << "LOG(ERROR) << \"Required " << construct << " " << f.cpacsName << " is missing\";";
                         }
                         cpp << "}";
                     }

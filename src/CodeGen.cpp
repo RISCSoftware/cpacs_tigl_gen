@@ -376,6 +376,12 @@ namespace tigl {
                                     cpp << "LOG(ERROR) << \"Failed to read " << f.cpacsName << " at xpath << \" << xpath << \": \" << e.what();";
                                     cpp << f.fieldName() << " = boost::none;";
                                 }
+                                cpp << "} catch(const CTiglError& e) {";
+                                {
+                                    Scope s(cpp);
+                                    cpp << "LOG(ERROR) << \"Failed to read " << f.cpacsName << " at xpath << \" << xpath << \": \" << e.getError();";
+                                    cpp << f.fieldName() << " = boost::none;";
+                                }
                                 cpp << "}";
                             } else
                                 cpp << f.fieldName() << "->ReadCPACS(tixiHandle, xpath + \"/" << f.cpacsName << "\");";
@@ -702,6 +708,7 @@ namespace tigl {
             // misc cpp includes
             deps.cppIncludes.push_back("\"TixiHelper.h\"");
             deps.cppIncludes.push_back("\"CTiglLogging.h\"");
+            deps.cppIncludes.push_back("\"CTiglError.h\""); // remove this, when CTiglError inherits std::exception
             deps.cppIncludes.push_back("\"" + c.name + ".h\"");
 
             return deps;

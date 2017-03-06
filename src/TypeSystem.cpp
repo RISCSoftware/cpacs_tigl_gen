@@ -275,13 +275,17 @@ namespace tigl {
 
         for (auto& p : m_classes) {
             auto& c = p.second;
+            if (c.pruned)
+                continue;
 
             // base
             if (!c.base.empty()) {
                 const auto it = m_classes.find(c.base);
                 if (it != std::end(m_classes)) {
-                    c.deps.bases.push_back(&it->second);
-                    it->second.deps.deriveds.push_back(&c);
+                    if (!it->second.pruned) {
+                        c.deps.bases.push_back(&it->second);
+                        it->second.deps.deriveds.push_back(&c);
+                    }
                 } else
                     // this exception should be prevented by earlier code
                     throw std::runtime_error("Class " + c.name + " has non-class base: " + c.base);
@@ -291,13 +295,17 @@ namespace tigl {
             for (auto& f : c.fields) {
                 const auto eit = m_enums.find(f.typeName);
                 if (eit != std::end(m_enums)) {
-                    c.deps.enumChildren.push_back(&eit->second);
-                    eit->second.deps.parents.push_back(&c);
+                    if (!eit->second.pruned) {
+                        c.deps.enumChildren.push_back(&eit->second);
+                        eit->second.deps.parents.push_back(&c);
+                    }
                 } else {
                     const auto cit = m_classes.find(f.typeName);
                     if (cit != std::end(m_classes)) {
-                        c.deps.children.push_back(&cit->second);
-                        cit->second.deps.parents.push_back(&c);
+                        if (!cit->second.pruned) {
+                            c.deps.children.push_back(&cit->second);
+                            cit->second.deps.parents.push_back(&c);
+                        }
                     }
                 }
             }

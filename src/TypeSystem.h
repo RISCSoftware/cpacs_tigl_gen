@@ -80,7 +80,7 @@ namespace tigl {
         std::string name;
         std::string base;
         std::vector<Field> fields;
-        bool pruned;
+        bool pruned = false;
 
         ClassDependencies deps;
     };
@@ -105,7 +105,7 @@ namespace tigl {
         const SimpleType* origin;
         std::string name;
         std::vector<EnumValue> values;
-        bool pruned;
+        bool pruned = false;
 
         EnumDependencies deps;
     };
@@ -116,8 +116,8 @@ namespace tigl {
 
         void writeGraphVisFile(const std::string& typeSystemGraphVisFile) const;
 
-        auto& classes() const { return this->m_classes; }
-        auto& enums() const { return this->m_enums; }
+        auto& classes() const { return m_classes; }
+        auto& enums() const { return m_enums; }
 
     private:
         void collapseEnums();

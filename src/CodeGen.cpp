@@ -1053,7 +1053,9 @@ namespace tigl {
                     hpp << "};";
                     hpp << "";
 
-                    auto writeToStringFuncs = [&](const std::string& prefix) {
+                    auto writeToStringFuncs = [&](bool cpp11) {
+                        const auto& prefix = cpp11 ? e.name + "::" : "";
+
                         // enum to string function
                         hpp << "inline std::string " << enumToStringFunc(e, m_tables) << "(const " << e.name << "& value)";
                         hpp << "{";
@@ -1079,8 +1081,11 @@ namespace tigl {
                                 for (const auto& v : e.values)
                                     hpp << "if (value == \"" << v.name << "\") return " << prefix << enumCppName(v.name, m_tables) << ";";
                             } else {
+                                if (cpp11)
+                                    hpp << "auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };";
+                                else
+                                    hpp << "struct ToLower { std::string operator()(std::string str) { for (char& c : str) { c = std::tolower(c); } return str; } } toLower;";
                                 auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
-                                hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
                                 for (const auto& v : e.values)
                                     hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") { return " << prefix << enumCppName(v.name, m_tables) << "; }";
                             }
@@ -1090,9 +1095,9 @@ namespace tigl {
                         hpp << "}";
                     };
                     hpp << "#ifdef HAVE_CPP11";
-                    writeToStringFuncs(e.name + "::");
+                    writeToStringFuncs(true);
                     hpp << "#else";
-                    writeToStringFuncs("");
+                    writeToStringFuncs(false);
                     hpp << "#endif";
                 }
                 hpp << "}";

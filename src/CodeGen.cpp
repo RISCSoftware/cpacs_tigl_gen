@@ -226,7 +226,7 @@ namespace tigl {
                     hpp << "{";
                     {
                         Scope s(hpp);
-                        hpp << "return m_parentType != nullptr && *m_parentType == typeid(P);";
+                        hpp << "return m_parentType != NULL && *m_parentType == typeid(P);";
                     }
                     hpp << "}";
                     hpp << "";
@@ -245,10 +245,10 @@ namespace tigl {
                         hpp.raw() << ", \"template argument for P is not a parent class of " << c.name << "\");";
                         hpp << "#endif";
                         if (c_generateDefaultCtorsForParentPointerTypes) {
-                            hpp << "if (m_parent == nullptr) {";
+                            hpp << "if (m_parent == NULL) {";
                             {
                                 Scope s(hpp);
-                                hpp << "return nullptr;";
+                                hpp << "return NULL;";
                             }
                             hpp << "}";
                         }
@@ -770,9 +770,9 @@ namespace tigl {
                     cpp << "{";
                     {
                         Scope s(cpp);
-                        cpp << "m_parent = nullptr;";
+                        cpp << "m_parent = NULL;";
                         if (c.deps.parents.size() > 1)
-                            cpp << "m_parentType = nullptr;";
+                            cpp << "m_parentType = NULL;";
                     }
                     cpp << "}";
                     cpp << "";
@@ -783,7 +783,7 @@ namespace tigl {
                     cpp << "{";
                     {
                         Scope s(cpp);
-                        cpp << "//assert(parent != nullptr);";
+                        cpp << "//assert(parent != NULL);";
                         cpp << "m_parent = parent;";
                     }
                     cpp << "}";
@@ -796,7 +796,7 @@ namespace tigl {
                         cpp << "{";
                         {
                             Scope s(cpp);
-                            cpp << "//assert(parent != nullptr);";
+                            cpp << "//assert(parent != NULL);";
                             cpp << "m_parent = parent;";
                             cpp << "m_parentType = &typeid(" << rn << ");";
                         }

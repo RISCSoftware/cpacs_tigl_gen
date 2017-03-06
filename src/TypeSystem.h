@@ -114,6 +114,7 @@ namespace tigl {
     public:
         TypeSystem(const SchemaParser& schema, const Tables& tables);
 
+        void writeGraphVisFile(const std::string& typeSystemGraphVisFile) const;
 
         auto& classes() const { return this->m_classes; }
         auto& enums() const { return this->m_enums; }

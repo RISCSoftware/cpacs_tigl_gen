@@ -234,6 +234,27 @@ namespace tigl {
         runPruneList();
     }
 
+    void TypeSystem::writeGraphVisFile(const std::string& typeSystemGraphVisFile) const {
+        std::cout << "Writing type system graph vis file to " << typeSystemGraphVisFile << std::endl;
+        std::ofstream f{typeSystemGraphVisFile};
+        if (!f)
+            throw std::runtime_error("Failed to open file " + typeSystemGraphVisFile + " for writing");
+        f << "digraph typesystem {\n";
+        for (const auto& p : m_classes) {
+            const auto& c = p.second;
+            if (c.pruned)
+                f << "\t" << c.name << " [color=gray]\n";
+            for (const auto& b : c.deps.bases)
+                f << "\t" << c.name << " -> " << b->name << ";\n";
+            for (const auto& ch : c.deps.children)
+                f << "\t" << c.name << " -> " << ch->name << ";\n";
+            for (const auto& e : c.deps.enumChildren)
+                f << "\t" << c.name << " -> " << e->name << ";\n";
+        }
+        // m_enums have no further dependencies
+        f << "}\n";
+    }
+
     namespace {
         // TODO: replace by lambda when C++14 is available
         struct SortAndUnique {

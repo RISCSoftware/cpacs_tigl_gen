@@ -8,6 +8,8 @@
 #include "Tables.h"
 #include "WriteIfDifferentFiles.h"
 
+namespace fs = boost::filesystem;
+
 namespace tigl {
     const auto runtimeFiles = {
         "TixiHelper.h",
@@ -15,7 +17,7 @@ namespace tigl {
         "UniquePtr.h",
     };
 
-    void run(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory) {
+    void run(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile) {
         // load tables
         Tables tables(inputDirectory);
 
@@ -27,8 +29,16 @@ namespace tigl {
         // generate type system from schema
         const auto& typeSystem = buildTypeSystem(schema, tables);
 
+        // write graph vis file for the generated type system
+        if (!typeSystemGraphVisFile.empty()) {
+            auto p = fs::path{typeSystemGraphVisFile};
+            if (p.has_parent_path())
+                fs::create_directories(p.parent_path());
+            typeSystem.writeGraphVisFile(typeSystemGraphVisFile);
+        }
+
         // create output directory
-        boost::filesystem::create_directories(outputDirectory);
+        fs::create_directories(outputDirectory);
 
         // generate code
         std::cout << "Generating classes" << std::endl;
@@ -46,17 +56,18 @@ namespace tigl {
 
 int main(int argc, char* argv[]) {
     // parse command line arguments
-    if (argc != 4) {
-        std::cerr << "Usage: CPACSGen inputDirectory srcDirectory outputDirectory" << std::endl;
+    if (argc != 4 && argc != 5) {
+        std::cerr << "Usage: CPACSGen inputDirectory srcDirectory outputDirectory [typeSystemGraphVisFile]" << std::endl;
         return -1;
     }
 
-    const std::string inputDirectory  = argv[1];
-    const std::string srcDirectory    = argv[2];
-    const std::string outputDirectory = argv[3];
+    const std::string inputDirectory         = argv[1];
+    const std::string srcDirectory           = argv[2];
+    const std::string outputDirectory        = argv[3];
+    const std::string typeSystemGraphVisFile = argc > 4 ? argv[4] : "";
 
     try {
-        tigl::run(inputDirectory, srcDirectory, outputDirectory);
+        tigl::run(inputDirectory, srcDirectory, outputDirectory, typeSystemGraphVisFile);
         return 0;
     } catch (const std::exception& e) {
         std::cerr << "Exception: " << e.what() << std::endl;

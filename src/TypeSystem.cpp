@@ -243,7 +243,7 @@ namespace tigl {
         for (const auto& p : m_classes) {
             const auto& c = p.second;
             if (c.pruned)
-                f << "\t" << c.name << " [color=gray]\n";
+                continue;
             for (const auto& b : c.deps.bases)
                 f << "\t" << c.name << " -> " << b->name << ";\n";
             for (const auto& ch : c.deps.children)
@@ -456,7 +456,7 @@ namespace tigl {
             for (auto& b : deps.bases)
                 includeNode(*b, pruneList);
 
-            // try to include all field m_classes
+            // try to include all field classes
             for (auto& c : deps.children)
                 includeNode(*c, pruneList);
 
@@ -496,7 +496,6 @@ namespace tigl {
         for(const auto& name : prunedTypeNames)
             std::cout << "\t" << name << std::endl;
 
-        // remove pruned m_classes from fields and bases
         auto isPruned = [&](const std::string& name) {
             const auto& cit = m_classes.find(name);
             if (cit != std::end(m_classes) && cit->second.pruned)
@@ -507,6 +506,7 @@ namespace tigl {
             return false;
         };
 
+        // remove pruned classes and enums from class fields and bases
         for (auto& c : m_classes) {
             auto& fields = c.second.fields;
             fields.erase(std::remove_if(std::begin(fields), std::end(fields), [&](const Field& f) {
@@ -517,6 +517,13 @@ namespace tigl {
             if (isPruned(baseName))
                 baseName.clear();
         }
+
+        // clear and rebuild dependencies
+        for (auto& c : m_classes)
+            c.second.deps = ClassDependencies{};
+        for (auto& e : m_enums)
+            e.second.deps = EnumDependencies{};
+        buildDependencies();
     }
 
     auto buildTypeSystem(const SchemaParser& schema, const Tables& tables) -> TypeSystem {

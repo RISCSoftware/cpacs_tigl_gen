@@ -54,7 +54,7 @@ namespace tigl {
 
             WriteIfDifferentFiles files;
 
-            for (const auto& p : m_types.classes) {
+            for (const auto& p : m_types.classes()) {
                 const auto c = p.second;
                 const auto hppFileName = outputLocation + "/" + c.name + ".h";
                 const auto cppFileName = outputLocation + "/" + c.name + ".cpp";
@@ -69,7 +69,7 @@ namespace tigl {
                 writeClass(IndentingStreamWrapper(hpp.stream()), IndentingStreamWrapper(cpp.stream()), c);
             }
 
-            for (const auto& p : m_types.enums) {
+            for (const auto& p : m_types.enums()) {
                 const auto e = p.second;
                 const auto hppFileName = outputLocation + "/" + e.name + ".h";
                 if (e.pruned) {
@@ -106,7 +106,7 @@ namespace tigl {
                     return typeName;
                 case Cardinality::Vector:
                 {
-                    if (m_types.classes.find(field.typeName) != std::end(m_types.classes))
+                    if (m_types.classes().find(field.typeName) != std::end(m_types.classes()))
                         return "std::vector<unique_ptr<" + typeName + ">>";
                     else
                         return "std::vector<" + typeName + ">";
@@ -163,7 +163,7 @@ namespace tigl {
                 if (f.cardinality == Cardinality::Optional)
                     hpp << "TIGL_EXPORT bool Has" << CapitalizeFirstLetter(f.name()) << "() const;";
                 hpp << "TIGL_EXPORT const " << getterSetterType(f) << "& Get" << CapitalizeFirstLetter(f.name()) << "() const;";
-                const bool isClassType = m_types.classes.find(f.typeName) == std::end(m_types.classes);
+                const bool isClassType = m_types.classes().find(f.typeName) == std::end(m_types.classes());
                 if (isClassType) // generate setter only for fundamental and enum types
                     hpp << "TIGL_EXPORT void Set" << CapitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
                 else
@@ -195,7 +195,7 @@ namespace tigl {
                 cpp << "}";
                 cpp << "";
 
-                const bool isClassType = m_types.classes.find(f.typeName) == std::end(m_types.classes);
+                const bool isClassType = m_types.classes().find(f.typeName) == std::end(m_types.classes());
                 // generate setter only for fundamental and enum types
                 if (isClassType) {
                     cpp << "void " << className << "::Set" << CapitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value)";
@@ -339,8 +339,8 @@ namespace tigl {
             }
 
             // enums
-            const auto itE = m_types.enums.find(f.typeName);
-            if (itE != std::end(m_types.enums)) {
+            const auto itE = m_types.enums().find(f.typeName);
+            if (itE != std::end(m_types.enums())) {
                 const auto& readFunc = stringToEnumFunc(itE->second, m_tables);
                 switch (f.cardinality) {
                     case Cardinality::Optional:
@@ -358,9 +358,9 @@ namespace tigl {
 
             // classes
             if (f.xmlType != XMLConstruct::Attribute && f.xmlType != XMLConstruct::FundamentalTypeBase) {
-                const auto itC = m_types.classes.find(f.typeName);
+                const auto itC = m_types.classes().find(f.typeName);
                 const bool requiresParentPointer = m_tables.m_parentPointers.contains(f.typeName);
-                if (itC != std::end(m_types.classes)) {
+                if (itC != std::end(m_types.classes())) {
                     switch (f.cardinality) {
                         case Cardinality::Optional:
                             cpp << f.fieldName() << " = boost::in_place(" << (requiresParentPointer ? parentPointerThis(c) : "") << ");";
@@ -443,8 +443,8 @@ namespace tigl {
             }
 
             // enums
-            const auto itE = m_types.enums.find(f.typeName);
-            if (itE != std::end(m_types.enums)) {
+            const auto itE = m_types.enums().find(f.typeName);
+            if (itE != std::end(m_types.enums())) {
                 switch (f.cardinality) {
                     case Cardinality::Optional:
                         cpp << "if (" << f.fieldName() << ") {";
@@ -467,8 +467,8 @@ namespace tigl {
 
             // classes
             if (f.xmlType != XMLConstruct::Attribute && f.xmlType != XMLConstruct::FundamentalTypeBase) {
-                const auto itC = m_types.classes.find(f.typeName);
-                if (itC != std::end(m_types.classes)) {
+                const auto itC = m_types.classes().find(f.typeName);
+                if (itC != std::end(m_types.classes())) {
                     switch (f.cardinality) {
                         case Cardinality::Optional:
                             cpp << "if (" << f.fieldName() << ") {";
@@ -500,8 +500,8 @@ namespace tigl {
                 throw std::logic_error("fundamental types cannot be base classes"); // this should be prevented by TypeSystem
 
             // classes
-            const auto itC = m_types.classes.find(type);
-            if (itC != std::end(m_types.classes)) {
+            const auto itC = m_types.classes().find(type);
+            if (itC != std::end(m_types.classes())) {
                 cpp << type << "::ReadCPACS(tixiHandle, xpath);";
                 return;
             }
@@ -517,8 +517,8 @@ namespace tigl {
             }
 
             // classes
-            const auto itC = m_types.classes.find(type);
-            if (itC != std::end(m_types.classes)) {
+            const auto itC = m_types.classes().find(type);
+            if (itC != std::end(m_types.classes())) {
                 cpp << type << "::WriteCPACS(tixiHandle, xpath);";
                 return;
             }
@@ -633,7 +633,7 @@ namespace tigl {
                         break;
                     case Cardinality::Vector:
                         vectorHeader = true;
-                        if (m_types.classes.find(f.typeName) != std::end(m_types.classes))
+                        if (m_types.classes().find(f.typeName) != std::end(m_types.classes()))
                             makeUnique = true;
                         break;
                     case Cardinality::Mandatory:
@@ -652,14 +652,14 @@ namespace tigl {
             deps.hppIncludes.push_back("\"tigl_internal.h\"");
 
             // base class
-            if (!c.base.empty() && m_types.classes.find(c.base) != std::end(m_types.classes)) {
+            if (!c.base.empty() && m_types.classes().find(c.base) != std::end(m_types.classes())) {
                 deps.hppIncludes.push_back("\"" + c.base + ".h\"");
             }
 
             // fields
             for (const auto& f : c.fields) {
-                if (m_types.enums.find(f.typeName) != std::end(m_types.enums) ||
-                    m_types.classes.find(f.typeName) != std::end(m_types.classes)) {
+                if (m_types.enums().find(f.typeName) != std::end(m_types.enums()) ||
+                    m_types.classes().find(f.typeName) != std::end(m_types.classes())) {
                     // this is a class or enum type, include it
 
                     const auto p = m_tables.m_customTypes.find(f.typeName);

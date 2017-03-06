@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cctype>
+#include <fstream>
 
 #include "NotImplementedException.h"
 #include "Tables.h"
@@ -202,7 +203,7 @@ namespace tigl {
                         }
                     }
 
-                    types.classes[c.name] = c;
+                    types.m_classes[c.name] = c;
                 }
 
                 void operator()(const SimpleType& type) {
@@ -213,9 +214,9 @@ namespace tigl {
                         e.name = makeClassName(type.name);
                         for (const auto& v : type.restrictionValues)
                             e.values.push_back(EnumValue(v));
-                        types.enums[e.name] = e;
+                        types.m_enums[e.name] = e;
                     } else
-                        throw NotImplementedException("Simple times which are not enums are not implemented");
+                        throw NotImplementedException("Simple times which are not m_enums are not implemented");
                 }
 
             private:
@@ -226,6 +227,11 @@ namespace tigl {
 
             type.visit(TypeVisitor(schema, *this, tables));
         };
+
+        collapseEnums();
+        prefixEnums();
+        buildDependencies();
+        runPruneList();
     }
 
     namespace {
@@ -246,13 +252,13 @@ namespace tigl {
     void TypeSystem::buildDependencies() {
         std::cout << "Building dependencies" << std::endl;
 
-        for (auto& p : classes) {
+        for (auto& p : m_classes) {
             auto& c = p.second;
 
             // base
             if (!c.base.empty()) {
-                const auto it = classes.find(c.base);
-                if (it != std::end(classes)) {
+                const auto it = m_classes.find(c.base);
+                if (it != std::end(m_classes)) {
                     c.deps.bases.push_back(&it->second);
                     it->second.deps.deriveds.push_back(&c);
                 } else
@@ -262,13 +268,13 @@ namespace tigl {
 
             // fields
             for (auto& f : c.fields) {
-                const auto eit = enums.find(f.typeName);
-                if (eit != std::end(enums)) {
+                const auto eit = m_enums.find(f.typeName);
+                if (eit != std::end(m_enums)) {
                     c.deps.enumChildren.push_back(&eit->second);
                     eit->second.deps.parents.push_back(&c);
                 } else {
-                    const auto cit = classes.find(f.typeName);
-                    if (cit != std::end(classes)) {
+                    const auto cit = m_classes.find(f.typeName);
+                    if (cit != std::end(m_classes)) {
                         c.deps.children.push_back(&cit->second);
                         cit->second.deps.parents.push_back(&c);
                     }
@@ -279,7 +285,7 @@ namespace tigl {
         SortAndUnique sortAndUnique;
 
         // sort and unique
-        for (auto& p : classes) {
+        for (auto& p : m_classes) {
             auto& c = p.second;
             sortAndUnique(c.deps.bases);
             sortAndUnique(c.deps.children);
@@ -288,19 +294,19 @@ namespace tigl {
             sortAndUnique(c.deps.parents);
         }
 
-        for (auto& p : enums) {
+        for (auto& p : m_enums) {
             auto& e = p.second;
             sortAndUnique(e.deps.parents);
         }
     }
 
     void TypeSystem::collapseEnums() {
-        std::cout << "Collapsing enums" << std::endl;
+        std::cout << "Collapsing m_enums" << std::endl;
 
         // convert enum unordered_map to vector for easier processing
         std::vector<Enum> enumVec;
-        enumVec.reserve(enums.size());
-        for (const auto& p : enums)
+        enumVec.reserve(m_enums.size());
+        for (const auto& p : m_enums)
             enumVec.push_back(p.second);
 
         std::unordered_map<std::string, std::string> replacedEnums;
@@ -349,7 +355,7 @@ namespace tigl {
                         // choose new name
                         const auto newName = [&] {
                             // if the stripped name is not already taken, use it. Otherwise, take the shorter of the two enum names
-                            if (classes.count(e1StrippedName) == 0 && enums.count(e1StrippedName) == 0)
+                            if (m_classes.count(e1StrippedName) == 0 && m_enums.count(e1StrippedName) == 0)
                                 return e1StrippedName;
                             else
                                 return std::min(e1.name, e2.name);
@@ -370,12 +376,12 @@ namespace tigl {
         }
 
         // fill enum back again from vector
-        enums.clear();
+        m_enums.clear();
         for (auto& e : enumVec)
-            enums[e.name] = std::move(e);
+            m_enums[e.name] = std::move(e);
 
         // replace enum names
-        for (auto& p : classes) {
+        for (auto& p : m_classes) {
             auto& c = p.second;
             for (auto& f : c.fields) {
                 const auto& rit = replacedEnums.find(f.typeName);
@@ -387,7 +393,7 @@ namespace tigl {
 
     void TypeSystem::prefixEnums() {
         std::cout << "Prefixing enum values" << std::endl;
-        for (auto& p : enums) {
+        for (auto& p : m_enums) {
             auto& e = p.second;
             if (tables.m_prefixedEnums.contains(e.name)) {
                 std::cout << "\t" << e.name << std::endl;
@@ -429,11 +435,11 @@ namespace tigl {
             for (auto& b : deps.bases)
                 includeNode(*b, pruneList);
 
-            // try to include all field classes
+            // try to include all field m_classes
             for (auto& c : deps.children)
                 includeNode(*c, pruneList);
 
-            // try to include all field enums
+            // try to include all field m_enums
             for (auto& e : deps.enumChildren)
                 includeNode(*e, pruneList);
         }
@@ -443,15 +449,15 @@ namespace tigl {
         std::cout << "Running prune list" << std::endl;
 
         // mark all types as pruned
-        for (auto& p : classes)
+        for (auto& p : m_classes)
             p.second.pruned = true;
-        for (auto& p : enums)
+        for (auto& p : m_enums)
             p.second.pruned = true;
 
         // find root type
         const auto rootElementTypeName = std::string("CPACSCpacs");
-        const auto it = classes.find(rootElementTypeName);
-        if (it == std::end(classes))
+        const auto it = m_classes.find(rootElementTypeName);
+        if (it == std::end(m_classes))
             throw std::runtime_error("Could not find root element. Expected: " + rootElementTypeName);
         auto& root = it->second;
 
@@ -459,28 +465,28 @@ namespace tigl {
 
         std::cout << "The following types have been pruned:" << std::endl;
         std::vector<std::string> prunedTypeNames;
-        for (const auto& p : classes)
+        for (const auto& p : m_classes)
             if(p.second.pruned)
                 prunedTypeNames.push_back("Class: " + p.second.name);
-        for (const auto& p : enums)
+        for (const auto& p : m_enums)
             if (p.second.pruned)
                 prunedTypeNames.push_back("Enum: " + p.second.name);
         std::sort(std::begin(prunedTypeNames), std::end(prunedTypeNames));
         for(const auto& name : prunedTypeNames)
             std::cout << "\t" << name << std::endl;
 
-        // remove pruned classes from fields and bases
+        // remove pruned m_classes from fields and bases
         auto isPruned = [&](const std::string& name) {
-            const auto& cit = classes.find(name);
-            if (cit != std::end(classes) && cit->second.pruned)
+            const auto& cit = m_classes.find(name);
+            if (cit != std::end(m_classes) && cit->second.pruned)
                 return true;
-            const auto& eit = enums.find(name);
-            if (eit != std::end(enums) && eit->second.pruned)
+            const auto& eit = m_enums.find(name);
+            if (eit != std::end(m_enums) && eit->second.pruned)
                 return true;
             return false;
         };
 
-        for (auto& c : classes) {
+        for (auto& c : m_classes) {
             auto& fields = c.second.fields;
             fields.erase(std::remove_if(std::begin(fields), std::end(fields), [&](const Field& f) {
                 return isPruned(f.typeName);
@@ -493,11 +499,6 @@ namespace tigl {
     }
 
     auto buildTypeSystem(const SchemaParser& schema, const Tables& tables) -> TypeSystem {
-        TypeSystem typeSystem(schema, tables);
-        typeSystem.collapseEnums();
-        typeSystem.prefixEnums();
-        typeSystem.buildDependencies();
-        typeSystem.runPruneList();
-        return typeSystem;
+        return TypeSystem(schema, tables);
     }
 }

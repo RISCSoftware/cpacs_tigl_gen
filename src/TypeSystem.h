@@ -114,14 +114,19 @@ namespace tigl {
     public:
         TypeSystem(const SchemaParser& schema, const Tables& tables);
 
+
+        auto& classes() const { return this->m_classes; }
+        auto& enums() const { return this->m_enums; }
+
+    private:
         void collapseEnums();
         void prefixEnums();
         void buildDependencies();
         void runPruneList();
 
         const Tables& tables;
-        std::unordered_map<std::string, Class> classes;
-        std::unordered_map<std::string, Enum> enums;
+        std::unordered_map<std::string, Class> m_classes;
+        std::unordered_map<std::string, Enum> m_enums;
     };
 
     auto buildTypeSystem(const SchemaParser& schema, const Tables& tables) -> TypeSystem;

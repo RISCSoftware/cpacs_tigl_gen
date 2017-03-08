@@ -107,7 +107,7 @@ namespace tigl {
                 case Cardinality::Vector:
                 {
                     if (m_types.classes().find(field.typeName) != std::end(m_types.classes()))
-                        return "std::vector<unique_ptr<" + typeName + ">>";
+                        return "std::vector<unique_ptr<" + typeName + "> >";
                     else
                         return "std::vector<" + typeName + ">";
                 }

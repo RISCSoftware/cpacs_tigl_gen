@@ -915,7 +915,7 @@ namespace tigl {
                 const auto& customName = m_tables.m_customTypes.find(c.name);
                 if (!customName) {
                     hpp << "// This type is not customized, create alias in tigl namespace";
-                    hpp << "#ifdef CPP11";
+                    hpp << "#ifdef HAVE_CPP11";
                     hpp << "using C" << c.name << " = generated::" << c.name << ";";
                     hpp << "#else";
                     hpp << "typedef generated::" << c.name << " C" << c.name << ";";

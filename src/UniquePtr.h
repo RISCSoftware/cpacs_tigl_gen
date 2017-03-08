@@ -22,7 +22,7 @@
 namespace tigl
 {
 #ifdef HAVE_CPP11
-    template <template T>
+    template <typename T>
     using unique_ptr = std::unique_ptr<T>;
 
     template<typename T, typename... Args>

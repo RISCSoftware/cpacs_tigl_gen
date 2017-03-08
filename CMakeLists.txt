@@ -22,6 +22,9 @@ if(TIXI_VERSION VERSION_GREATER 2.1.0)
   set(HAVE_TIXI_SETPRINTMSG TRUE)
 endif()
 
+# definitions
+add_definitions(-DCPACS_GEN)
+
 # source files
 file(GLOB ALL_SRCS src/*.cpp)
 file(GLOB ALL_HEADERS src/*.h*)

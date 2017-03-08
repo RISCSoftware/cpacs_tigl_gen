@@ -19,6 +19,10 @@
 
 #include <memory>
 
+#ifndef CPACS_GEN
+#include "tigl_config.h"
+#endif
+
 namespace tigl
 {
 #ifdef HAVE_CPP11

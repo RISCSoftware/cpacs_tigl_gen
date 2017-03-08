@@ -648,6 +648,8 @@ namespace tigl {
             }
             if (optionalHeader)
                 deps.hppIncludes.push_back("<boost/optional.hpp>");
+            if (c.deps.parents.size() > 1)
+                deps.hppIncludes.push_back("\"CTiglError.h\"");
 
             deps.hppIncludes.push_back("\"tigl_internal.h\"");
 

@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define BOOST_DATE_TIME_NO_LIB
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <sstream>
 #include <stdexcept>

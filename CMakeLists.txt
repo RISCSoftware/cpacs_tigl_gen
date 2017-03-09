@@ -12,7 +12,7 @@ set(TIGL_PATH  "" CACHE PATH "Tigl installation prefix")
 
 # find boost
 set(Boost_USE_STATIC_LIBS ON)
-find_package (Boost 1.55.0 REQUIRED COMPONENTS system filesystem)
+find_package (Boost 1.55.0 REQUIRED COMPONENTS system filesystem date_time)
 mark_as_advanced(CLEAR BOOST_ROOT) # find module for boost marks this variable as advanced
 
 # find tixi

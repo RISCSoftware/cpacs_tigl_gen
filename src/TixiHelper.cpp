@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <sstream>
 
 #include "TixiHelper.h"
@@ -279,9 +280,7 @@ namespace tigl
 
         std::time_t TixiGetTimeTElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
         {
-            const std::string str = TixiGetTextElement(tixiHandle, xpath);
-            // TODO: implement conversion
-            return std::time_t();
+            return boost::posix_time::to_time_t(boost::posix_time::from_iso_extended_string(TixiGetTextElement(tixiHandle, xpath)));
         }
 
         namespace
@@ -466,9 +465,7 @@ namespace tigl
 
         void TixiSaveElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath, std::time_t value)
         {
-            std::string str = "date saving not implemented";
-            // TODO: implement conversion
-            TixiSaveElement(tixiHandle, xpath, str);
+            TixiSaveElement(tixiHandle, xpath, boost::posix_time::to_iso_extended_string(boost::posix_time::from_time_t(value)));
         }
 
         void TixiCreateElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath)

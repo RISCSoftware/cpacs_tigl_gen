@@ -279,9 +279,24 @@ namespace tigl
             return TixiGetElementInternal<int>(tixiHandle, xpath, tixiGetIntegerElement);
         }
 
+        namespace fromboost
+        {
+            std::time_t to_time_t(boost::posix_time::ptime pt)
+            {
+                boost::posix_time::time_duration dur = pt - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1));
+                return std::time_t(dur.total_seconds());
+            }
+
+            boost::posix_time::ptime from_iso_extended_string(const std::string& s)
+            {
+                return boost::date_time::parse_delimited_time<boost::posix_time::ptime>(s, 'T');
+            }
+        }
+
         std::time_t TixiGetTimeTElement(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
         {
-            return boost::posix_time::to_time_t(boost::posix_time::from_iso_extended_string(TixiGetTextElement(tixiHandle, xpath)));
+            //return boost::posix_time::to_time_t(boost::posix_time::from_iso_extended_string(TixiGetTextElement(tixiHandle, xpath))); // enable, when Boost >= 1.62 is available
+            return fromboost::to_time_t(fromboost::from_iso_extended_string(TixiGetTextElement(tixiHandle, xpath)));
         }
 
         namespace

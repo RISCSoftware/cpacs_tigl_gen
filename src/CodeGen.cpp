@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 
+#include <boost/algorithm/string.hpp>
 #include "SchemaParser.h"
 #include "Tables.h"
 #include "TypeSystem.h"
@@ -719,6 +720,20 @@ namespace tigl {
             deps.cppIncludes.push_back("\"CTiglLogging.h\"");
             deps.cppIncludes.push_back("\"CTiglError.h\""); // remove this, when CTiglError inherits std::exception
             deps.cppIncludes.push_back("\"" + c.name + ".h\"");
+
+            // sort
+            auto order = [](std::vector<std::string>& includes) {
+                // split global from local includes
+                const auto& mid = std::partition(std::begin(includes), std::end(includes), [](const std::string& s) {
+                    return s[0] == '<';
+                });
+                // sort these groups individually
+                auto icmp = [](const std::string& a, const std::string& b) { return boost::iequals(a, b); };
+                std::sort(std::begin(includes), mid, icmp);
+                std::sort(mid, std::end(includes), icmp);
+            };
+            order(deps.cppIncludes);
+            order(deps.cppIncludes);
 
             return deps;
         }

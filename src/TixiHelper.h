@@ -45,6 +45,7 @@ namespace tigl
         public:
             TixiError(ReturnCode ret);
             TixiError(ReturnCode ret, const std::string& message);
+            ~TixiError() throw() {}
 
             virtual const char* what() const throw() /*override*/;
 

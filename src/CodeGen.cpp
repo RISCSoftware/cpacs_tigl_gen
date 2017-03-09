@@ -626,6 +626,7 @@ namespace tigl {
             bool vectorHeader = false;
             bool makeUnique = false;
             bool optionalHeader = false;
+            bool timeHeader = false;
             for (const auto& f : c.fields) {
                 switch (f.cardinality) {
                     case Cardinality::Optional:
@@ -639,6 +640,8 @@ namespace tigl {
                     case Cardinality::Mandatory:
                         break;
                 }
+                if (f.typeName == "std::time_t")
+                    timeHeader = true;
             }
             if (vectorHeader) {
                 deps.hppIncludes.push_back("<vector>");
@@ -648,6 +651,8 @@ namespace tigl {
             }
             if (optionalHeader)
                 deps.hppIncludes.push_back("<boost/optional.hpp>");
+            if (timeHeader)
+                deps.hppIncludes.push_back("<ctime>");
             if (c.deps.parents.size() > 1) {
                 deps.hppIncludes.push_back("\"CTiglError.h\"");
                 deps.hppIncludes.push_back("<typeinfo>");

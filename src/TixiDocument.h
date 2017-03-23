@@ -41,7 +41,6 @@ namespace tigl {
 
             static TixiDocument createFromString(const std::string& xml) {
                 TixiDocument doc(TixiImportFromString(xml));
-                doc.registerNamespaces();
                 return doc;
             }
 
@@ -181,7 +180,7 @@ namespace tigl {
                 TixiRegisterNamespacesFromDocument(m_handle);
             }
 
-            void registerNamespaces(const std::string& namespaceURI, const std::string& prefix) {
+            void registerNamespace(const std::string& namespaceURI, const std::string& prefix) {
                 TixiRegisterNamespace(m_handle, namespaceURI, prefix);
             }
 

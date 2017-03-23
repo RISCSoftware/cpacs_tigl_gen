@@ -32,7 +32,6 @@ namespace tigl {
 
             static TixiDocument createFromFile(const std::string& filename) {
                 TixiDocument doc(TixiOpenDocument(filename));
-                doc.registerNamespaces();
                 return doc;
             }
 
@@ -180,6 +179,10 @@ namespace tigl {
 
             void registerNamespaces() {
                 TixiRegisterNamespacesFromDocument(m_handle);
+            }
+
+            void registerNamespaces(const std::string& namespaceURI, const std::string& prefix) {
+                TixiRegisterNamespace(m_handle, namespaceURI, prefix);
             }
 
             const TixiDocumentHandle& handle() const {

@@ -57,7 +57,14 @@ namespace tigl {
 int main(int argc, char* argv[]) {
     // parse command line arguments
     if (argc != 4 && argc != 5) {
-        std::cerr << "Usage: CPACSGen inputDirectory srcDirectory outputDirectory [typeSystemGraphVisFile]" << std::endl;
+        std::cerr << "Usage: CPACSGen configDir cpascGenSourceDir outputDir [typeSystemGraphVisFile] \n\n";
+        std::cerr << "Options:\n\n"
+                     "  configDir          The directory containing the CPACS schema and\n"
+                     "                     the table files.\n"
+                     "  cpacsGenSourceDir  The src directory of the CPACSGen source code.\n"
+                     "  outputDir          The directory to which the CPACSGen output\n"
+                     "                     file are written\n"
+                  << std::endl;
         return -1;
     }
 

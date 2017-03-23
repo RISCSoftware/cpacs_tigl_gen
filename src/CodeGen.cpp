@@ -561,7 +561,7 @@ namespace tigl {
                         cpp << "else {";
                         {
                             Scope s(cpp);
-                            cpp << "LOG(ERROR) << \"Required " << construct << " " << f.cpacsName << " is missing\";";
+                            cpp << "LOG(ERROR) << \"Required " << construct << " " << f.cpacsName << " is missing at xpath \" << xpath;";
                         }
                         cpp << "}";
                     }

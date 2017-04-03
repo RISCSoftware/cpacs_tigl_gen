@@ -842,6 +842,20 @@ namespace tigl {
             }
         }
 
+        void exportNames(IndentingStreamWrapper& hpp, const std::vector<std::string>& names, const char prefix = 'C') {
+            if (names.empty())
+                return;
+
+            hpp << "// Aliases in tigl namespace";
+            hpp << "#ifdef HAVE_CPP11";
+            for(const auto& name : names)
+                hpp << "using " << prefix << name << " = generated::" << name << ";";
+            hpp << "#else";
+            for(const auto& name : names)
+                hpp << "typedef generated::" << name << " " << prefix << name << ";";
+            hpp << "#endif";
+        };
+
         void writeHeader(IndentingStreamWrapper& hpp, const Class& c, const Includes& includes) {
             // file header
             writeLicenseHeader(hpp);
@@ -943,25 +957,19 @@ namespace tigl {
                 hpp << "";
 
                 // export non-custom types into tigl namespace
-                auto exportName = [&](const std::string& name) {
-                    hpp << "#ifdef HAVE_CPP11";
-                    hpp << "using C" << name << " = generated::" << name << ";";
-                    hpp << "#else";
-                    hpp << "typedef generated::" << name << " C" << name << ";";
-                    hpp << "#endif";
-                };
-
-                hpp << "// Aliases in tigl namespace";
+                std::vector<std::string> exportedTypes;
                 const auto& customName = m_tables.m_customTypes.find(c.name);
-                if (!customName) {
-                    exportName(c.name);
-                } else {
+                if (customName) {
                     hpp << "// " << c.name << " is customized, use type " << *customName << " directly";
-                }
-                if (includes.hppForwards.size() > 0) {
-                    for (const auto& fwd : includes.hppForwards)
-                        exportName(fwd);
-                }
+                    if (includes.hppForwards.size() > 0)
+                        hpp << "";
+                } else
+                    exportedTypes.push_back(c.name);
+
+                for (const auto& fwd : includes.hppForwards)
+                    exportedTypes.push_back(fwd);
+
+                exportNames(hpp, exportedTypes);
             }
             hpp << "}";
             hpp << "";
@@ -1136,6 +1144,14 @@ namespace tigl {
                     hpp << "#endif";
                 }
                 hpp << "}";
+                hpp << "";
+
+                // export non-custom types into tigl namespace
+                const auto& customName = m_tables.m_customTypes.find(e.name);
+                if (customName) {
+                    hpp << "// " << e.name << " is customized, use type " << *customName << " directly";
+                } else
+                    exportNames(hpp, { e.name }, 'E');
             }
             hpp << "}";
             hpp << "";

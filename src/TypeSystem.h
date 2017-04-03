@@ -51,11 +51,16 @@ namespace tigl {
 
         std::string customFieldName;
 
-        auto name() const -> const std::string&{
-            if (!customFieldName.empty())
-            return customFieldName;
-            else
-                return cpacsName;
+        auto name() const -> std::string {
+            auto name = [this] {
+                if (!customFieldName.empty())
+                    return customFieldName;
+                else
+                    return cpacsName;
+            }();
+            if (cardinality == Cardinality::Vector)
+                name += 's';
+            return name;
         }
 
         auto fieldName() const -> std::string {

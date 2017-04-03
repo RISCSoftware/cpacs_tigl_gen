@@ -99,10 +99,19 @@ namespace tigl {
         const TypeSystem& m_types;
         const Tables&     m_tables;
 
+        auto customReplacedType(const std::string& name) const -> std::string {
+            return tigl::customReplacedType(name, m_tables);
+        }
+
+        auto customReplacedType(const Field& field) const -> std::string {
+            return customReplacedType(field.typeName);
+        }
+
         auto getterSetterType(const Field& field) const -> std::string {
-            const auto typeName = customReplacedType(field.typeName, m_tables);
+            const auto typeName = customReplacedType(field);
             switch (field.cardinality) {
                 case Cardinality::Optional:
+                    return "boost::optional<" + typeName + ">";
                 case Cardinality::Mandatory:
                     return typeName;
                 case Cardinality::Vector:
@@ -118,12 +127,7 @@ namespace tigl {
         }
 
         auto fieldType(const Field& field) const -> std::string {
-            switch (field.cardinality) {
-                case Cardinality::Optional:
-                    return "boost::optional<" + getterSetterType(field) + ">";
-                default:
-                    return getterSetterType(field);
-            }
+            return getterSetterType(field);
         }
 
         // TODO: create polymorphic lambda when C++14 is available
@@ -161,13 +165,15 @@ namespace tigl {
 
         void writeAccessorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
             for (const auto& f : fields) {
-                if (f.cardinality == Cardinality::Optional)
-                    hpp << "TIGL_EXPORT bool Has" << capitalizeFirstLetter(f.name()) << "() const;";
                 hpp << "TIGL_EXPORT const " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "() const;";
-                const bool isClassType = m_types.classes().find(f.typeName) == std::end(m_types.classes());
-                if (isClassType) // generate setter only for fundamental and enum types
+                const bool isClassType = m_types.classes().find(f.typeName) != std::end(m_types.classes());
+                if (!isClassType) {
+                    if (f.cardinality == Cardinality::Optional)
+                        hpp << "TIGL_EXPORT void Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value);";
+
+                    // generate setter only for fundamental and enum types
                     hpp << "TIGL_EXPORT void Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
-                else
+                } else
                     hpp << "TIGL_EXPORT " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "();";
                 hpp << "";
             }
@@ -175,30 +181,29 @@ namespace tigl {
 
         void writeAccessorImplementations(IndentingStreamWrapper& cpp, const std::string& className, const std::vector<Field>& fields) {
             for (const auto& f : fields) {
-                const auto op = f.cardinality == Cardinality::Optional;
-                if (op) {
-                    cpp << "bool " << className << "::Has" << capitalizeFirstLetter(f.name()) << "() const";
-                    cpp << "{";
-                    {
-                        Scope s(cpp);
-                        cpp << "return static_cast<bool>(" << f.fieldName() << ");";
-                    }
-                    cpp << "}";
-                    cpp << "";
-                }
-
                 cpp << "const " << getterSetterType(f) << "& " << className << "::Get" << capitalizeFirstLetter(f.name()) << "() const";
                 cpp << "{";
                 {
                     Scope s(cpp);
-                    cpp << "return " << (op ? "*" : "") << f.fieldName() << ";";
+                    cpp << "return " << f.fieldName() << ";";
                 }
                 cpp << "}";
                 cpp << "";
 
-                const bool isClassType = m_types.classes().find(f.typeName) == std::end(m_types.classes());
+                const bool isClassType = m_types.classes().find(f.typeName) != std::end(m_types.classes());
                 // generate setter only for fundamental and enum types
-                if (isClassType) {
+                if (!isClassType) {
+                    if (f.cardinality == Cardinality::Optional) {
+                        cpp << "void " << className << "::Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value)";
+                        cpp << "{";
+                        {
+                            Scope s(cpp);
+                            cpp << f.fieldName() << " = value;";
+                        }
+                        cpp << "}";
+                        cpp << "";
+                    }
+
                     cpp << "void " << className << "::Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value)";
                     cpp << "{";
                     {
@@ -211,7 +216,7 @@ namespace tigl {
                     cpp << "{";
                     {
                         Scope s(cpp);
-                        cpp << "return " << (op ? "*" : "") << f.fieldName() << ";";
+                        cpp << "return " << f.fieldName() << ";";
                     }
                     cpp << "}";
                 }
@@ -241,7 +246,7 @@ namespace tigl {
                         for (const auto& dep : c.deps.parents) {
                             if (&dep != &c.deps.parents[0])
                                 hpp.raw() << " || ";
-                            hpp.raw() << "std::is_same<P, " << customReplacedType(dep->name, m_tables) << ">::value";
+                            hpp.raw() << "std::is_same<P, " << customReplacedType(dep->name) << ">::value";
                         }
                         hpp.raw() << ", \"template argument for P is not a parent class of " << c.name << "\");";
                         hpp << "#endif";
@@ -263,7 +268,7 @@ namespace tigl {
                     }
                     hpp << "}";
                 } else if (c.deps.parents.size() == 1) {
-                    hpp << "TIGL_EXPORT " << customReplacedType(c.deps.parents[0]->name, m_tables) << "* GetParent() const;";
+                    hpp << "TIGL_EXPORT " << customReplacedType(c.deps.parents[0]->name) << "* GetParent() const;";
                 }
                 hpp << "";
             }
@@ -272,7 +277,7 @@ namespace tigl {
         void writeParentPointerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() == 1) {
-                    cpp << customReplacedType(c.deps.parents[0]->name, m_tables) << "* " << c.name << "::GetParent() const";
+                    cpp << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent() const";
                     cpp << "{";
                     {
                         Scope s(cpp);
@@ -745,7 +750,7 @@ namespace tigl {
                 if (c_generateDefaultCtorsForParentPointerTypes)
                     hpp << "TIGL_EXPORT " << c.name << "();";
                 for (const auto& dep : c.deps.parents)
-                    hpp << "TIGL_EXPORT " << c.name << "(" << customReplacedType(dep->name, m_tables) << "* parent);";
+                    hpp << "TIGL_EXPORT " << c.name << "(" << customReplacedType(dep->name) << "* parent);";
                 hpp << "";
             } else {
                 hpp << "TIGL_EXPORT " << c.name << "();";
@@ -758,7 +763,7 @@ namespace tigl {
                     hpp << "void* m_parent;";
                     hpp << "const std::type_info* m_parentType;";
                 } else if (c.deps.parents.size() == 1) {
-                    hpp << customReplacedType(c.deps.parents[0]->name, m_tables) << "* m_parent;";
+                    hpp << customReplacedType(c.deps.parents[0]->name) << "* m_parent;";
                 }
                 hpp << "";
             }
@@ -804,7 +809,7 @@ namespace tigl {
                     cpp << "";
                 }
                 if (c.deps.parents.size() == 1) {
-                    cpp << c.name << "::" << c.name << "(" << customReplacedType(c.deps.parents[0]->name, m_tables) << "* parent)";
+                    cpp << c.name << "::" << c.name << "(" << customReplacedType(c.deps.parents[0]->name) << "* parent)";
                     writeParentPointerFieldInitializers();
                     cpp << "{";
                     {
@@ -816,7 +821,7 @@ namespace tigl {
                     cpp << "";
                 } else {
                     for (const auto& dep : c.deps.parents) {
-                        const auto rn = customReplacedType(dep->name, m_tables);
+                        const auto rn = customReplacedType(dep->name);
                         cpp << c.name << "::" << c.name << "(" << rn << "* parent)";
                         writeParentPointerFieldInitializers();
                         cpp << "{";

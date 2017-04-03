@@ -650,8 +650,10 @@ namespace tigl {
                     deps.hppIncludes.push_back("\"UniquePtr.h\"");
                 }
             }
-            if (optionalHeader)
+            if (optionalHeader) {
                 deps.hppIncludes.push_back("<boost/optional.hpp>");
+                deps.hppIncludes.push_back("<boost/utility/in_place_factory.hpp>");
+            }
             if (timeHeader)
                 deps.hppIncludes.push_back("<ctime>");
             if (c.deps.parents.size() > 1) {
@@ -728,7 +730,7 @@ namespace tigl {
                     return s[0] == '<';
                 });
                 // sort these groups individually
-                auto icmp = [](const std::string& a, const std::string& b) { return boost::iequals(a, b); };
+                auto icmp = [](const std::string& a, const std::string& b) { return boost::ilexicographical_compare(a, b); };
                 std::sort(std::begin(includes), mid, icmp);
                 std::sort(mid, std::end(includes), icmp);
             };
@@ -936,21 +938,24 @@ namespace tigl {
                 hpp << "";
 
                 // export non-custom types into tigl namespace
+                auto exportName = [&](const std::string& name) {
+                    hpp << "#ifdef HAVE_CPP11";
+                    hpp << "using C" << name << " = generated::" << name << ";";
+                    hpp << "#else";
+                    hpp << "typedef generated::" << name << " C" << name << ";";
+                    hpp << "#endif";
+                };
+
+                hpp << "// Aliases in tigl namespace";
                 const auto& customName = m_tables.m_customTypes.find(c.name);
                 if (!customName) {
-                    hpp << "// This type is not customized, create alias in tigl namespace";
-                    hpp << "#ifdef HAVE_CPP11";
-                    hpp << "using C" << c.name << " = generated::" << c.name << ";";
-                    hpp << "#else";
-                    hpp << "typedef generated::" << c.name << " C" << c.name << ";";
-                    hpp << "#endif";
+                    exportName(c.name);
                 } else {
-                    hpp << "// This type is customized, use type " << *customName;
+                    hpp << "// " << c.name << " is customized, use type " << *customName << " directly";
                 }
                 if (includes.hppForwards.size() > 0) {
-                    hpp << "";
                     for (const auto& fwd : includes.hppForwards)
-                        hpp << "using generated::" << fwd << ";";
+                        exportName(fwd);
                 }
             }
             hpp << "}";

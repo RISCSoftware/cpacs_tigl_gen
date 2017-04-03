@@ -30,7 +30,7 @@ namespace tigl {
             return p ? *p : type;
         }
 
-        auto CapitalizeFirstLetter(std::string str) -> std::string {
+        auto capitalizeFirstLetter(std::string str) -> std::string {
             if (str.empty())
                 return str;
 
@@ -44,7 +44,7 @@ namespace tigl {
         }
 
         auto stringToEnumFunc(const Enum& e, const Tables& tables) -> std::string {
-            return "stringTo" + CapitalizeFirstLetter(customReplacedType(e.name, tables));
+            return "stringTo" + capitalizeFirstLetter(customReplacedType(e.name, tables));
         }
     }
 
@@ -162,13 +162,13 @@ namespace tigl {
         void writeAccessorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
             for (const auto& f : fields) {
                 if (f.cardinality == Cardinality::Optional)
-                    hpp << "TIGL_EXPORT bool Has" << CapitalizeFirstLetter(f.name()) << "() const;";
-                hpp << "TIGL_EXPORT const " << getterSetterType(f) << "& Get" << CapitalizeFirstLetter(f.name()) << "() const;";
+                    hpp << "TIGL_EXPORT bool Has" << capitalizeFirstLetter(f.name()) << "() const;";
+                hpp << "TIGL_EXPORT const " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "() const;";
                 const bool isClassType = m_types.classes().find(f.typeName) == std::end(m_types.classes());
                 if (isClassType) // generate setter only for fundamental and enum types
-                    hpp << "TIGL_EXPORT void Set" << CapitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
+                    hpp << "TIGL_EXPORT void Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
                 else
-                    hpp << "TIGL_EXPORT " << getterSetterType(f) << "& Get" << CapitalizeFirstLetter(f.name()) << "();";
+                    hpp << "TIGL_EXPORT " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "();";
                 hpp << "";
             }
         }
@@ -177,7 +177,7 @@ namespace tigl {
             for (const auto& f : fields) {
                 const auto op = f.cardinality == Cardinality::Optional;
                 if (op) {
-                    cpp << "bool " << className << "::Has" << CapitalizeFirstLetter(f.name()) << "() const";
+                    cpp << "bool " << className << "::Has" << capitalizeFirstLetter(f.name()) << "() const";
                     cpp << "{";
                     {
                         Scope s(cpp);
@@ -187,7 +187,7 @@ namespace tigl {
                     cpp << "";
                 }
 
-                cpp << "const " << getterSetterType(f) << "& " << className << "::Get" << CapitalizeFirstLetter(f.name()) << "() const";
+                cpp << "const " << getterSetterType(f) << "& " << className << "::Get" << capitalizeFirstLetter(f.name()) << "() const";
                 cpp << "{";
                 {
                     Scope s(cpp);
@@ -199,7 +199,7 @@ namespace tigl {
                 const bool isClassType = m_types.classes().find(f.typeName) == std::end(m_types.classes());
                 // generate setter only for fundamental and enum types
                 if (isClassType) {
-                    cpp << "void " << className << "::Set" << CapitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value)";
+                    cpp << "void " << className << "::Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value)";
                     cpp << "{";
                     {
                         Scope s(cpp);
@@ -207,7 +207,7 @@ namespace tigl {
                     }
                     cpp << "}";
                 } else {
-                    cpp << getterSetterType(f) << "& " << className << "::Get" << CapitalizeFirstLetter(f.name()) << "()";
+                    cpp << getterSetterType(f) << "& " << className << "::Get" << capitalizeFirstLetter(f.name()) << "()";
                     cpp << "{";
                     {
                         Scope s(cpp);

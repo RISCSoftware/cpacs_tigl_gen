@@ -433,26 +433,37 @@ namespace tigl {
     }
 
     namespace {
-        void includeNode(Enum& e, const Table& pruneList) {
+        auto checkAndPrintNode(const std::string& name, const Table& pruneList, unsigned int level) {
+            if (pruneList.contains(name)) {
+                std::cout << std::string(level, '\t') <<  "pruning " << name << std::endl;
+                return true;
+            } else {
+                std::cout << std::string(level, '\t') << "including " << name << std::endl;
+                return false;
+            }
+        }
+
+        void includeNode(Enum& e, const Table& pruneList, unsigned int level) {
             // if this enum is already marked, return
             if (e.pruned == false)
                 return;
 
             // if this enum is on the prune list, just leave it
-            if (pruneList.contains(e.name))
+            if (checkAndPrintNode(e.name, pruneList, level))
                 return;
 
             // enum is not pruned, mark it
             e.pruned = false;
         }
 
-        void includeNode(Class& cls, const Table& pruneList) {
+        void includeNode(Class& cls, const Table& pruneList, unsigned int level) {
             // if this class is already marked, return
             if (cls.pruned == false)
                 return;
 
+
             // if this class is on the prune list, just leave it and all its sub element types pruned
-            if (pruneList.contains(cls.name))
+            if (checkAndPrintNode(cls.name, pruneList, level))
                 return;
 
             // class is not pruned, mark it
@@ -462,15 +473,15 @@ namespace tigl {
 
             // try to include all bases
             for (auto& b : deps.bases)
-                includeNode(*b, pruneList);
+                includeNode(*b, pruneList, level + 1);
 
             // try to include all field classes
             for (auto& c : deps.children)
-                includeNode(*c, pruneList);
+                includeNode(*c, pruneList, level + 1);
 
             // try to include all field m_enums
             for (auto& e : deps.enumChildren)
-                includeNode(*e, pruneList);
+                includeNode(*e, pruneList, level + 1);
         }
     }
 
@@ -490,7 +501,7 @@ namespace tigl {
             throw std::runtime_error("Could not find root element. Expected: " + rootElementTypeName);
         auto& root = it->second;
 
-        includeNode(root, tables.m_pruneList);
+        includeNode(root, tables.m_pruneList, 0);
 
         std::cout << "The following types have been pruned:" << std::endl;
         std::vector<std::string> prunedTypeNames;

@@ -969,7 +969,16 @@ namespace tigl {
                 for (const auto& fwd : includes.hppForwards)
                     exportedTypes.push_back(fwd);
 
-                exportNames(hpp, exportedTypes);
+                if (!exportedTypes.empty()) {
+                    hpp << "// Aliases in tigl namespace";
+                    hpp << "#ifdef HAVE_CPP11";
+                    for (const auto& name : exportedTypes)
+                        hpp << "using C" << name << " = generated::" << name << ";";
+                    hpp << "#else";
+                    for (const auto& name : exportedTypes)
+                        hpp << "typedef generated::" << name << " C" << name << ";";
+                    hpp << "#endif";
+                }
             }
             hpp << "}";
             hpp << "";
@@ -1150,8 +1159,16 @@ namespace tigl {
                 const auto& customName = m_tables.m_customTypes.find(e.name);
                 if (customName) {
                     hpp << "// " << e.name << " is customized, use type " << *customName << " directly";
-                } else
-                    exportNames(hpp, { e.name }, 'E');
+                } else {
+                    hpp << "// Aliases in tigl namespace";
+                    hpp << "#ifdef HAVE_CPP11";
+                    hpp << "using E" << e.name << " = generated::" << e.name << ";";
+                    hpp << "#else";
+                    hpp << "typedef generated::" << e.name << " E" << e.name << ";";
+                    for(const auto& v : e.values)
+                        hpp << "using generated::" << enumCppName(v.name, m_tables) << ";";
+                    hpp << "#endif";
+                }
             }
             hpp << "}";
             hpp << "";

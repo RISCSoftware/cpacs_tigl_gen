@@ -4,6 +4,10 @@
 #include "SchemaParser.h"
 
 namespace tigl {
+    namespace {
+        const std::string c_simpleContentTypeSuffx = "_SimpleContentType";
+    }
+
     SchemaParser::SchemaParser(const std::string& cpacsLocation)
         : document(tixihelper::TixiDocument::createFromFile(cpacsLocation)) {
         document.registerNamespace("http://www.w3.org/2001/XMLSchema", "xsd");
@@ -134,7 +138,7 @@ namespace tigl {
                 // generating an additional type for this enum
                 SimpleType stype;
                 stype.xpath = xpath;
-                stype.name = stripTypeSuffix(type.name) + "_SimpleContentType";
+                stype.name = stripTypeSuffix(type.name) + c_simpleContentTypeSuffx;
                 readRestriction(xpath + "/xsd:restriction", stype);
                 m_types[stype.name] = stype;
 
@@ -272,6 +276,30 @@ namespace tigl {
                     throw NotImplementedException("XSD complexType attributeGroup is not implemented");
                 }
             }
+        }
+
+        if (type.attributes.size() == 0 && type.base.empty() && type.content.is<SimpleContent>()) {
+            // this is just an inline enum definiton, just use the type generated for the simple content
+            const auto& sc = type.content.as<SimpleContent>();
+            auto name = sc.type;
+
+            // move type out of type map
+            auto v = std::move(m_types[name]);
+            m_types.erase(name);
+
+            // strip simple content suffix
+            const auto it = name.rfind(c_simpleContentTypeSuffx);
+            if (it == name.npos)
+                throw std::logic_error("Expected type of simple content type to have " + c_simpleContentTypeSuffx + " suffix");
+            name.erase(it);
+
+            // rename type
+            v.as<SimpleType>().name = name;
+
+            // readd it
+            m_types[name] = v;
+
+            return name;
         }
 
         // add

@@ -54,6 +54,23 @@ namespace tigl {
             }
         }
 
+        template<typename T>
+        bool is() const {
+            if (m_data)
+                return m_data->type() == typeid(T);
+            return false;
+        }
+
+        template<typename T>
+        T& as() {
+            return boost::get<T&>(*m_data);
+        }
+
+        template<typename T>
+        const T& as() const {
+            return boost::get<const T&>(*m_data);
+        }
+
     private:
         // adapts a visitor for boost
         template <typename Func>

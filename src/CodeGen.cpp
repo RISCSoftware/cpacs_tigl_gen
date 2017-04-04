@@ -165,16 +165,16 @@ namespace tigl {
 
         void writeAccessorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
             for (const auto& f : fields) {
-                hpp << "TIGL_EXPORT const " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "() const;";
+                hpp << "TIGL_EXPORT virtual const " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "() const;";
                 const bool isClassType = m_types.classes().find(f.typeName) != std::end(m_types.classes());
                 if (!isClassType) {
                     if (f.cardinality == Cardinality::Optional)
-                        hpp << "TIGL_EXPORT void Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value);";
+                        hpp << "TIGL_EXPORT virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value);";
 
                     // generate setter only for fundamental and enum types
-                    hpp << "TIGL_EXPORT void Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
+                    hpp << "TIGL_EXPORT virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
                 } else
-                    hpp << "TIGL_EXPORT " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "();";
+                    hpp << "TIGL_EXPORT virtual " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "();";
                 hpp << "";
             }
         }

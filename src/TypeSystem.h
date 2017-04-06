@@ -126,7 +126,7 @@ namespace tigl {
 
     private:
         void collapseEnums();
-        void prefixEnums();
+        void prefixClashedEnumValues();
         void buildDependencies();
         void runPruneList();
 

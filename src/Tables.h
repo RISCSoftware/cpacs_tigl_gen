@@ -39,6 +39,5 @@ namespace tigl {
         Table m_pruneList;
         Table m_parentPointers;
         Table m_reservedNames;
-        Table m_prefixedEnums;
     };
 }

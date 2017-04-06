@@ -229,7 +229,7 @@ namespace tigl {
         };
 
         collapseEnums();
-        prefixEnums();
+        prefixClashedEnumValues();
         buildDependencies();
         runPruneList();
     }
@@ -420,14 +420,40 @@ namespace tigl {
         }
     }
 
-    void TypeSystem::prefixEnums() {
-        std::cout << "Prefixing enum values" << std::endl;
+    void TypeSystem::prefixClashedEnumValues() {
+        std::unordered_map<std::string, std::vector<Enum*>> valueToEnum;
+
         for (auto& p : m_enums) {
             auto& e = p.second;
-            if (tables.m_prefixedEnums.contains(e.name)) {
-                std::cout << "\t" << e.name << std::endl;
-                for (auto& v : e.values)
+            for (auto& v : e.values) {
+                auto& otherEnums = valueToEnum[v.name];
+                if (otherEnums.size() == 1) {
+                    // we are adding the same enum value for the second time
+                    // prefix other enum's value
+                    auto& otherEnum = *otherEnums[0];
+                    const auto it = std::find_if(std::begin(otherEnum.values), std::end(otherEnum.values), [&](const EnumValue& ov) {
+                        return ov.name == v.name;
+                    });
+                    if (it == std::end(otherEnum.values))
+                        throw std::logic_error("Enum value resolves to an enum which does not have the value");
+                    it->name = otherEnum.name + "_" + it->name;
+                }
+                if (otherEnums.size() > 1) {
+                    // we are adding an already added value, prefix myself
                     v.name = e.name + "_" + v.name;
+                }
+
+                otherEnums.push_back(&e);
+            }
+        }
+
+        std::cout << "Prefixed the following enum values:" << std::endl;
+        for (auto& p : valueToEnum) {
+            const auto& otherEnums = p.second;
+            if (otherEnums.size() > 1) {
+                std::cout << '\t' << p.first << std::endl;
+                for (const auto& e : otherEnums)
+                    std::cout << "\t\t" << e->name << std::endl;
             }
         }
     }

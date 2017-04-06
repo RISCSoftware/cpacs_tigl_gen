@@ -20,6 +20,7 @@ namespace tigl {
         const auto c_generateDefaultCtorsForParentPointerTypes = false;
         const auto c_generateCaseSensitiveStringToEnumConversion = false; // true would be more strict, but some test data has troubles with this
         const auto c_generateTryCatchAroundOptionalClassReads = true;
+        const auto c_generateCpp11ScopedEnums = false;
 
         const auto tixiHelperNamespace = "tixihelper";
     }
@@ -1089,11 +1090,7 @@ namespace tigl {
                     hpp << "// generated from " << e.origin->xpath;
 
                     // enum name
-                    hpp << "#ifdef HAVE_CPP11";
-                    hpp << "enum class " << e.name;
-                    hpp << "#else";
-                    hpp << "enum " << e.name;
-                    hpp << "#endif";
+                    hpp << "enum " << (c_generateCpp11ScopedEnums ? "class " : "") << e.name;
                     hpp << "{";
                     {
                         Scope s(hpp);
@@ -1105,52 +1102,45 @@ namespace tigl {
                     hpp << "};";
                     hpp << "";
 
-                    auto writeToStringFuncs = [&](bool cpp11) {
-                        const auto& prefix = cpp11 ? e.name + "::" : "";
 
-                        // enum to string function
-                        hpp << "inline std::string " << enumToStringFunc(e, m_tables) << "(const " << e.name << "& value)";
-                        hpp << "{";
+                    // enum to string function
+                    const auto& prefix = c_generateCpp11ScopedEnums ? e.name + "::" : "";
+                    hpp << "inline std::string " << enumToStringFunc(e, m_tables) << "(const " << e.name << "& value)";
+                    hpp << "{";
+                    {
+                        Scope s(hpp);
+                        hpp << "switch(value) {";
                         {
-                            Scope s(hpp);
-                            hpp << "switch(value) {";
-                            {
-                                //Scope s(hpp);
-                                for (const auto& v : e.values)
-                                    hpp << "case " << prefix << enumCppName(v.name, m_tables) << ": return \"" << v.name << "\";";
-                                hpp << "default: throw CTiglError(\"Invalid enum value \\\"\" + std_to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
-                            }
-                            hpp << "}";
+                            //Scope s(hpp);
+                            for (const auto& v : e.values)
+                                hpp << "case " << prefix << enumCppName(v.name, m_tables) << ": return \"" << v.name << "\";";
+                            hpp << "default: throw CTiglError(\"Invalid enum value \\\"\" + std_to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
                         }
                         hpp << "}";
+                    }
+                    hpp << "}";
 
-                        // string to enum function
-                        hpp << "inline " << e.name << " " << stringToEnumFunc(e, m_tables) << "(const std::string& value)";
-                        hpp << "{";
-                        {
-                            Scope s(hpp);
-                            if (c_generateCaseSensitiveStringToEnumConversion) {
-                                for (const auto& v : e.values)
-                                    hpp << "if (value == \"" << v.name << "\") return " << prefix << enumCppName(v.name, m_tables) << ";";
-                            } else {
-                                if (cpp11)
-                                    hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
-                                else
-                                    hpp << "struct ToLower { std::string operator()(std::string str) { for (std::size_t i = 0; i < str.length(); i++) { str[i] = std::tolower(str[i]); } return str; } } toLower;";
-                                auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
-                                for (const auto& v : e.values)
-                                    hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") { return " << prefix << enumCppName(v.name, m_tables) << "; }";
-                            }
-
-                            hpp << "throw CTiglError(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";
+                    // string to enum function
+                    hpp << "inline " << e.name << " " << stringToEnumFunc(e, m_tables) << "(const std::string& value)";
+                    hpp << "{";
+                    {
+                        Scope s(hpp);
+                        if (c_generateCaseSensitiveStringToEnumConversion) {
+                            for (const auto& v : e.values)
+                                hpp << "if (value == \"" << v.name << "\") return " << prefix << enumCppName(v.name, m_tables) << ";";
+                        } else {
+                            if (c_generateCpp11ScopedEnums)
+                                hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
+                            else
+                                hpp << "struct ToLower { std::string operator()(std::string str) { for (std::size_t i = 0; i < str.length(); i++) { str[i] = std::tolower(str[i]); } return str; } } toLower;";
+                            auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
+                            for (const auto& v : e.values)
+                                hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") { return " << prefix << enumCppName(v.name, m_tables) << "; }";
                         }
-                        hpp << "}";
-                    };
-                    hpp << "#ifdef HAVE_CPP11";
-                    writeToStringFuncs(true);
-                    hpp << "#else";
-                    writeToStringFuncs(false);
-                    hpp << "#endif";
+
+                        hpp << "throw CTiglError(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";
+                    }
+                    hpp << "}";
                 }
                 hpp << "}";
                 hpp << "";
@@ -1161,13 +1151,16 @@ namespace tigl {
                     hpp << "// " << e.name << " is customized, use type " << *customName << " directly";
                 } else {
                     hpp << "// Aliases in tigl namespace";
-                    hpp << "#ifdef HAVE_CPP11";
+                    if (!c_generateCpp11ScopedEnums)
+                        hpp << "#ifdef HAVE_CPP11";
                     hpp << "using E" << e.name << " = generated::" << e.name << ";";
-                    hpp << "#else";
-                    hpp << "typedef generated::" << e.name << " E" << e.name << ";";
-                    for(const auto& v : e.values)
-                        hpp << "using generated::" << enumCppName(v.name, m_tables) << ";";
-                    hpp << "#endif";
+                    if (!c_generateCpp11ScopedEnums) {
+                        hpp << "#else";
+                        hpp << "typedef generated::" << e.name << " E" << e.name << ";";
+                        hpp << "#endif";
+                        for (const auto& v : e.values)
+                            hpp << "using generated::" << enumCppName(v.name, m_tables) << ";";
+                    }
                 }
             }
             hpp << "}";

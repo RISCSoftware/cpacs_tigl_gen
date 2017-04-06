@@ -89,6 +89,5 @@ namespace tigl {
         m_typeSubstitutions(inputDirectory + "/TypeSubstitution.txt"),
         m_parentPointers   (inputDirectory + "/ParentPointer.txt"   ),
         m_reservedNames    (inputDirectory + "/ReservedNames.txt"   ),
-        m_pruneList        (inputDirectory + "/PruneList.txt"       ),
-        m_prefixedEnums    (inputDirectory + "/PrefixedEnums.txt"   ) {}
+        m_pruneList        (inputDirectory + "/PruneList.txt"       ) {}
 }

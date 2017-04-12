@@ -671,7 +671,10 @@ namespace tigl {
 
             // base class
             if (!c.base.empty() && m_types.classes().find(c.base) != std::end(m_types.classes())) {
-                deps.hppIncludes.push_back("\"" + c.base + ".h\"");
+                if (auto p = m_tables.m_customTypes.find(c.base))
+                    deps.hppIncludes.push_back("<" + *p + ".h>");
+                else
+                    deps.hppIncludes.push_back("\"" + c.base + ".h\"");
             }
 
             // fields
@@ -903,7 +906,7 @@ namespace tigl {
                     hpp << "// generated from " << c.origin->xpath << "";
 
                     // class name and base class
-                    hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + c.base);
+                    hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + customReplacedType(c.base));
                     hpp << "{";
                     hpp << "public:";
                     {

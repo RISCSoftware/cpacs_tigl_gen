@@ -742,8 +742,10 @@ namespace tigl {
                 auto icmp = [](const std::string& a, const std::string& b) { return boost::ilexicographical_compare(a, b); };
                 std::sort(std::begin(includes), mid, icmp);
                 std::sort(mid, std::end(includes), icmp);
+                const auto& newMid = includes.erase(std::unique(std::begin(includes), mid), mid);
+                includes.erase(std::unique(newMid, std::end(includes)), std::end(includes));
             };
-            order(deps.cppIncludes);
+            order(deps.hppIncludes);
             order(deps.cppIncludes);
 
             return deps;

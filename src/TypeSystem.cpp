@@ -330,7 +330,7 @@ namespace tigl {
     }
 
     void TypeSystem::collapseEnums() {
-        std::cout << "Collapsing m_enums" << std::endl;
+        std::cout << "Collapsing enums" << std::endl;
 
         // convert enum unordered_map to vector for easier processing
         std::vector<Enum> enumVec;

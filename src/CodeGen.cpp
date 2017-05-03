@@ -167,12 +167,13 @@ namespace tigl {
         void writeAccessorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
             for (const auto& f : fields) {
                 hpp << "TIGL_EXPORT virtual const " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "() const;";
+
+                // generate setter only for fundamental and enum types which are not vectors
                 const bool isClassType = m_types.classes().find(f.typeName) != std::end(m_types.classes());
-                if (!isClassType) {
+                if (!isClassType && f.cardinality != Cardinality::Vector) {
                     if (f.cardinality == Cardinality::Optional)
                         hpp << "TIGL_EXPORT virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value);";
 
-                    // generate setter only for fundamental and enum types
                     hpp << "TIGL_EXPORT virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
                 } else
                     hpp << "TIGL_EXPORT virtual " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "();";
@@ -191,9 +192,9 @@ namespace tigl {
                 cpp << "}";
                 cpp << "";
 
+                // generate setter only for fundamental and enum types which are not vectors
                 const bool isClassType = m_types.classes().find(f.typeName) != std::end(m_types.classes());
-                // generate setter only for fundamental and enum types
-                if (!isClassType) {
+                if (!isClassType && f.cardinality != Cardinality::Vector) {
                     if (f.cardinality == Cardinality::Optional) {
                         cpp << "void " << className << "::Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value)";
                         cpp << "{";
@@ -380,13 +381,13 @@ namespace tigl {
                                 cpp << "} catch(const std::exception& e) {";
                                 {
                                     Scope s(cpp);
-                                    cpp << "LOG(ERROR) << \"Failed to read " << f.cpacsName << " at xpath << \" << xpath << \": \" << e.what();";
+                                    cpp << "LOG(ERROR) << \"Failed to read " << f.cpacsName << " at xpath \" << xpath << \": \" << e.what();";
                                     cpp << f.fieldName() << " = boost::none;";
                                 }
                                 cpp << "} catch(const CTiglError& e) {";
                                 {
                                     Scope s(cpp);
-                                    cpp << "LOG(ERROR) << \"Failed to read " << f.cpacsName << " at xpath << \" << xpath << \": \" << e.getError();";
+                                    cpp << "LOG(ERROR) << \"Failed to read " << f.cpacsName << " at xpath \" << xpath << \": \" << e.getError();";
                                     cpp << f.fieldName() << " = boost::none;";
                                 }
                                 cpp << "}";

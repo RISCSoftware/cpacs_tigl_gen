@@ -66,7 +66,7 @@ namespace tigl
 
         operator bool() const
         {
-            return _Myptr != NULL;
+            return get() != NULL;
         }
     };
 

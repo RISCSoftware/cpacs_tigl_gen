@@ -243,7 +243,7 @@ namespace tigl {
                     hpp << "{";
                     {
                         Scope s(hpp);
-                        hpp << "#ifdef HAVE_CPP11";
+                        hpp << "#ifdef HAVE_STDIS_SAME";
                         hpp << "static_assert(";
                         for (const auto& dep : c.deps.parents) {
                             if (&dep != &c.deps.parents[0])

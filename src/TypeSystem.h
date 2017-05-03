@@ -49,12 +49,12 @@ namespace tigl {
         XMLConstruct xmlType;
         Cardinality cardinality;
 
-        std::string customFieldName;
+        std::string customName;
 
         auto name() const -> std::string {
             auto name = [this] {
-                if (!customFieldName.empty())
-                    return customFieldName;
+                if (!customName.empty())
+                    return customName;
                 else
                     return cpacsName;
             }();
@@ -91,14 +91,22 @@ namespace tigl {
     };
 
     struct EnumValue {
-        std::string name;
+        std::string cpacsName;
+        std::string customName;
 
         EnumValue() = default;
         EnumValue(const std::string& name)
-            : name(name) {}
+            : cpacsName(name) {}
+
+        auto name() const -> std::string {
+            if (!customName.empty())
+                return customName;
+            else
+                return cpacsName;
+        }
 
         friend auto operator==(const EnumValue& a, const EnumValue& b) -> bool {
-            return a.name == b.name;
+            return a.name() == b.name();
         }
     };
 

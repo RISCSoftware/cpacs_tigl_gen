@@ -102,7 +102,7 @@ namespace tigl {
 
                         // give custom names
                         for (auto& f : choiceMembers)
-                            f.customFieldName = f.cpacsName + "_choice" + std::to_string(choiceIndex);
+                            f.customName = f.cpacsName + "_choice" + std::to_string(choiceIndex);
 
                         // copy to output
                         std::copy(std::begin(choiceMembers), std::end(choiceMembers), std::back_inserter(allChoiceMembers));
@@ -149,7 +149,7 @@ namespace tigl {
                     Field m;
                     m.origin = &g;
                     m.cpacsName = "";
-                    m.customFieldName = "simpleContent";
+                    m.customName = "simpleContent";
                     m.cardinality = Cardinality::Mandatory;
                     m.typeName = resolveType(schema, g.type, tables);
                     m.xmlType = XMLConstruct::SimpleContent;
@@ -193,7 +193,7 @@ namespace tigl {
 
                             Field f;
                             f.cpacsName = "";
-                            f.customFieldName = "base";
+                            f.customName = "base";
                             f.cardinality = Cardinality::Mandatory;
                             f.typeName = c.base;
                             f.xmlType = XMLConstruct::FundamentalTypeBase;
@@ -426,21 +426,21 @@ namespace tigl {
         for (auto& p : m_enums) {
             auto& e = p.second;
             for (auto& v : e.values) {
-                auto& otherEnums = valueToEnum[v.name];
+                auto& otherEnums = valueToEnum[v.name()];
                 if (otherEnums.size() == 1) {
                     // we are adding the same enum value for the second time
                     // prefix other enum's value
                     auto& otherEnum = *otherEnums[0];
                     const auto it = std::find_if(std::begin(otherEnum.values), std::end(otherEnum.values), [&](const EnumValue& ov) {
-                        return ov.name == v.name;
+                        return ov.name() == v.name();
                     });
                     if (it == std::end(otherEnum.values))
                         throw std::logic_error("Enum value resolves to an enum which does not have the value");
-                    it->name = otherEnum.name + "_" + it->name;
+                    it->customName = otherEnum.name + "_" + it->cpacsName;
                 }
                 if (otherEnums.size() > 1) {
                     // we are adding an already added value, prefix myself
-                    v.name = e.name + "_" + v.name;
+                    v.customName = e.name + "_" + v.cpacsName;
                 }
 
                 otherEnums.push_back(&e);

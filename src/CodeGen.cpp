@@ -1103,7 +1103,7 @@ namespace tigl {
 
                         // values
                         for (const auto& v : e.values)
-                            hpp << enumCppName(v.name, m_tables) << (&v != &e.values.back() ? "," : "") << "";
+                            hpp << enumCppName(v.name(), m_tables) << (&v != &e.values.back() ? "," : "") << "";
                     }
                     hpp << "};";
                     hpp << "";
@@ -1119,7 +1119,7 @@ namespace tigl {
                         {
                             //Scope s(hpp);
                             for (const auto& v : e.values)
-                                hpp << "case " << prefix << enumCppName(v.name, m_tables) << ": return \"" << v.name << "\";";
+                                hpp << "case " << prefix << enumCppName(v.name(), m_tables) << ": return \"" << v.cpacsName << "\";";
                             hpp << "default: throw CTiglError(\"Invalid enum value \\\"\" + std_to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
                         }
                         hpp << "}";
@@ -1133,7 +1133,7 @@ namespace tigl {
                         Scope s(hpp);
                         if (c_generateCaseSensitiveStringToEnumConversion) {
                             for (const auto& v : e.values)
-                                hpp << "if (value == \"" << v.name << "\") return " << prefix << enumCppName(v.name, m_tables) << ";";
+                                hpp << "if (value == \"" << v.cpacsName << "\") return " << prefix << enumCppName(v.name(), m_tables) << ";";
                         } else {
                             if (c_generateCpp11ScopedEnums)
                                 hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
@@ -1141,7 +1141,7 @@ namespace tigl {
                                 hpp << "struct ToLower { std::string operator()(std::string str) { for (std::size_t i = 0; i < str.length(); i++) { str[i] = std::tolower(str[i]); } return str; } } toLower;";
                             auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
                             for (const auto& v : e.values)
-                                hpp << "if (toLower(value) == \"" << toLower(v.name) << "\") { return " << prefix << enumCppName(v.name, m_tables) << "; }";
+                                hpp << "if (toLower(value) == \"" << toLower(v.cpacsName) << "\") { return " << prefix << enumCppName(v.name(), m_tables) << "; }";
                         }
 
                         hpp << "throw CTiglError(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";
@@ -1165,7 +1165,7 @@ namespace tigl {
                         hpp << "typedef generated::" << e.name << " E" << e.name << ";";
                         hpp << "#endif";
                         for (const auto& v : e.values)
-                            hpp << "using generated::" << enumCppName(v.name, m_tables) << ";";
+                            hpp << "using generated::" << enumCppName(v.name(), m_tables) << ";";
                     }
                 }
             }

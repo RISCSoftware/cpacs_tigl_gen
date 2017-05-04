@@ -209,7 +209,7 @@ namespace tigl {
                 else
                     throw std::runtime_error("Invalid value for optional attribute at xpath: " + xpath);
             } else {
-                att.optional = false;
+                att.optional = true;
             }
 
             if (document.checkAttribute(xpath, "default"))

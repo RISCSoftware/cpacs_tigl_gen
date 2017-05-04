@@ -51,12 +51,12 @@ namespace tigl {
 
     class CodeGen {
     public:
-        CodeGen(const std::string& outputLocation, const TypeSystem& types, const Tables& tables)
-            : m_types(types), m_tables(tables) {
+        CodeGen(const std::string& outputLocation, TypeSystem types, const Tables& tables)
+            : m_types(std::move(types)), m_tables(tables) {
 
             WriteIfDifferentFiles files;
 
-            for (const auto& p : m_types.classes()) {
+            for (const auto& p : m_types.classes) {
                 const auto c = p.second;
                 const auto hppFileName = outputLocation + "/" + c.name + ".h";
                 const auto cppFileName = outputLocation + "/" + c.name + ".cpp";
@@ -71,7 +71,7 @@ namespace tigl {
                 writeClass(IndentingStreamWrapper(hpp.stream()), IndentingStreamWrapper(cpp.stream()), c);
             }
 
-            for (const auto& p : m_types.enums()) {
+            for (const auto& p : m_types.enums) {
                 const auto e = p.second;
                 const auto hppFileName = outputLocation + "/" + e.name + ".h";
                 if (e.pruned) {
@@ -97,7 +97,7 @@ namespace tigl {
             std::vector<std::string> cppIncludes;
         };
 
-        const TypeSystem& m_types;
+        TypeSystem m_types;
         const Tables&     m_tables;
 
         auto customReplacedType(const std::string& name) const -> std::string {
@@ -117,7 +117,7 @@ namespace tigl {
                     return typeName;
                 case Cardinality::Vector:
                 {
-                    if (m_types.classes().find(field.typeName) != std::end(m_types.classes()))
+                    if (m_types.classes.find(field.typeName) != std::end(m_types.classes))
                         return "std::vector<unique_ptr<" + typeName + "> >";
                     else
                         return "std::vector<" + typeName + ">";
@@ -169,7 +169,7 @@ namespace tigl {
                 hpp << "TIGL_EXPORT virtual const " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "() const;";
 
                 // generate setter only for fundamental and enum types which are not vectors
-                const bool isClassType = m_types.classes().find(f.typeName) != std::end(m_types.classes());
+                const bool isClassType = m_types.classes.find(f.typeName) != std::end(m_types.classes);
                 if (!isClassType && f.cardinality != Cardinality::Vector) {
                     if (f.cardinality == Cardinality::Optional)
                         hpp << "TIGL_EXPORT virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value);";
@@ -193,7 +193,7 @@ namespace tigl {
                 cpp << "";
 
                 // generate setter only for fundamental and enum types which are not vectors
-                const bool isClassType = m_types.classes().find(f.typeName) != std::end(m_types.classes());
+                const bool isClassType = m_types.classes.find(f.typeName) != std::end(m_types.classes);
                 if (!isClassType && f.cardinality != Cardinality::Vector) {
                     if (f.cardinality == Cardinality::Optional) {
                         cpp << "void " << className << "::Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value)";
@@ -347,8 +347,8 @@ namespace tigl {
             }
 
             // enums
-            const auto itE = m_types.enums().find(f.typeName);
-            if (itE != std::end(m_types.enums())) {
+            const auto itE = m_types.enums.find(f.typeName);
+            if (itE != std::end(m_types.enums)) {
                 const auto& readFunc = stringToEnumFunc(itE->second, m_tables);
                 switch (f.cardinality) {
                     case Cardinality::Optional:
@@ -366,9 +366,9 @@ namespace tigl {
 
             // classes
             if (f.xmlType != XMLConstruct::Attribute && f.xmlType != XMLConstruct::FundamentalTypeBase) {
-                const auto itC = m_types.classes().find(f.typeName);
+                const auto itC = m_types.classes.find(f.typeName);
                 const bool requiresParentPointer = m_tables.m_parentPointers.contains(f.typeName);
-                if (itC != std::end(m_types.classes())) {
+                if (itC != std::end(m_types.classes)) {
                     switch (f.cardinality) {
                         case Cardinality::Optional:
                             cpp << f.fieldName() << " = boost::in_place(" << (requiresParentPointer ? parentPointerThis(c) : "") << ");";
@@ -451,8 +451,8 @@ namespace tigl {
             }
 
             // enums
-            const auto itE = m_types.enums().find(f.typeName);
-            if (itE != std::end(m_types.enums())) {
+            const auto itE = m_types.enums.find(f.typeName);
+            if (itE != std::end(m_types.enums)) {
                 switch (f.cardinality) {
                     case Cardinality::Optional:
                         cpp << "if (" << f.fieldName() << ") {";
@@ -475,8 +475,8 @@ namespace tigl {
 
             // classes
             if (f.xmlType != XMLConstruct::Attribute && f.xmlType != XMLConstruct::FundamentalTypeBase) {
-                const auto itC = m_types.classes().find(f.typeName);
-                if (itC != std::end(m_types.classes())) {
+                const auto itC = m_types.classes.find(f.typeName);
+                if (itC != std::end(m_types.classes)) {
                     switch (f.cardinality) {
                         case Cardinality::Optional:
                             cpp << "if (" << f.fieldName() << ") {";
@@ -505,11 +505,11 @@ namespace tigl {
         void writeReadBaseImplementation(IndentingStreamWrapper& cpp, const std::string& type) {
             // fundamental types
             if (m_tables.m_fundamentalTypes.contains(type))
-                throw std::logic_error("fundamental types cannot be base classes"); // this should be prevented by TypeSystem
+                throw std::logic_error("fundamental types cannot be base classes"); // this should be prevented by TypeSystemBuilder
 
             // classes
-            const auto itC = m_types.classes().find(type);
-            if (itC != std::end(m_types.classes())) {
+            const auto itC = m_types.classes.find(type);
+            if (itC != std::end(m_types.classes)) {
                 cpp << type << "::ReadCPACS(tixiHandle, xpath);";
                 return;
             }
@@ -525,8 +525,8 @@ namespace tigl {
             }
 
             // classes
-            const auto itC = m_types.classes().find(type);
-            if (itC != std::end(m_types.classes())) {
+            const auto itC = m_types.classes.find(type);
+            if (itC != std::end(m_types.classes)) {
                 cpp << type << "::WriteCPACS(tixiHandle, xpath);";
                 return;
             }
@@ -629,6 +629,7 @@ namespace tigl {
 
             deps.hppIncludes.push_back("<tixi.h>");
             deps.hppIncludes.push_back("<string>");
+            deps.hppIncludes.push_back("\"tigl_internal.h\"");
 
             // optional, vector and make_unique
             bool vectorHeader = false;
@@ -642,7 +643,7 @@ namespace tigl {
                         break;
                     case Cardinality::Vector:
                         vectorHeader = true;
-                        if (m_types.classes().find(f.typeName) != std::end(m_types.classes()))
+                        if (m_types.classes.find(f.typeName) != std::end(m_types.classes))
                             makeUnique = true;
                         break;
                     case Cardinality::Mandatory:
@@ -668,10 +669,8 @@ namespace tigl {
                 deps.hppIncludes.push_back("<typeinfo>");
             }
 
-            deps.hppIncludes.push_back("\"tigl_internal.h\"");
-
             // base class
-            if (!c.base.empty() && m_types.classes().find(c.base) != std::end(m_types.classes())) {
+            if (!c.base.empty() && m_types.classes.find(c.base) != std::end(m_types.classes)) {
                 if (auto p = m_tables.m_customTypes.find(c.base))
                     deps.hppIncludes.push_back("<" + *p + ".h>");
                 else
@@ -680,8 +679,8 @@ namespace tigl {
 
             // fields
             for (const auto& f : c.fields) {
-                if (m_types.enums().find(f.typeName) != std::end(m_types.enums()) ||
-                    m_types.classes().find(f.typeName) != std::end(m_types.classes())) {
+                if (m_types.enums.find(f.typeName) != std::end(m_types.enums) ||
+                    m_types.classes.find(f.typeName) != std::end(m_types.classes)) {
                     // this is a class or enum type, include it
 
                     const auto p = m_tables.m_customTypes.find(f.typeName);
@@ -815,53 +814,28 @@ namespace tigl {
                     cpp << "}";
                     cpp << "";
                 }
-                if (c.deps.parents.size() == 1) {
-                    cpp << c.name << "::" << c.name << "(" << customReplacedType(c.deps.parents[0]->name) << "* parent)";
+                for (const auto& dep : c.deps.parents) {
+                    const auto rn = customReplacedType(dep->name);
+                    cpp << c.name << "::" << c.name << "(" << rn << "* parent, " << (hasUid ? c_uidMgrName + "& uidMgr" : "") << ")";
                     writeParentPointerFieldInitializers();
                     cpp << "{";
                     {
                         Scope s(cpp);
                         cpp << "//assert(parent != NULL);";
                         cpp << "m_parent = parent;";
+                        if (c.deps.parents.size() > 1)
+                            cpp << "m_parentType = &typeid(" << rn << ");";
                     }
                     cpp << "}";
                     cpp << "";
-                } else {
-                    for (const auto& dep : c.deps.parents) {
-                        const auto rn = customReplacedType(dep->name);
-                        cpp << c.name << "::" << c.name << "(" << rn << "* parent)";
-                        writeParentPointerFieldInitializers();
-                        cpp << "{";
-                        {
-                            Scope s(cpp);
-                            cpp << "//assert(parent != NULL);";
-                            cpp << "m_parent = parent;";
-                            cpp << "m_parentType = &typeid(" << rn << ");";
-                        }
-                        cpp << "}";
-                        cpp << "";
-                    }
                 }
             } else {
-                cpp << c.name << "::" << c.name << "()";
+                cpp << c.name << "::" << c.name << "(" << (hasUid ? c_uidMgrName + "& uidMgr" : "") << ")";
                 writeParentPointerFieldInitializers();
                 cpp.raw() << "{}";
+                cpp << "";
             }
         }
-
-        void exportNames(IndentingStreamWrapper& hpp, const std::vector<std::string>& names, const char prefix = 'C') {
-            if (names.empty())
-                return;
-
-            hpp << "// Aliases in tigl namespace";
-            hpp << "#ifdef HAVE_CPP11";
-            for(const auto& name : names)
-                hpp << "using " << prefix << name << " = generated::" << name << ";";
-            hpp << "#else";
-            for(const auto& name : names)
-                hpp << "typedef generated::" << name << " " << prefix << name << ";";
-            hpp << "#endif";
-        };
 
         void writeHeader(IndentingStreamWrapper& hpp, const Class& c, const Includes& includes) {
             // file header
@@ -1174,7 +1148,7 @@ namespace tigl {
         }
     };
 
-    void genCode(const std::string& outputLocation, const TypeSystem& types, const Tables& tables) {
-        CodeGen gen(outputLocation, types, tables);
+    void genCode(const std::string& outputLocation, TypeSystem typeSystem, const Tables& tables) {
+        CodeGen gen(outputLocation, std::move(typeSystem), tables);
     }
 }

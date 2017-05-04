@@ -2,9 +2,8 @@
 
 #include <string>
 
-namespace tigl {
-    class TypeSystem;
-    class Tables;
+#include "TypeSystem.h"
 
-    void genCode(const std::string& outputLocation, const TypeSystem& types, const Tables& tables);
+namespace tigl {
+    void genCode(const std::string& outputLocation, TypeSystem typeSystem, const Tables& tables);
 }

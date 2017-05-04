@@ -6,7 +6,6 @@
 
 #include "NotImplementedException.h"
 #include "Tables.h"
-#include "SchemaParser.h"
 
 namespace tigl {
     namespace {
@@ -25,9 +24,8 @@ namespace tigl {
             return name;
         }
 
-        auto resolveType(const SchemaParser& schema, const std::string& name, const Tables& tables) -> std::string {
+        auto resolveType(const SchemaTypes& types, const std::string& name, const Tables& tables) -> std::string {
             // search simple and complex types
-            const auto& types = schema.types();
             const auto cit = types.find(name);
             if (cit != std::end(types)) {
                 const auto p = tables.m_typeSubstitutions.find(name);
@@ -45,7 +43,7 @@ namespace tigl {
             throw std::runtime_error("Unknown type: " + name);
         }
 
-        auto buildFieldList(const SchemaParser& schema, const ComplexType& type, const Tables& tables) -> std::vector<Field> {
+        auto buildFieldList(const SchemaTypes& types, const ComplexType& type, const Tables& tables) -> std::vector<Field> {
             std::vector<Field> members;
 
             // attributes
@@ -53,7 +51,7 @@ namespace tigl {
                 Field m;
                 m.origin = &a;
                 m.cpacsName = a.name;
-                m.typeName = resolveType(schema, a.type, tables);
+                m.typeName = resolveType(types, a.type, tables);
                 m.xmlType = XMLConstruct::Attribute;
                 if (a.optional)
                     m.cardinality = Cardinality::Optional;
@@ -64,14 +62,14 @@ namespace tigl {
 
             // elements
             struct ContentVisitor : public boost::static_visitor<> {
-                ContentVisitor(const SchemaParser& schema, std::vector<Field>& members, const Tables& tables)
-                    : schema(schema), members(members), tables(tables) {}
+                ContentVisitor(const SchemaTypes& types, std::vector<Field>& members, const Tables& tables)
+                    : types(types), members(members), tables(tables) {}
 
                 void operator()(const Element& e) const {
                     Field m;
                     m.origin = &e;
                     m.cpacsName = e.name;
-                    m.typeName = resolveType(schema, e.type, tables);
+                    m.typeName = resolveType(types, e.type, tables);
                     m.xmlType = XMLConstruct::Element;
                     if (e.minOccurs == 0 && e.maxOccurs == 1)
                         m.cardinality = Cardinality::Optional;
@@ -93,7 +91,7 @@ namespace tigl {
                     for (const auto& v : c.elements) {
                         // collect members of one choice
                         std::vector<Field> choiceMembers;
-                        v.visit(ContentVisitor(schema, choiceMembers, tables));
+                        v.visit(ContentVisitor(types, choiceMembers, tables));
 
                         // make all optional
                         for (auto& f : choiceMembers)
@@ -129,7 +127,7 @@ namespace tigl {
 
                 void operator()(const Sequence& s) const {
                     for (const auto& v : s.elements)
-                        v.visit(ContentVisitor(schema, members, tables));
+                        v.visit(ContentVisitor(types, members, tables));
                 }
 
                 void operator()(const All& a) const {
@@ -151,111 +149,89 @@ namespace tigl {
                     m.cpacsName = "";
                     m.customName = "simpleContent";
                     m.cardinality = Cardinality::Mandatory;
-                    m.typeName = resolveType(schema, g.type, tables);
+                    m.typeName = resolveType(types, g.type, tables);
                     m.xmlType = XMLConstruct::SimpleContent;
                     members.push_back(m);
                 }
 
             private:
-                const SchemaParser& schema;
+                const SchemaTypes& types;
                 std::vector<Field>& members;
                 const Tables& tables;
             };
 
-            type.content.visit(ContentVisitor(schema, members, tables));
+            type.content.visit(ContentVisitor(types, members, tables));
 
             return members;
         }
     }
 
-    TypeSystem::TypeSystem(const SchemaParser& schema, const Tables& tables)
-        : tables(tables) {
-        std::cout << "Creating type system" << std::endl;
+    class TypeSystemBuilder {
+    public:
+        TypeSystemBuilder(SchemaTypes types, const Tables& tables)
+            : tables(tables) {
+            for (const auto& p : types) {
+                const auto& type = p.second;
 
-        for (const auto& p : schema.types()) {
-            const auto& type = p.second;
+                struct TypeVisitor {
+                    TypeVisitor(const SchemaTypes& schema, TypeSystemBuilder& typeSystem, const Tables& tables)
+                        : types(types), typeSystem(typeSystem), tables(tables) {}
 
-            struct TypeVisitor {
-                TypeVisitor(const SchemaParser& schema, TypeSystem& types, const Tables& tables)
-                    : schema(schema), types(types), tables(tables) {}
+                    void operator()(const ComplexType& type) {
+                        Class c;
+                        c.origin = &type;
+                        c.name = makeClassName(type.name);
+                        c.fields = buildFieldList(types, type, tables);
+                        if (!type.base.empty()) {
+                            c.base = resolveType(types, type.base, tables);
 
-                void operator()(const ComplexType& type) {
-                    Class c;
-                    c.origin = &type;
-                    c.name = makeClassName(type.name);
-                    c.fields = buildFieldList(schema, type, tables);
-                    if (!type.base.empty()) {
-                        c.base = resolveType(schema, type.base, tables);
+                            // make base a field if fundamental type
+                            if (tables.m_fundamentalTypes.contains(c.base)) {
+                                std::cout << "\tWarning: Type " << type.name << " has base class " << c.base << " which is a fundamental type. Generated field 'base' instead" << std::endl;
 
-                        // make base a field if fundamental type
-                        if (tables.m_fundamentalTypes.contains(c.base)) {
-                            std::cout << "\tWarning: Type " << type.name << " has base class " << c.base << " which is a fundamental type. Generated field 'base' instead" << std::endl;
+                                Field f;
+                                f.cpacsName = "";
+                                f.customName = "base";
+                                f.cardinality = Cardinality::Mandatory;
+                                f.typeName = c.base;
+                                f.xmlType = XMLConstruct::FundamentalTypeBase;
 
-                            Field f;
-                            f.cpacsName = "";
-                            f.customName = "base";
-                            f.cardinality = Cardinality::Mandatory;
-                            f.typeName = c.base;
-                            f.xmlType = XMLConstruct::FundamentalTypeBase;
-
-                            c.fields.insert(std::begin(c.fields), f);
-                            c.base.clear();
+                                c.fields.insert(std::begin(c.fields), f);
+                                c.base.clear();
+                            }
                         }
+
+                        typeSystem.m_classes[c.name] = c;
                     }
 
-                    types.m_classes[c.name] = c;
-                }
+                    void operator()(const SimpleType& type) {
+                        if (type.restrictionValues.size() > 0) {
+                            // create enum
+                            Enum e;
+                            e.origin = &type;
+                            e.name = makeClassName(type.name);
+                            for (const auto& v : type.restrictionValues)
+                                e.values.push_back(EnumValue(v));
+                            typeSystem.m_enums[e.name] = e;
+                        } else
+                            throw NotImplementedException("Simple times which are not m_enums are not implemented");
+                    }
 
-                void operator()(const SimpleType& type) {
-                    if (type.restrictionValues.size() > 0) {
-                        // create enum
-                        Enum e;
-                        e.origin = &type;
-                        e.name = makeClassName(type.name);
-                        for (const auto& v : type.restrictionValues)
-                            e.values.push_back(EnumValue(v));
-                        types.m_enums[e.name] = e;
-                    } else
-                        throw NotImplementedException("Simple times which are not m_enums are not implemented");
-                }
+                private:
+                    const SchemaTypes& types;
+                    TypeSystemBuilder& typeSystem;
+                    const Tables& tables;
+                };
 
-            private:
-                const SchemaParser& schema;
-                TypeSystem& types;
-                const Tables& tables;
+                type.visit(TypeVisitor(types, *this, tables));
             };
 
-            type.visit(TypeVisitor(schema, *this, tables));
-        };
-
-        collapseEnums();
-        prefixClashedEnumValues();
-        buildDependencies();
-        runPruneList();
-    }
-
-    void TypeSystem::writeGraphVisFile(const std::string& typeSystemGraphVisFile) const {
-        std::cout << "Writing type system graph vis file to " << typeSystemGraphVisFile << std::endl;
-        std::ofstream f{typeSystemGraphVisFile};
-        if (!f)
-            throw std::runtime_error("Failed to open file " + typeSystemGraphVisFile + " for writing");
-        f << "digraph typesystem {\n";
-        for (const auto& p : m_classes) {
-            const auto& c = p.second;
-            if (c.pruned)
-                continue;
-            for (const auto& b : c.deps.bases)
-                f << "\t" << c.name << " -> " << b->name << ";\n";
-            for (const auto& ch : c.deps.children)
-                f << "\t" << c.name << " -> " << ch->name << ";\n";
-            for (const auto& e : c.deps.enumChildren)
-                f << "\t" << c.name << " -> " << e->name << ";\n";
+            collapseEnums();
+            prefixClashedEnumValues();
+            buildDependencies();
+            runPruneList();
         }
-        // m_enums have no further dependencies
-        f << "}\n";
-    }
 
-    namespace {
         // TODO: replace by lambda when C++14 is available
         struct SortAndUnique {
             template <typename T>
@@ -268,197 +244,195 @@ namespace tigl {
                 }), std::end(con));
             }
         };
-    }
 
-    void TypeSystem::buildDependencies() {
-        std::cout << "Building dependencies" << std::endl;
+        void buildDependencies() {
+            std::cout << "Building dependencies" << std::endl;
 
-        for (auto& p : m_classes) {
-            auto& c = p.second;
-            if (c.pruned)
-                continue;
+            for (auto& p : m_classes) {
+                auto& c = p.second;
+                if (c.pruned)
+                    continue;
 
-            // base
-            if (!c.base.empty()) {
-                const auto it = m_classes.find(c.base);
-                if (it != std::end(m_classes)) {
-                    if (!it->second.pruned) {
-                        c.deps.bases.push_back(&it->second);
-                        it->second.deps.deriveds.push_back(&c);
-                    }
-                } else
-                    // this exception should be prevented by earlier code
-                    throw std::runtime_error("Class " + c.name + " has non-class base: " + c.base);
-            }
+                // base
+                if (!c.base.empty()) {
+                    const auto it = m_classes.find(c.base);
+                    if (it != std::end(m_classes)) {
+                        if (!it->second.pruned) {
+                            c.deps.bases.push_back(&it->second);
+                            it->second.deps.deriveds.push_back(&c);
+                        }
+                    } else
+                        // this exception should be prevented by earlier code
+                        throw std::runtime_error("Class " + c.name + " has non-class base: " + c.base);
+                }
 
-            // fields
-            for (auto& f : c.fields) {
-                const auto eit = m_enums.find(f.typeName);
-                if (eit != std::end(m_enums)) {
-                    if (!eit->second.pruned) {
-                        c.deps.enumChildren.push_back(&eit->second);
-                        eit->second.deps.parents.push_back(&c);
-                    }
-                } else {
-                    const auto cit = m_classes.find(f.typeName);
-                    if (cit != std::end(m_classes)) {
-                        if (!cit->second.pruned) {
-                            c.deps.children.push_back(&cit->second);
-                            cit->second.deps.parents.push_back(&c);
+                // fields
+                for (auto& f : c.fields) {
+                    const auto eit = m_enums.find(f.typeName);
+                    if (eit != std::end(m_enums)) {
+                        if (!eit->second.pruned) {
+                            c.deps.enumChildren.push_back(&eit->second);
+                            eit->second.deps.parents.push_back(&c);
+                        }
+                    } else {
+                        const auto cit = m_classes.find(f.typeName);
+                        if (cit != std::end(m_classes)) {
+                            if (!cit->second.pruned) {
+                                c.deps.children.push_back(&cit->second);
+                                cit->second.deps.parents.push_back(&c);
+                            }
                         }
                     }
                 }
             }
+
+            SortAndUnique sortAndUnique;
+
+            // sort and unique
+            for (auto& p : m_classes) {
+                auto& c = p.second;
+                sortAndUnique(c.deps.bases);
+                sortAndUnique(c.deps.children);
+                sortAndUnique(c.deps.deriveds);
+                sortAndUnique(c.deps.enumChildren);
+                sortAndUnique(c.deps.parents);
+            }
+
+            for (auto& p : m_enums) {
+                auto& e = p.second;
+                sortAndUnique(e.deps.parents);
+            }
         }
 
-        SortAndUnique sortAndUnique;
+        void collapseEnums() {
+            std::cout << "Collapsing enums" << std::endl;
 
-        // sort and unique
-        for (auto& p : m_classes) {
-            auto& c = p.second;
-            sortAndUnique(c.deps.bases);
-            sortAndUnique(c.deps.children);
-            sortAndUnique(c.deps.deriveds);
-            sortAndUnique(c.deps.enumChildren);
-            sortAndUnique(c.deps.parents);
-        }
+            // convert enum unordered_map to vector for easier processing
+            std::vector<Enum> enumVec;
+            enumVec.reserve(m_enums.size());
+            for (const auto& p : m_enums)
+                enumVec.push_back(p.second);
 
-        for (auto& p : m_enums) {
-            auto& e = p.second;
-            sortAndUnique(e.deps.parents);
-        }
-    }
+            std::unordered_map<std::string, std::string> replacedEnums;
 
-    void TypeSystem::collapseEnums() {
-        std::cout << "Collapsing enums" << std::endl;
+            for (std::size_t i = 0; i < enumVec.size(); i++) {
+                auto& e1 = enumVec[i];
+                for (std::size_t j = i + 1; j < enumVec.size(); j++) {
+                    auto& e2 = enumVec[j];
 
-        // convert enum unordered_map to vector for easier processing
-        std::vector<Enum> enumVec;
-        enumVec.reserve(m_enums.size());
-        for (const auto& p : m_enums)
-            enumVec.push_back(p.second);
+                    auto stripNumber = [](std::string name) {
+                        // handle inline enum types
+                        // generated names are of the form: <containing type name>_<element name>[_SimpleContent][_<counter>]
 
-        std::unordered_map<std::string, std::string> replacedEnums;
-
-        for (std::size_t i = 0; i < enumVec.size(); i++) {
-            auto& e1 = enumVec[i];
-            for (std::size_t j = i + 1; j < enumVec.size(); j++) {
-                auto& e2 = enumVec[j];
-
-                auto stripNumber = [](std::string name) {
-                    // handle inline enum types
-                    // generated names are of the form: <containing type name>_<element name>[_SimpleContent][_<counter>]
-
-                    // remove optional digits and underscore at the end
-                    while (!name.empty() && std::isdigit(name.back()))
-                        name.pop_back();
-                    if (name.back() == '_')
-                        name.erase(name.length() - 1);
+                        // remove optional digits and underscore at the end
+                        while (!name.empty() && std::isdigit(name.back()))
+                            name.pop_back();
+                        if (name.back() == '_')
+                            name.erase(name.length() - 1);
                     
-                    // remove _SimpleContent
-                    name = stripSimpleContentSuffix(name);
+                        // remove _SimpleContent
+                        name = stripSimpleContentSuffix(name);
 
-                    // if type contains an underscore, remove preceding part
-                    const auto& pos = name.find_last_of('_');
-                    if (pos != std::string::npos)
-                        name.erase(0, pos + 1);
+                        // if type contains an underscore, remove preceding part
+                        const auto& pos = name.find_last_of('_');
+                        if (pos != std::string::npos)
+                            name.erase(0, pos + 1);
 
-                    // capitalize first letter
-                    name[0] = std::toupper(name[0]);
+                        // capitalize first letter
+                        name[0] = std::toupper(name[0]);
 
-                    // strip Type suffix if exists
-                    name = stripTypeSuffix(name);
+                        // strip Type suffix if exists
+                        name = stripTypeSuffix(name);
 
-                    // prefix CPACS if not exists
-                    if (name.compare(0, 5, "CPACS") != 0)
-                        name = "CPACS" + name;
+                        // prefix CPACS if not exists
+                        if (name.compare(0, 5, "CPACS") != 0)
+                            name = "CPACS" + name;
 
-                    return name;
-                };
+                        return name;
+                    };
 
-                if (e1.values.size() == e2.values.size()) {
-                    // strip name decorators
-                    const auto& e1StrippedName = stripNumber(e1.name);
-                    const auto& e2StrippedName = stripNumber(e2.name);
-                    if (e1StrippedName == e2StrippedName && std::equal(std::begin(e1.values), std::end(e1.values), std::begin(e2.values))) {
-                        // choose new name
-                        const auto newName = [&] {
-                            // if the stripped name is not already taken, use it. Otherwise, take the shorter of the two enum names
-                            if (m_classes.count(e1StrippedName) == 0 && m_enums.count(e1StrippedName) == 0)
-                                return e1StrippedName;
-                            else
-                                return std::min(e1.name, e2.name);
-                        }();
+                    if (e1.values.size() == e2.values.size()) {
+                        // strip name decorators
+                        const auto& e1StrippedName = stripNumber(e1.name);
+                        const auto& e2StrippedName = stripNumber(e2.name);
+                        if (e1StrippedName == e2StrippedName && std::equal(std::begin(e1.values), std::end(e1.values), std::begin(e2.values))) {
+                            // choose new name
+                            const auto newName = [&] {
+                                // if the stripped name is not already taken, use it. Otherwise, take the shorter of the two enum names
+                                if (m_classes.count(e1StrippedName) == 0 && m_enums.count(e1StrippedName) == 0)
+                                    return e1StrippedName;
+                                else
+                                    return std::min(e1.name, e2.name);
+                            }();
 
-                        // register replacements
-                        if (e1.name != newName) replacedEnums[e1.name] = newName;
-                        if (e2.name != newName) replacedEnums[e2.name] = newName;
+                            // register replacements
+                            if (e1.name != newName) replacedEnums[e1.name] = newName;
+                            if (e2.name != newName) replacedEnums[e2.name] = newName;
 
-                        std::cout << "\t" << e1.name << " and " << e2.name << " to " << newName << std::endl;
+                            std::cout << "\t" << e1.name << " and " << e2.name << " to " << newName << std::endl;
 
-                        // remove e2 and rename e1
-                        enumVec.erase(std::begin(enumVec) + j);
-                        e1.name = newName;
+                            // remove e2 and rename e1
+                            enumVec.erase(std::begin(enumVec) + j);
+                            e1.name = newName;
+                        }
                     }
                 }
             }
-        }
 
-        // fill enum back again from vector
-        m_enums.clear();
-        for (auto& e : enumVec)
-            m_enums[e.name] = std::move(e);
+            // fill enum back again from vector
+            m_enums.clear();
+            for (auto& e : enumVec)
+                m_enums[e.name] = std::move(e);
 
-        // replace enum names
-        for (auto& p : m_classes) {
-            auto& c = p.second;
-            for (auto& f : c.fields) {
-                const auto& rit = replacedEnums.find(f.typeName);
-                if (rit != std::end(replacedEnums))
-                    f.typeName = rit->second;
+            // replace enum names
+            for (auto& p : m_classes) {
+                auto& c = p.second;
+                for (auto& f : c.fields) {
+                    const auto& rit = replacedEnums.find(f.typeName);
+                    if (rit != std::end(replacedEnums))
+                        f.typeName = rit->second;
+                }
             }
         }
-    }
 
-    void TypeSystem::prefixClashedEnumValues() {
-        std::unordered_map<std::string, std::vector<Enum*>> valueToEnum;
+        void prefixClashedEnumValues() {
+            std::unordered_map<std::string, std::vector<Enum*>> valueToEnum;
 
-        for (auto& p : m_enums) {
-            auto& e = p.second;
-            for (auto& v : e.values) {
-                auto& otherEnums = valueToEnum[v.name()];
-                if (otherEnums.size() == 1) {
-                    // we are adding the same enum value for the second time
-                    // prefix other enum's value
-                    auto& otherEnum = *otherEnums[0];
-                    const auto it = std::find_if(std::begin(otherEnum.values), std::end(otherEnum.values), [&](const EnumValue& ov) {
-                        return ov.name() == v.name();
-                    });
-                    if (it == std::end(otherEnum.values))
-                        throw std::logic_error("Enum value resolves to an enum which does not have the value");
-                    it->customName = otherEnum.name + "_" + it->cpacsName;
+            for (auto& p : m_enums) {
+                auto& e = p.second;
+                for (auto& v : e.values) {
+                    auto& otherEnums = valueToEnum[v.name()];
+                    if (otherEnums.size() == 1) {
+                        // we are adding the same enum value for the second time
+                        // prefix other enum's value
+                        auto& otherEnum = *otherEnums[0];
+                        const auto it = std::find_if(std::begin(otherEnum.values), std::end(otherEnum.values), [&](const EnumValue& ov) {
+                            return ov.name() == v.name();
+                        });
+                        if (it == std::end(otherEnum.values))
+                            throw std::logic_error("Enum value resolves to an enum which does not have the value");
+                        it->customName = otherEnum.name + "_" + it->cpacsName;
+                    }
+                    if (otherEnums.size() > 1) {
+                        // we are adding an already added value, prefix myself
+                        v.customName = e.name + "_" + v.cpacsName;
+                    }
+
+                    otherEnums.push_back(&e);
                 }
+            }
+
+            std::cout << "Prefixed the following enum values:" << std::endl;
+            for (auto& p : valueToEnum) {
+                const auto& otherEnums = p.second;
                 if (otherEnums.size() > 1) {
-                    // we are adding an already added value, prefix myself
-                    v.customName = e.name + "_" + v.cpacsName;
+                    std::cout << '\t' << p.first << std::endl;
+                    for (const auto& e : otherEnums)
+                        std::cout << "\t\t" << e->name << std::endl;
                 }
-
-                otherEnums.push_back(&e);
             }
         }
 
-        std::cout << "Prefixed the following enum values:" << std::endl;
-        for (auto& p : valueToEnum) {
-            const auto& otherEnums = p.second;
-            if (otherEnums.size() > 1) {
-                std::cout << '\t' << p.first << std::endl;
-                for (const auto& e : otherEnums)
-                    std::cout << "\t\t" << e->name << std::endl;
-            }
-        }
-    }
-
-    namespace {
         auto checkAndPrintNode(const std::string& name, const Table& pruneList, unsigned int level) {
             if (pruneList.contains(name)) {
                 std::cout << std::string(level, '\t') <<  "pruning " << name << std::endl;
@@ -509,69 +483,98 @@ namespace tigl {
             for (auto& e : deps.enumChildren)
                 includeNode(*e, pruneList, level + 1);
         }
-    }
 
-    void TypeSystem::runPruneList() {
-        std::cout << "Running prune list" << std::endl;
+        void runPruneList() {
+            std::cout << "Running prune list" << std::endl;
 
-        // mark all types as pruned
-        for (auto& p : m_classes)
-            p.second.pruned = true;
-        for (auto& p : m_enums)
-            p.second.pruned = true;
+            // mark all types as pruned
+            for (auto& p : m_classes)
+                p.second.pruned = true;
+            for (auto& p : m_enums)
+                p.second.pruned = true;
 
-        // find root type
-        const auto rootElementTypeName = std::string("CPACSCpacs");
-        const auto it = m_classes.find(rootElementTypeName);
-        if (it == std::end(m_classes))
-            throw std::runtime_error("Could not find root element. Expected: " + rootElementTypeName);
-        auto& root = it->second;
+            // find root type
+            const auto rootElementTypeName = std::string("CPACSCpacs");
+            const auto it = m_classes.find(rootElementTypeName);
+            if (it == std::end(m_classes))
+                throw std::runtime_error("Could not find root element. Expected: " + rootElementTypeName);
+            auto& root = it->second;
 
-        includeNode(root, tables.m_pruneList, 0);
+            includeNode(root, tables.m_pruneList, 0);
 
-        std::cout << "The following types have been pruned:" << std::endl;
-        std::vector<std::string> prunedTypeNames;
-        for (const auto& p : m_classes)
-            if(p.second.pruned)
-                prunedTypeNames.push_back("Class: " + p.second.name);
-        for (const auto& p : m_enums)
-            if (p.second.pruned)
-                prunedTypeNames.push_back("Enum: " + p.second.name);
-        std::sort(std::begin(prunedTypeNames), std::end(prunedTypeNames));
-        for(const auto& name : prunedTypeNames)
-            std::cout << "\t" << name << std::endl;
+            std::cout << "The following types have been pruned:" << std::endl;
+            std::vector<std::string> prunedTypeNames;
+            for (const auto& p : m_classes)
+                if(p.second.pruned)
+                    prunedTypeNames.push_back("Class: " + p.second.name);
+            for (const auto& p : m_enums)
+                if (p.second.pruned)
+                    prunedTypeNames.push_back("Enum: " + p.second.name);
+            std::sort(std::begin(prunedTypeNames), std::end(prunedTypeNames));
+            for(const auto& name : prunedTypeNames)
+                std::cout << "\t" << name << std::endl;
 
-        auto isPruned = [&](const std::string& name) {
-            const auto& cit = m_classes.find(name);
-            if (cit != std::end(m_classes) && cit->second.pruned)
-                return true;
-            const auto& eit = m_enums.find(name);
-            if (eit != std::end(m_enums) && eit->second.pruned)
-                return true;
-            return false;
-        };
+            auto isPruned = [&](const std::string& name) {
+                const auto& cit = m_classes.find(name);
+                if (cit != std::end(m_classes) && cit->second.pruned)
+                    return true;
+                const auto& eit = m_enums.find(name);
+                if (eit != std::end(m_enums) && eit->second.pruned)
+                    return true;
+                return false;
+            };
 
-        // remove pruned classes and enums from class fields and bases
-        for (auto& c : m_classes) {
-            auto& fields = c.second.fields;
-            fields.erase(std::remove_if(std::begin(fields), std::end(fields), [&](const Field& f) {
-                return isPruned(f.typeName);
-            }), std::end(fields));
+            // remove pruned classes and enums from class fields and bases
+            for (auto& c : m_classes) {
+                auto& fields = c.second.fields;
+                fields.erase(std::remove_if(std::begin(fields), std::end(fields), [&](const Field& f) {
+                    return isPruned(f.typeName);
+                }), std::end(fields));
 
-            auto& baseName = c.second.base;
-            if (isPruned(baseName))
-                baseName.clear();
+                auto& baseName = c.second.base;
+                if (isPruned(baseName))
+                    baseName.clear();
+            }
+
+            // clear and rebuild dependencies
+            for (auto& c : m_classes)
+                c.second.deps = ClassDependencies{};
+            for (auto& e : m_enums)
+                e.second.deps = EnumDependencies{};
+            buildDependencies();
         }
 
-        // clear and rebuild dependencies
-        for (auto& c : m_classes)
-            c.second.deps = ClassDependencies{};
-        for (auto& e : m_enums)
-            e.second.deps = EnumDependencies{};
-        buildDependencies();
+        const Tables& tables;
+        std::unordered_map<std::string, Class> m_classes;
+        std::unordered_map<std::string, Enum> m_enums;
+    };
+
+    auto buildTypeSystem(SchemaTypes types, const Tables& tables) -> TypeSystem {
+        TypeSystemBuilder builder(std::move(types), tables);
+        return {
+            std::move(builder.m_classes),
+            std::move(builder.m_enums)
+        };
     }
 
-    auto buildTypeSystem(const SchemaParser& schema, const Tables& tables) -> TypeSystem {
-        return TypeSystem(schema, tables);
+    void writeGraphVisFile(const TypeSystem& ts, const std::string& typeSystemGraphVisFile) {
+        std::cout << "Writing type system graph vis file to " << typeSystemGraphVisFile << std::endl;
+        std::ofstream f{typeSystemGraphVisFile};
+        if (!f)
+            throw std::runtime_error("Failed to open file " + typeSystemGraphVisFile + " for writing");
+        f << "digraph typesystem {\n";
+        for (const auto& p : ts.classes) {
+            const auto& c = p.second;
+            if (c.pruned)
+                continue;
+            for (const auto& b : c.deps.bases)
+                f << "\t" << c.name << " -> " << b->name << ";\n";
+            for (const auto& ch : c.deps.children)
+                f << "\t" << c.name << " -> " << ch->name << ";\n";
+            for (const auto& e : c.deps.enumChildren)
+                f << "\t" << c.name << " -> " << e->name << ";\n";
+        }
+        // enums have no further dependencies
+        f << "}\n";
     }
 }

@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include "Variant.hpp"
+#include "SchemaParser.h"
 
 namespace tigl {
     struct Attribute;
@@ -123,25 +124,12 @@ namespace tigl {
         EnumDependencies deps;
     };
 
-    class TypeSystem {
-    public:
-        TypeSystem(const SchemaParser& schema, const Tables& tables);
-
-        void writeGraphVisFile(const std::string& typeSystemGraphVisFile) const;
-
-        auto& classes() const { return m_classes; }
-        auto& enums() const { return m_enums; }
-
-    private:
-        void collapseEnums();
-        void prefixClashedEnumValues();
-        void buildDependencies();
-        void runPruneList();
-
-        const Tables& tables;
-        std::unordered_map<std::string, Class> m_classes;
-        std::unordered_map<std::string, Enum> m_enums;
+    struct TypeSystem {
+        std::unordered_map<std::string, Class> classes;
+        std::unordered_map<std::string, Enum> enums;
     };
 
-    auto buildTypeSystem(const SchemaParser& schema, const Tables& tables) -> TypeSystem;
+    auto buildTypeSystem(SchemaTypes types, const Tables& tables) -> TypeSystem;
+
+    void writeGraphVisFile(const TypeSystem& ts, const std::string& typeSystemGraphVisFile);
 }

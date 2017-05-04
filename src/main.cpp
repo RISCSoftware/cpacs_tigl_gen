@@ -24,17 +24,18 @@ namespace tigl {
         // read types and elements
         const auto& cpacsLocation = inputDirectory + "/cpacs_schema.xsd";
         std::cout << "Parsing " << cpacsLocation << std::endl;
-        SchemaParser schema(cpacsLocation);
+        auto types = parseSchema(cpacsLocation);
 
         // generate type system from schema
-        const auto& typeSystem = buildTypeSystem(schema, tables);
+        std::cout << "Creating type system" << std::endl;
+        const auto& typeSystem = buildTypeSystem(types, tables);
 
         // write graph vis file for the generated type system
         if (!typeSystemGraphVisFile.empty()) {
             auto p = fs::path{typeSystemGraphVisFile};
             if (p.has_parent_path())
                 fs::create_directories(p.parent_path());
-            typeSystem.writeGraphVisFile(typeSystemGraphVisFile);
+            writeGraphVisFile(typeSystem, typeSystemGraphVisFile);
         }
 
         // create output directory

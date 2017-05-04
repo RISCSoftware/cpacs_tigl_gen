@@ -44,7 +44,7 @@ namespace tigl {
     struct Enum;
 
     struct Field {
-        Variant<const Attribute*, const Element*, const SimpleContent*> origin;
+        std::string originXPath;
         std::string cpacsName;
         std::string typeName;
         XMLConstruct xmlType;
@@ -82,7 +82,7 @@ namespace tigl {
     };
 
     struct Class {
-        const ComplexType* origin;
+        std::string originXPath;
         std::string name;
         std::string base;
         std::vector<Field> fields;
@@ -116,7 +116,7 @@ namespace tigl {
     };
 
     struct Enum {
-        const SimpleType* origin;
+        std::string originXPath;
         std::string name;
         std::vector<EnumValue> values;
         bool pruned = false;

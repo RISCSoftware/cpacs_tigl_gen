@@ -51,9 +51,10 @@ namespace tigl {
 
     class CodeGen {
     public:
-        CodeGen(const std::string& outputLocation, TypeSystem types, const Tables& tables)
-            : m_types(std::move(types)), m_tables(tables) {
+        CodeGen(TypeSystem types, const Tables& tables)
+            : m_types(std::move(types)), m_tables(tables) {}
 
+        void writeFiles(const std::string& outputLocation) {
             WriteIfDifferentFiles files;
 
             for (const auto& p : m_types.classes) {
@@ -131,30 +132,13 @@ namespace tigl {
             return getterSetterType(field);
         }
 
-        // TODO: create polymorphic lambda when C++14 is available
-        struct WriteGeneratedFromVisitor {
-            WriteGeneratedFromVisitor(IndentingStreamWrapper& hpp)
-                : hpp(hpp) {}
-
-            template <typename T>
-            void operator()(const T* attOrElem) {
-                hpp << "// generated from " << attOrElem->xpath;
-            }
-
-        private:
-            IndentingStreamWrapper& hpp;
-        };
-
         void writeFields(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
             std::size_t length = 0;
             for (const auto& f : fields)
                 length = std::max(length, fieldType(f).length());
 
             for (const auto& f : fields) {
-                //f.origin.visit(WriteGeneratedFromVisitor(hpp));
-                //f.origin.visit([&](const auto* attOrElem) {
-                //	hpp << "// generated from " << attOrElem->xpath;
-                //});
+                //hpp << "// generated from " << f.originXPath;
                 hpp << std::left << std::setw(length) << fieldType(f) << " " << f.fieldName() << ";";
 
                 //if (&f != &fields.back())
@@ -880,7 +864,7 @@ namespace tigl {
                     if (c.deps.parents.size() > 0)
                         hpp << "";
 
-                    hpp << "// generated from " << c.origin->xpath << "";
+                    hpp << "// generated from " << c.originXPath << "";
 
                     // class name and base class
                     hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + customReplacedType(c.base));
@@ -1067,7 +1051,7 @@ namespace tigl {
                         hpp << "// " << c->name << "";
                     }
                     hpp << "";
-                    hpp << "// generated from " << e.origin->xpath;
+                    hpp << "// generated from " << e.originXPath;
 
                     // enum name
                     hpp << "enum " << (c_generateCpp11ScopedEnums ? "class " : "") << e.name;
@@ -1149,6 +1133,7 @@ namespace tigl {
     };
 
     void genCode(const std::string& outputLocation, TypeSystem typeSystem, const Tables& tables) {
-        CodeGen gen(outputLocation, std::move(typeSystem), tables);
+        CodeGen gen(std::move(typeSystem), tables);
+        gen.writeFiles(outputLocation);
     }
 }

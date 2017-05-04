@@ -49,7 +49,7 @@ namespace tigl {
             // attributes
             for (const auto& a : type.attributes) {
                 Field m;
-                m.origin = &a;
+                m.originXPath = a.xpath;
                 m.cpacsName = a.name;
                 m.typeName = resolveType(types, a.type, tables);
                 m.xmlType = XMLConstruct::Attribute;
@@ -67,7 +67,7 @@ namespace tigl {
 
                 void operator()(const Element& e) const {
                     Field m;
-                    m.origin = &e;
+                    m.originXPath = e.xpath;
                     m.cpacsName = e.name;
                     m.typeName = resolveType(types, e.type, tables);
                     m.xmlType = XMLConstruct::Element;
@@ -145,7 +145,7 @@ namespace tigl {
 
                 void operator()(const SimpleContent& g) const {
                     Field m;
-                    m.origin = &g;
+                    m.originXPath = g.xpath;
                     m.cpacsName = "";
                     m.customName = "simpleContent";
                     m.cardinality = Cardinality::Mandatory;
@@ -169,17 +169,19 @@ namespace tigl {
     class TypeSystemBuilder {
     public:
         TypeSystemBuilder(SchemaTypes types, const Tables& tables)
-            : tables(tables) {
-            for (const auto& p : types) {
+            : m_types(std::move(types)), tables(tables) {}
+
+        void build() {
+            for (const auto& p : m_types) {
                 const auto& type = p.second;
 
                 struct TypeVisitor {
-                    TypeVisitor(const SchemaTypes& schema, TypeSystemBuilder& typeSystem, const Tables& tables)
+                    TypeVisitor(const SchemaTypes& types, TypeSystemBuilder& typeSystem, const Tables& tables)
                         : types(types), typeSystem(typeSystem), tables(tables) {}
 
                     void operator()(const ComplexType& type) {
                         Class c;
-                        c.origin = &type;
+                        c.originXPath = type.xpath;
                         c.name = makeClassName(type.name);
                         c.fields = buildFieldList(types, type, tables);
                         if (!type.base.empty()) {
@@ -208,7 +210,7 @@ namespace tigl {
                         if (type.restrictionValues.size() > 0) {
                             // create enum
                             Enum e;
-                            e.origin = &type;
+                            e.originXPath = type.xpath;
                             e.name = makeClassName(type.name);
                             for (const auto& v : type.restrictionValues)
                                 e.values.push_back(EnumValue(v));
@@ -223,13 +225,8 @@ namespace tigl {
                     const Tables& tables;
                 };
 
-                type.visit(TypeVisitor(types, *this, tables));
+                type.visit(TypeVisitor(m_types, *this, tables));
             };
-
-            collapseEnums();
-            prefixClashedEnumValues();
-            buildDependencies();
-            runPruneList();
         }
 
         // TODO: replace by lambda when C++14 is available
@@ -545,12 +542,18 @@ namespace tigl {
         }
 
         const Tables& tables;
+        SchemaTypes m_types;
         std::unordered_map<std::string, Class> m_classes;
         std::unordered_map<std::string, Enum> m_enums;
     };
 
     auto buildTypeSystem(SchemaTypes types, const Tables& tables) -> TypeSystem {
         TypeSystemBuilder builder(std::move(types), tables);
+        builder.build();
+        builder.collapseEnums();
+        builder.prefixClashedEnumValues();
+        builder.buildDependencies();
+        builder.runPruneList();
         return {
             std::move(builder.m_classes),
             std::move(builder.m_enums)

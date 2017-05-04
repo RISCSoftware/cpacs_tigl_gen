@@ -23,6 +23,7 @@ namespace tigl {
         const auto c_generateCpp11ScopedEnums = false;
 
         const auto tixiHelperNamespace = "tixihelper";
+        const auto c_uidMgrName = std::string("CTiglUIDManager");
     }
 
     namespace {
@@ -46,6 +47,30 @@ namespace tigl {
 
         auto stringToEnumFunc(const Enum& e, const Tables& tables) -> std::string {
             return "stringTo" + capitalizeFirstLetter(customReplacedType(e.name, tables));
+        }
+
+        auto hasUidField(const Class& c) {
+            for (const auto& f : c.fields)
+                if (f.name() == "uID")
+                    return true;
+            return false;
+        }
+
+        auto hasMandatoryUidField(const Class& c) {
+            for (const auto& f : c.fields)
+                if (f.name() == "uID" && f.cardinality == Cardinality::Mandatory)
+                    return true;
+            return false;
+        }
+
+        // TODO: this call recurses down the tree, if this gets too slow, we can traverse the tree once and mark all classes
+        auto selfOrAnyChildHasUidField(const Class& c) {
+            if (hasUidField(c))
+                return true;
+            for (const auto& cc : c.deps.children)
+                if (selfOrAnyChildHasUidField(*cc))
+                    return true;
+            return false;
         }
     }
 
@@ -304,6 +329,17 @@ namespace tigl {
             }
         }
 
+        auto ctorArgumentList(const Class& c, const Class& parentClass) -> std::string {
+            std::vector<std::string> arguments;
+            const auto requiresParentPointer = m_tables.m_parentPointers.contains(c.name);
+            if (requiresParentPointer)
+                arguments.push_back(parentPointerThis(parentClass));
+            const auto requiresUidManager = selfOrAnyChildHasUidField(c);
+            if (requiresUidManager)
+                arguments.push_back("m_uidMgr");
+            return boost::join(arguments, ", ");
+        }
+
         void writeReadAttributeOrElementImplementation(IndentingStreamWrapper& cpp, const Class& c, const Field& f) {
             const bool isAtt = isAttribute(f.xmlType);
 
@@ -351,11 +387,11 @@ namespace tigl {
             // classes
             if (f.xmlType != XMLConstruct::Attribute && f.xmlType != XMLConstruct::FundamentalTypeBase) {
                 const auto itC = m_types.classes.find(f.typeName);
-                const bool requiresParentPointer = m_tables.m_parentPointers.contains(f.typeName);
+                const auto requiresParentPointer = m_tables.m_parentPointers.contains(f.typeName);
                 if (itC != std::end(m_types.classes)) {
                     switch (f.cardinality) {
                         case Cardinality::Optional:
-                            cpp << f.fieldName() << " = boost::in_place(" << (requiresParentPointer ? parentPointerThis(c) : "") << ");";
+                            cpp << f.fieldName() << " = boost::in_place(" << ctorArgumentList(itC->second, c) << ");";
                             if (c_generateTryCatchAroundOptionalClassReads) {
                                 cpp << "try {";
                                 {
@@ -382,7 +418,8 @@ namespace tigl {
                             cpp << f.fieldName() << ".ReadCPACS(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
                             break;
                         case Cardinality::Vector:
-                            cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << (requiresParentPointer ? ", " + parentPointerThis(c) : "") << ");";
+                            const auto moreArgs = ctorArgumentList(itC->second, c);
+                            cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << (moreArgs.empty() ? "" : ", " + moreArgs) << ");";
                             break;
                     }
                     return;
@@ -558,6 +595,14 @@ namespace tigl {
                     }
                     cpp << "";
                 }
+
+                // register
+                if (hasUidField(c)) {
+                    if (hasMandatoryUidField(c))
+                        cpp << "if (m_uidMgr) m_uidMgr->RegisterObject(m_uID, *this);";
+                    else
+                        cpp << "if (m_uidMgr && m_uID) m_uidMgr->RegisterObject(*m_uID, *this);";
+                }
             }
             cpp << "}";
             cpp << "";
@@ -652,6 +697,10 @@ namespace tigl {
                 deps.hppIncludes.push_back("\"CTiglError.h\"");
                 deps.hppIncludes.push_back("<typeinfo>");
             }
+            if (selfOrAnyChildHasUidField(c)) {
+                deps.hppCustomForwards.push_back(c_uidMgrName);
+                deps.cppIncludes.push_back("\"" + c_uidMgrName + ".h\"");
+            }
 
             // base class
             if (!c.base.empty() && m_types.classes.find(c.base) != std::end(m_types.classes)) {
@@ -736,18 +785,19 @@ namespace tigl {
         }
 
         void writeCtors(IndentingStreamWrapper& hpp, const Class& c) {
+            const auto hasUid = selfOrAnyChildHasUidField(c);
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c_generateDefaultCtorsForParentPointerTypes)
-                    hpp << "TIGL_EXPORT " << c.name << "();";
+                    hpp << "TIGL_EXPORT " << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ");";
                 for (const auto& dep : c.deps.parents)
-                    hpp << "TIGL_EXPORT " << c.name << "(" << customReplacedType(dep->name) << "* parent);";
+                    hpp << "TIGL_EXPORT " << c.name << "(" << customReplacedType(dep->name) << "* parent" << (hasUid ? ", " + c_uidMgrName + "* uidMgr" : "") << ");";
                 hpp << "";
             } else {
-                hpp << "TIGL_EXPORT " << c.name << "();";
+                hpp << "TIGL_EXPORT " << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ");";
             }
         }
 
-        void writeParentPointerFields(IndentingStreamWrapper& hpp, const Class& c) {
+        void writeParentPointerAndUidManagerFields(IndentingStreamWrapper& hpp, const Class& c) {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "void* m_parent;";
@@ -755,6 +805,10 @@ namespace tigl {
                 } else if (c.deps.parents.size() == 1) {
                     hpp << customReplacedType(c.deps.parents[0]->name) << "* m_parent;";
                 }
+                hpp << "";
+            }
+            if (selfOrAnyChildHasUidField(c)) {
+                hpp << c_uidMgrName << "* m_uidMgr;";
                 hpp << "";
             }
         }
@@ -768,17 +822,29 @@ namespace tigl {
         }
 
         void writeCtorImplementations(IndentingStreamWrapper& cpp, const Class& c) {
-            auto writeParentPointerFieldInitializers = [&] {
+            const auto hasUid = selfOrAnyChildHasUidField(c);
+
+            auto writeInitializationList = [&] {
                 Scope s(cpp);
                 bool first = true;
+                auto writeMember = [&](const std::string& memberName, const std::string& value) {
+                    if (first) {
+                        cpp.raw() << " :";
+                        first = false;
+                    } else
+                        cpp.raw() << ", ";
+                    cpp << memberName << "(" << value << ")";
+                };
+                if (hasUid)
+                    writeMember("m_uidMgr", "uidMgr");
                 for (const auto& f : c.fields) {
-                    if (f.cardinality == Cardinality::Mandatory && m_tables.m_parentPointers.contains(f.typeName)) {
-                        if (first) {
-                            cpp.raw() << " :";
-                            first = false;
-                        } else
-                            cpp.raw() << ", ";
-                        cpp << f.fieldName() << "(" << parentPointerThis(c) << ")";
+                    if (f.cardinality == Cardinality::Mandatory) {
+                        const auto fci = m_types.classes.find(f.typeName);
+                        if (fci != std::end(m_types.classes)) {
+                            const auto args = ctorArgumentList(fci->second, c);
+                            if(!args.empty())
+                                writeMember(f.fieldName(), args);
+                        }
                     }
                 }
             };
@@ -786,8 +852,8 @@ namespace tigl {
             // if this class holds parent pointers, we have to provide corresponding ctor overloads
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c_generateDefaultCtorsForParentPointerTypes) {
-                    cpp << c.name << "::" << c.name << "()";
-                    writeParentPointerFieldInitializers();
+                    cpp << c.name << "::" << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ")";
+                    writeInitializationList();
                     cpp << "{";
                     {
                         Scope s(cpp);
@@ -800,8 +866,8 @@ namespace tigl {
                 }
                 for (const auto& dep : c.deps.parents) {
                     const auto rn = customReplacedType(dep->name);
-                    cpp << c.name << "::" << c.name << "(" << rn << "* parent, " << (hasUid ? c_uidMgrName + "& uidMgr" : "") << ")";
-                    writeParentPointerFieldInitializers();
+                    cpp << c.name << "::" << c.name << "(" << rn << "* parent" << (hasUid ? ", " + c_uidMgrName + "* uidMgr" : "") << ")";
+                    writeInitializationList();
                     cpp << "{";
                     {
                         Scope s(cpp);
@@ -814,11 +880,33 @@ namespace tigl {
                     cpp << "";
                 }
             } else {
-                cpp << c.name << "::" << c.name << "(" << (hasUid ? c_uidMgrName + "& uidMgr" : "") << ")";
-                writeParentPointerFieldInitializers();
-                cpp.raw() << "{}";
+                cpp << c.name << "::" << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ")";
+                writeInitializationList();
+                cpp.raw() << " {}";
                 cpp << "";
             }
+        }
+
+        void writeDtor(IndentingStreamWrapper& hpp, const Class& c) {
+            hpp << "TIGL_EXPORT virtual ~" << c.name << "();";
+            hpp << "";
+        }
+
+        void writeDtorImplementation(IndentingStreamWrapper& cpp, const Class& c) {
+            if (hasUidField(c)) {
+                cpp << c.name << "::~" << c.name << "()";
+                cpp << "{";
+                {
+                    Scope s(cpp);
+                    if (hasMandatoryUidField(c))
+                        cpp << "if (m_uidMgr) m_uidMgr->UnregisterObject(m_uID);";
+                    else
+                        cpp << "if (m_uidMgr && m_uID) m_uidMgr->UnregisterObject(*m_uID);";
+                }
+                cpp << "}";
+            } else
+                cpp << c.name << "::~" << c.name << "() {}";
+            cpp << "";
         }
 
         void writeHeader(IndentingStreamWrapper& hpp, const Class& c, const Includes& includes) {
@@ -877,8 +965,7 @@ namespace tigl {
                         writeCtors(hpp, c);
 
                         // dtor
-                        hpp << "TIGL_EXPORT virtual ~" << c.name << "();";
-                        hpp << "";
+                        writeDtor(hpp, c);
 
                         // parent pointers
                         writeParentPointerGetters(hpp, c);
@@ -894,8 +981,8 @@ namespace tigl {
                     {
                         Scope s(hpp);
 
-                        // parent pointers
-                        writeParentPointerFields(hpp, c);
+                        // parent pointers and uid manager
+                        writeParentPointerAndUidManagerFields(hpp, c);
 
                         // fields
                         writeFields(hpp, c.fields);
@@ -974,8 +1061,7 @@ namespace tigl {
                     writeCtorImplementations(cpp, c);
 
                     // dtor
-                    cpp << c.name << "::~" << c.name << "() {}";
-                    cpp << "";
+                    writeDtorImplementation(cpp, c);
 
                     // parent pointers
                     writeParentPointerGetterImplementation(cpp, c);

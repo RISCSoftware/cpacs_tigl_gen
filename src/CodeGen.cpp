@@ -204,11 +204,31 @@ namespace tigl {
                 // generate setter only for fundamental and enum types which are not vectors
                 const bool isClassType = m_types.classes.find(f.typeName) != std::end(m_types.classes);
                 if (!isClassType && f.cardinality != Cardinality::Vector) {
-                    if (f.cardinality == Cardinality::Optional) {
+                    auto writeUidRegistration = [&](bool memberOp, bool argOp) {
+                        if (f.name() == "uID") {
+                            cpp << "if (m_uidMgr) {";
+                            {
+                                Scope s(cpp);
+                                if (memberOp)
+                                    cpp << "if (m_uID) m_uidMgr->UnregisterObject(*m_uID);";
+                                else
+                                    cpp << "m_uidMgr->UnregisterObject(m_uID);";
+
+                                if (argOp)
+                                    cpp << "if (value) m_uidMgr->RegisterObject(*value, *this);";
+                                else
+                                    cpp << "m_uidMgr->RegisterObject(value, *this);";
+                            }
+                            cpp << "}";
+                        }
+                    };
+                    const auto isOptional = f.cardinality == Cardinality::Optional;
+                    if (isOptional) {
                         cpp << "void " << className << "::Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value)";
                         cpp << "{";
                         {
                             Scope s(cpp);
+                            writeUidRegistration(isOptional, false);
                             cpp << f.fieldName() << " = value;";
                         }
                         cpp << "}";
@@ -219,6 +239,7 @@ namespace tigl {
                     cpp << "{";
                     {
                         Scope s(cpp);
+                        writeUidRegistration(isOptional, isOptional);
                         cpp << f.fieldName() << " = value;";
                     }
                     cpp << "}";

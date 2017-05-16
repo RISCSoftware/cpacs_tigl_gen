@@ -488,20 +488,42 @@ namespace tigl {
                     cpp << tixiHelperNamespace << "::TixiCreateElementIfNotExists(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
             };
 
+            auto writeOptionalAttributeOrElement = [&](auto writeReadFunc) {
+                cpp << "if (" << f.fieldName() << ") {";
+                {
+                    Scope s(cpp);
+                    createElement();
+                    writeReadFunc();
+                }
+                cpp << "} else {";
+                {
+                    Scope s(cpp);
+                    if (isAtt)
+                        cpp << "if (" << tixiHelperNamespace << "::TixiCheckAttribute(tixiHandle, xpath, \"" + f.cpacsName + "\")) {";
+                    else
+                        cpp << "if (" << tixiHelperNamespace << "::TixiCheckElement(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ")) {";
+                    {
+                        Scope s(cpp);
+                        if (isAtt)
+                            cpp << tixiHelperNamespace << "::TixiRemoveAttribute(tixiHandle, xpath, \"" + f.cpacsName + "\");";
+                        else
+                            cpp << tixiHelperNamespace << "::TixiRemoveElement(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ");";
+                    }
+                    cpp << "}";
+                }
+                cpp << "}";
+            };
+
             // fundamental types
             if (m_tables.m_fundamentalTypes.contains(f.typeName)) {
                 switch (f.cardinality) {
                     case Cardinality::Optional:
-                        cpp << "if (" << f.fieldName() << ") {";
-                        {
-                            Scope s(cpp);
-                            createElement();
+                        writeOptionalAttributeOrElement([&] {
                             if (isAtt)
                                 cpp << tixiHelperNamespace << "::TixiSaveAttribute(tixiHandle, xpath, \"" + f.cpacsName + "\", *" << f.fieldName() << ");";
                             else
                                 cpp << tixiHelperNamespace << "::TixiSaveElement(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ", *" << f.fieldName() << ");";
-                        }
-                        cpp << "}";
+                        });
                         break;
                     case Cardinality::Mandatory:
                         createElement();
@@ -526,13 +548,9 @@ namespace tigl {
             if (itE != std::end(m_types.enums)) {
                 switch (f.cardinality) {
                     case Cardinality::Optional:
-                        cpp << "if (" << f.fieldName() << ") {";
-                        {
-                            Scope s(cpp);
-                            createElement();
+                        writeOptionalAttributeOrElement([&] {
                             cpp << tixiHelperNamespace << "::TixiSave" << (isAtt ? "Attribute" : "Element") << "(tixiHandle, xpath" << (isAtt ? ", \"" : " + \"/") << f.cpacsName + "\", " << enumToStringFunc(itE->second, m_tables) << "(*" << f.fieldName() << "));";
-                        }
-                        cpp << "}";
+                        });
                         break;
                     case Cardinality::Mandatory:
                         createElement();
@@ -550,13 +568,9 @@ namespace tigl {
                 if (itC != std::end(m_types.classes)) {
                     switch (f.cardinality) {
                         case Cardinality::Optional:
-                            cpp << "if (" << f.fieldName() << ") {";
-                            {
-                                Scope s(cpp);
-                                createElement();
+                            writeOptionalAttributeOrElement([&] {
                                 cpp << f.fieldName() << "->WriteCPACS(tixiHandle, xpath + \"/" << f.cpacsName << "\");";
-                            }
-                            cpp << "}";
+                            });
                             break;
                         case Cardinality::Mandatory:
                             createElement();

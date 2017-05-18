@@ -1,3 +1,5 @@
+#include <boost/algorithm/string.hpp>
+
 #include <vector>
 #include <cctype>
 #include <fstream>
@@ -5,7 +7,6 @@
 #include <sstream>
 #include <iomanip>
 
-#include <boost/algorithm/string.hpp>
 #include "SchemaParser.h"
 #include "Tables.h"
 #include "TypeSystem.h"
@@ -900,6 +901,41 @@ namespace tigl {
                 return "this";
         }
 
+        void writeChoiceSets(IndentingStreamWrapper& cpp, const Class& c) {
+            if (c.choiceSets.size() > 1) {
+                cpp << "namespace {";
+                {
+                    Scope s(cpp);
+                    cpp << "const std::vector<std::vector<std::string>> choices = {";
+                    {
+                        Scope s(cpp);
+                        for (const auto& cs : c.choiceSets) {
+                            std::vector<std::string> elementList;
+                            elementList.reserve(cs.size());
+                            std::transform(std::begin(cs), std::end(cs), std::back_inserter(elementList), [&](unsigned int i) { return "\"" + c.fields[i].cpacsName + "\""; });
+                            cpp << "{ " << boost::join(elementList, ", ") << " },";
+                        }
+                    }
+                    cpp << "};";
+
+                    cpp << "unsigned int identifyChoice() {";
+                    {
+                        Scope s(cpp);
+                        auto counter = 0;
+                        for (const auto& cuf : c.choiceUniqueFields) {
+                            std::vector<std::string> fieldList;
+                            fieldList.reserve(cuf.size());
+                            std::transform(std::begin(cuf), std::end(cuf), std::back_inserter(fieldList), [&](unsigned int i) { return "\"" + c.fields[i].fieldName() + "\""; });
+                            cpp << "const bool isChoice" << counter++ << " = " << (fieldList.empty() ? "false" : boost::join(fieldList, " && ")) << ";";
+                        }
+                    }
+                    cpp << "}";
+                }
+                cpp << "}";
+                cpp << "";
+            }
+        }
+
         void writeCtorImplementations(IndentingStreamWrapper& cpp, const Class& c) {
             const auto hasUid = requiresUidManager(c);
 
@@ -1140,6 +1176,9 @@ namespace tigl {
                 cpp << "{";
                 {
                     Scope s(cpp);
+
+                    // static meta data
+                    writeChoiceSets(cpp, c);
 
                     // ctor
                     writeCtorImplementations(cpp, c);

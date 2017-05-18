@@ -214,9 +214,9 @@ namespace tigl {
                             {
                                 Scope s(cpp);
                                 if (memberOp)
-                                    cpp << "if (m_uID) m_uidMgr->UnregisterObject(*m_uID);";
+                                    cpp << "if (m_uID) m_uidMgr->TryUnregisterObject(*m_uID);";
                                 else
-                                    cpp << "m_uidMgr->UnregisterObject(m_uID);";
+                                    cpp << "m_uidMgr->TryUnregisterObject(m_uID);";
 
                                 if (argOp)
                                     cpp << "if (value) m_uidMgr->RegisterObject(*value, *this);";
@@ -963,9 +963,9 @@ namespace tigl {
                 {
                     Scope s(cpp);
                     if (hasMandatoryUidField(c))
-                        cpp << "if (m_uidMgr) m_uidMgr->UnregisterObject(m_uID);";
+                        cpp << "if (m_uidMgr) m_uidMgr->TryUnregisterObject(m_uID);";
                     else
-                        cpp << "if (m_uidMgr && m_uID) m_uidMgr->UnregisterObject(*m_uID);";
+                        cpp << "if (m_uidMgr && m_uID) m_uidMgr->TryUnregisterObject(*m_uID);";
                 }
                 cpp << "}";
             } else

@@ -404,6 +404,16 @@ namespace tigl {
                             const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
                             cpp << f.fieldName() << " = " << tixiHelperNamespace << "::TixiGetElement<" << f.typeName << ">(tixiHandle, xpath" << (empty ? "" : " + \"/" + f.cpacsName + "\"") << ");";
                         }
+
+                        // check that mandatory string fields are not empty
+                        if (f.cardinality == Cardinality::Mandatory && f.typeName == "std::string") {
+                            cpp << "if (" << f.fieldName() << ".empty()) {";
+                            {
+                                Scope s(cpp);
+                                cpp << "LOG(ERROR) << \"Required "  << (isAtt ? "attribute " : "element ") << f.cpacsName << " is empty at xpath \" << xpath;";
+                            }
+                            cpp << "}";
+                        }
                         break;
                     case Cardinality::Vector:
                         if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase)

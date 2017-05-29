@@ -410,7 +410,7 @@ namespace tigl {
                             cpp << "if (" << f.fieldName() << ".empty()) {";
                             {
                                 Scope s(cpp);
-                                cpp << "LOG(ERROR) << \"Required "  << (isAtt ? "attribute " : "element ") << f.cpacsName << " is empty at xpath \" << xpath;";
+                                cpp << "throw CTiglError(\"Required " << (isAtt ? "attribute " : "element ") << f.cpacsName << " is missing at xpath \" + xpath);";
                             }
                             cpp << "}";
                         }
@@ -663,7 +663,7 @@ namespace tigl {
                         cpp << "else {";
                         {
                             Scope s(cpp);
-                            cpp << "LOG(ERROR) << \"Required " << construct << " " << f.cpacsName << " is missing at xpath \" << xpath;";
+                            cpp << "throw CTiglError(\"Required " << construct << " " << f.cpacsName << " is missing at xpath \" + xpath);";
                         }
                         cpp << "}";
                     }

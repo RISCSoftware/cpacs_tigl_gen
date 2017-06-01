@@ -918,11 +918,16 @@ namespace tigl {
                     writeMember("m_uidMgr", "uidMgr");
                 for (const auto& f : c.fields) {
                     if (f.cardinality == Cardinality::Mandatory) {
-                        const auto fci = m_types.classes.find(f.typeName);
-                        if (fci != std::end(m_types.classes)) {
-                            const auto args = ctorArgumentList(fci->second, c);
-                            if(!args.empty())
-                                writeMember(f.fieldName(), args);
+                        // if the field is a fundamental data type, but not string, provide zero initializer
+                        if (m_tables.m_fundamentalTypes.contains(f.typeName) && f.typeName != "std::string")
+                            writeMember(f.fieldName(), "0");
+                        else {
+                            const auto fci = m_types.classes.find(f.typeName);
+                            if (fci != std::end(m_types.classes)) {
+                                const auto args = ctorArgumentList(fci->second, c);
+                                if (!args.empty())
+                                    writeMember(f.fieldName(), args);
+                            }
                         }
                     }
                 }

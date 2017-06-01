@@ -417,7 +417,7 @@ namespace tigl {
                         
                         // check that optional string fields are not empty
                         if (f.cardinality == Cardinality::Optional && f.typeName == "std::string") {
-                            cpp << "if (" << f.fieldName() << " && " << f.fieldName() << "->empty()) {";
+                            cpp << "if (" << f.fieldName() << "->empty()) {";
                             {
                                 Scope s(cpp);
                                 cpp << "LOG(ERROR) << \"Optional "  << (isAtt ? "attribute " : "element ") << f.cpacsName << " is present but empty at xpath \" << xpath;";

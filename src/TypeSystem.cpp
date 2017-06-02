@@ -1,6 +1,7 @@
 #include "TypeSystem.h"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/range/adaptors.hpp>
 
 #include <iostream>
 #include <cctype>
@@ -45,9 +46,9 @@ namespace tigl {
             throw std::runtime_error("Unknown type: " + name);
         }
 
-        auto buildFieldListAndChoiceSets(const SchemaTypes& types, const ComplexType& type, const Tables& tables) -> std::tuple<std::vector<Field>, std::vector<std::vector<unsigned int>>> {
+        auto buildFieldListAndChoiceExpression(const SchemaTypes& types, const ComplexType& type, const Tables& tables) -> std::tuple<std::vector<Field>, std::string> {
             std::vector<Field> members;
-            std::vector<std::vector<unsigned int>> choiceSets = { {} };
+            std::string expr;
 
             // attributes
             for (const auto& a : type.attributes) {
@@ -65,8 +66,29 @@ namespace tigl {
 
             // elements
             struct ContentVisitor : public boost::static_visitor<> {
-                ContentVisitor(const SchemaTypes& types, std::vector<Field>& members, std::vector<std::vector<unsigned int>>& choiceSets, unsigned int attributeCount, const Tables& tables)
-                    : types(types), members(members), choiceSets(choiceSets), attributeCount(attributeCount), tables(tables) {}
+                ContentVisitor(const SchemaTypes& types, std::vector<Field>& members, std::string& expr, std::size_t attributeCount, const Tables& tables, std::vector<std::size_t> choiceIndices = {})
+                    : types(types), members(members), expr(expr), attributeCount(attributeCount), tables(tables), choiceIndices(choiceIndices) {}
+
+                void emitField(Field f) const {
+                    if (!choiceIndices.empty()) {
+                        // make optional
+                        if (f.cardinality == Cardinality::Mandatory)
+                            f.cardinality = Cardinality::Optional;
+
+                        // give custom name
+                        f.customName = f.cpacsName + "_choice" + boost::join(choiceIndices | boost::adaptors::transformed([](std::size_t i) { return std::to_string(i); }), "_");
+
+                        if (expr.size() > 0)
+                            expr += " && ";
+                        // TODO(bgruber): this whole expression generation is already code generation and would logically belong into CodeGen. However, it is easier to construct here ..
+                        if (f.cardinality == Cardinality::Optional)
+                            expr += f.fieldName() + ".is_initialized()";
+                        else if(f.cardinality == Cardinality::Vector)
+                            expr += "!" + f.fieldName() + ".empty()";
+
+                    }
+                    members.push_back(std::move(f));
+                }
 
                 void operator()(const Element& e) const {
                     Field m;
@@ -85,48 +107,28 @@ namespace tigl {
                         return; // skip this type
                     } else
                         throw std::runtime_error("Invalid cardinalities, min: " + std::to_string(e.minOccurs) + ", max: " + std::to_string(e.maxOccurs));
-                    for (auto& cs : choiceSets)
-                        cs.push_back(static_cast<unsigned int>(members.size()));
-                    members.push_back(m);
+                    emitField(std::move(m));
                 }
 
                 void operator()(const Choice& c) const {
-                    unsigned int choiceIndex = 1;
-                    const auto prevChoiceSets = std::move(choiceSets);
-                    choiceSets.clear();
                     const auto countBefore = members.size();
-                    for (const auto& v : c.elements) {
+                    if (expr.size() > 0)
+                        expr += " && ";
+                    expr += "(";
+                    for (const auto& v : c.elements | boost::adaptors::indexed(1)) {
                         // collect members of one choice
-                        std::vector<Field> choiceMembers;
-                        std::vector<std::vector<unsigned int>> choiceChoiceSets = { {} };
-                        v.visit(ContentVisitor(types, choiceMembers, choiceChoiceSets, attributeCount, tables));
-
-                        // make all optional
-                        for (auto& f : choiceMembers)
-                            if (f.cardinality == Cardinality::Mandatory)
-                                f.cardinality = Cardinality::Optional;
-
-                        // give custom names
-                        for (auto& f : choiceMembers)
-                            f.customName = f.cpacsName + "_choice" + std::to_string(choiceIndex);
-
-                        // copy to output
-                        const auto choiceCountBefore = members.size();
-                        std::copy(std::begin(choiceMembers), std::end(choiceMembers), std::back_inserter(members));
-
-                        // for each previous choice set
-                        for (const auto& pcs : prevChoiceSets)
-                            // take each new choice set
-                            for (auto& cs : choiceChoiceSets) {
-                                // offset new and combien with prev
-                                auto ncs = pcs;
-                                std::transform(std::begin(cs), std::end(cs), std::back_inserter(ncs), [&](int i) { return i + static_cast<unsigned int>(choiceCountBefore); });
-                                // release it
-                                choiceSets.push_back(std::move(ncs));
-                            }
-
-                        choiceIndex++;
+                        auto indices = choiceIndices;
+                        indices.push_back(v.index());
+                        std::string subExpr;
+                        v.value().visit(ContentVisitor(types, members, subExpr, attributeCount, tables, indices));
+                        if (v.index() > 1)
+                            expr += " || ";
+                        if (subExpr.find(' ') == std::string::npos) // no spaces mean no && or ||, thus a single ident
+                            expr += subExpr;
+                        else
+                            expr += "(" + subExpr + ")";
                     }
+                    expr += ")";
 
                     // consistency check, two types with the same name but different types or cardinality are problematic
                     for (std::size_t i = countBefore; i < members.size(); i++) {
@@ -144,7 +146,7 @@ namespace tigl {
 
                 void operator()(const Sequence& s) const {
                     for (const auto& v : s.elements)
-                        v.visit(ContentVisitor(types, members, choiceSets, attributeCount, tables));
+                        v.visit(*this);
                 }
 
                 void operator()(const All& a) const {
@@ -168,25 +170,21 @@ namespace tigl {
                     m.cardinality = Cardinality::Mandatory;
                     m.typeName = resolveType(types, g.type, tables);
                     m.xmlType = XMLConstruct::SimpleContent;
-                    for (auto& cs : choiceSets)
-                        cs.push_back(static_cast<unsigned int>(members.size()));
-                    members.push_back(m);
+                    emitField(std::move(m));
                 }
 
             private:
                 const SchemaTypes& types;
                 std::vector<Field>& members;
-                std::vector<std::vector<unsigned int>>& choiceSets;
-                const unsigned int attributeCount;
+                std::string& expr;
+                const std::size_t attributeCount;
                 const Tables& tables;
+                const std::vector<std::size_t> choiceIndices; // not empty when inside a choice
             };
 
-            type.content.visit(ContentVisitor(types, members, choiceSets, members.size(), tables));
+            type.content.visit(ContentVisitor(types, members, expr, members.size(), tables));
 
-            for (const auto& cs : choiceSets)
-                assert(std::is_sorted(std::begin(cs), std::end(cs)));
-
-            return std::make_tuple(members, choiceSets);
+            return std::make_tuple(members, expr);
         }
     }
 
@@ -207,39 +205,7 @@ namespace tigl {
                         Class c;
                         c.originXPath = type.xpath;
                         c.name = makeClassName(type.name);
-                        std::tie(c.fields, c.choiceSets) = buildFieldListAndChoiceSets(types, type, tables);
-
-                        if (c.choiceSets.size() > 1) {
-                            // find unique elements for each choice
-                            for (const auto& cs : c.choiceSets) {
-                                std::vector<unsigned int> uniqueIndices;
-                                for (auto i : cs) {
-                                    // search other choice sets for this index
-                                    const auto found = [&] {
-                                        for (const auto& cs2 : c.choiceSets)
-                                            if (&cs2 != &cs)
-                                                for (auto j : cs2)
-                                                    if (j == i)
-                                                        return true;
-                                        return false;
-                                    }();
-                                    if (!found)
-                                        uniqueIndices.push_back(i);
-                                }
-                                if (uniqueIndices.empty()) {
-                                    std::cout << "Warning: From the set of choices" << std::endl;
-                                    auto counter = 0;
-                                    for (const auto& cs : c.choiceSets) {
-                                        std::vector<std::string> elementList;
-                                        elementList.reserve(cs.size());
-                                        std::transform(std::begin(cs), std::end(cs), std::back_inserter(elementList), [&](unsigned int i) { return c.fields[i].cpacsName; });
-                                        std::cout << "\t" << counter++ << ": " << boost::join(elementList, ", ") << std::endl;
-                                    }
-                                    std::cout << "the choice " << (&cs - &c.choiceSets[0]) << " cannot be uniquely identified" << std::endl;
-                                }
-                                c.choiceUniqueFields.push_back(std::move(uniqueIndices));
-                            }
-                        }
+                        std::tie(c.fields, c.choiceExpression) = buildFieldListAndChoiceExpression(types, type, tables);
 
                         if (!type.base.empty()) {
                             c.base = resolveType(types, type.base, tables);

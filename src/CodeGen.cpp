@@ -358,6 +358,13 @@ namespace tigl {
             hpp << "";
         }
 
+        void writeChoiceValidatorDeclaration(IndentingStreamWrapper& hpp, const std::string& choiceExpression) {
+            if (!choiceExpression.empty()) {
+                hpp << "TIGL_EXPORT bool ValidateChoices() const;";
+                hpp << "";
+            }
+        }
+
         auto isAttribute(const XMLConstruct& construct) -> bool {
             switch (construct) {
                 case XMLConstruct::Attribute:
@@ -683,6 +690,16 @@ namespace tigl {
                     else
                         cpp << "if (m_uidMgr && m_uID) m_uidMgr->RegisterObject(*m_uID, *this);";
                 }
+
+                // validate choices
+                if (!c.choiceExpression.empty()) {
+                    cpp << "if (!ValidateChoices()) {";
+                    {
+                        Scope s(cpp);
+                        cpp << "LOG(ERROR) << \"Invalid choice configuration at xpath \" << xpath;";
+                    }
+                    cpp << "}";
+                }
             }
             cpp << "}";
             cpp << "";
@@ -711,6 +728,19 @@ namespace tigl {
             }
             cpp << "}";
             cpp << "";
+        }
+
+        void writeChoiceValidatorImplementation(IndentingStreamWrapper& cpp, const Class& c) {
+            if (!c.choiceExpression.empty()) {
+                cpp << "bool " << c.name << "::ValidateChoices() const";
+                cpp << "{";
+                {
+                    Scope s(cpp);
+                    cpp << "return " << c.choiceExpression << ";";
+                }
+                cpp << "}";
+                cpp << "";
+            }
         }
 
         void writeLicenseHeader(IndentingStreamWrapper& f) {
@@ -901,41 +931,6 @@ namespace tigl {
                 return "this";
         }
 
-        void writeChoiceSets(IndentingStreamWrapper& cpp, const Class& c) {
-            if (c.choiceSets.size() > 1) {
-                cpp << "namespace {";
-                {
-                    Scope s(cpp);
-                    cpp << "const std::vector<std::vector<std::string>> choices = {";
-                    {
-                        Scope s(cpp);
-                        for (const auto& cs : c.choiceSets) {
-                            std::vector<std::string> elementList;
-                            elementList.reserve(cs.size());
-                            std::transform(std::begin(cs), std::end(cs), std::back_inserter(elementList), [&](unsigned int i) { return "\"" + c.fields[i].cpacsName + "\""; });
-                            cpp << "{ " << boost::join(elementList, ", ") << " },";
-                        }
-                    }
-                    cpp << "};";
-
-                    cpp << "unsigned int identifyChoice() {";
-                    {
-                        Scope s(cpp);
-                        auto counter = 0;
-                        for (const auto& cuf : c.choiceUniqueFields) {
-                            std::vector<std::string> fieldList;
-                            fieldList.reserve(cuf.size());
-                            std::transform(std::begin(cuf), std::end(cuf), std::back_inserter(fieldList), [&](unsigned int i) { return "\"" + c.fields[i].fieldName() + "\""; });
-                            cpp << "const bool isChoice" << counter++ << " = " << (fieldList.empty() ? "false" : boost::join(fieldList, " && ")) << ";";
-                        }
-                    }
-                    cpp << "}";
-                }
-                cpp << "}";
-                cpp << "";
-            }
-        }
-
         void writeCtorImplementations(IndentingStreamWrapper& cpp, const Class& c) {
             const auto hasUid = requiresUidManager(c);
 
@@ -1093,6 +1088,9 @@ namespace tigl {
                         // io
                         writeIODeclarations(hpp, c.name, c.fields);
 
+                        // choice validator
+                        writeChoiceValidatorDeclaration(hpp, c.choiceExpression);
+
                         // accessors
                         writeAccessorDeclarations(hpp, c.fields);
 
@@ -1177,9 +1175,6 @@ namespace tigl {
                 {
                     Scope s(cpp);
 
-                    // static meta data
-                    writeChoiceSets(cpp, c);
-
                     // ctor
                     writeCtorImplementations(cpp, c);
 
@@ -1192,6 +1187,9 @@ namespace tigl {
                     // io
                     writeReadImplementation(cpp, c, c.fields);
                     writeWriteImplementation(cpp, c, c.fields);
+
+                    // choice validator
+                    writeChoiceValidatorImplementation(cpp, c);
 
                     // accessors
                     writeAccessorImplementations(cpp, c.name, c.fields);

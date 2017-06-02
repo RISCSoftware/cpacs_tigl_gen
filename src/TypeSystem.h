@@ -86,8 +86,7 @@ namespace tigl {
         std::string name;
         std::string base;
         std::vector<Field> fields;
-        std::vector<std::vector<unsigned int>> choiceSets;
-        std::vector<std::vector<unsigned int>> choiceUniqueFields;
+        std::string choiceExpression;
         bool pruned = false;
 
         ClassDependencies deps;

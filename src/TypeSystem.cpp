@@ -70,13 +70,17 @@ namespace tigl {
                     : types(types), members(members), expr(expr), attributeCount(attributeCount), tables(tables), choiceIndices(choiceIndices) {}
 
                 void emitField(Field f) const {
+                    // append "s" to vector fields
+                    if (f.cardinality == Cardinality::Vector && f.name().back() != 's')
+                        f.customName = f.name() + "s";
+
                     if (!choiceIndices.empty()) {
                         // make optional
                         if (f.cardinality == Cardinality::Mandatory)
                             f.cardinality = Cardinality::Optional;
 
                         // give custom name
-                        f.customName = f.cpacsName + "_choice" + boost::join(choiceIndices | boost::adaptors::transformed([](std::size_t i) { return std::to_string(i); }), "_");
+                        f.customName = f.name() + "_choice" + boost::join(choiceIndices | boost::adaptors::transformed([](std::size_t i) { return std::to_string(i); }), "_");
 
                         if (expr.size() > 0)
                             expr += " && ";

@@ -59,7 +59,7 @@ namespace tigl {
 
         auto hasMandatoryUidField(const Class& c) {
             for (const auto& f : c.fields)
-                if (f.name() == "uID" && f.cardinality == Cardinality::Mandatory)
+                if (f.name() == "uID" && f.cardinality() == Cardinality::Mandatory)
                     return true;
             return false;
         }
@@ -129,7 +129,7 @@ namespace tigl {
         };
 
         TypeSystem m_types;
-        const Tables&     m_tables;
+        const Tables& m_tables;
 
         auto customReplacedType(const std::string& name) const -> std::string {
             return tigl::customReplacedType(name, m_tables);
@@ -141,7 +141,7 @@ namespace tigl {
 
         auto getterSetterType(const Field& field) const -> std::string {
             const auto typeName = customReplacedType(field);
-            switch (field.cardinality) {
+            switch (field.cardinality()) {
                 case Cardinality::Optional:
                     return "boost::optional<" + typeName + ">";
                 case Cardinality::Mandatory:
@@ -184,8 +184,8 @@ namespace tigl {
 
                 // generate setter only for fundamental and enum types which are not vectors
                 const bool isClassType = m_types.classes.find(f.typeName) != std::end(m_types.classes);
-                if (!isClassType && f.cardinality != Cardinality::Vector) {
-                    if (f.cardinality == Cardinality::Optional)
+                if (!isClassType && f.cardinality() != Cardinality::Vector) {
+                    if (f.cardinality() == Cardinality::Optional)
                         hpp << "TIGL_EXPORT virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value);";
 
                     hpp << "TIGL_EXPORT virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
@@ -208,7 +208,7 @@ namespace tigl {
 
                 // generate setter only for fundamental and enum types which are not vectors
                 const bool isClassType = m_types.classes.find(f.typeName) != std::end(m_types.classes);
-                if (!isClassType && f.cardinality != Cardinality::Vector) {
+                if (!isClassType && f.cardinality() != Cardinality::Vector) {
                     auto writeUidRegistration = [&](bool memberOp, bool argOp) {
                         if (f.name() == "uID") {
                             cpp << "if (m_uidMgr) {";
@@ -227,7 +227,7 @@ namespace tigl {
                             cpp << "}";
                         }
                     };
-                    const auto isOptional = f.cardinality == Cardinality::Optional;
+                    const auto isOptional = f.cardinality() == Cardinality::Optional;
                     if (isOptional) {
                         cpp << "void " << className << "::Set" << capitalizeFirstLetter(f.name()) << "(const " << customReplacedType(f) << "& value)";
                         cpp << "{";
@@ -403,7 +403,7 @@ namespace tigl {
 
             // fundamental types
             if (m_tables.m_fundamentalTypes.contains(f.typeName)) {
-                switch (f.cardinality) {
+                switch (f.cardinality()) {
                     case Cardinality::Optional:
                     case Cardinality::Mandatory:
                         if (isAtt)
@@ -414,7 +414,7 @@ namespace tigl {
                         }
 
                         // check that mandatory string fields are not empty
-                        if (f.cardinality == Cardinality::Mandatory && f.typeName == "std::string") {
+                        if (f.cardinality() == Cardinality::Mandatory && f.typeName == "std::string") {
                             cpp << "if (" << f.fieldName() << ".empty()) {";
                             {
                                 Scope s(cpp);
@@ -424,7 +424,7 @@ namespace tigl {
                         }
                         
                         // check that optional string fields are not empty
-                        if (f.cardinality == Cardinality::Optional && f.typeName == "std::string") {
+                        if (f.cardinality() == Cardinality::Optional && f.typeName == "std::string") {
                             cpp << "if (" << f.fieldName() << "->empty()) {";
                             {
                                 Scope s(cpp);
@@ -449,7 +449,7 @@ namespace tigl {
             const auto itE = m_types.enums.find(f.typeName);
             if (itE != std::end(m_types.enums)) {
                 const auto& readFunc = stringToEnumFunc(itE->second, m_tables);
-                switch (f.cardinality) {
+                switch (f.cardinality()) {
                     case Cardinality::Optional:
                     case Cardinality::Mandatory:
                         if (isAtt)
@@ -468,7 +468,7 @@ namespace tigl {
                 const auto itC = m_types.classes.find(f.typeName);
                 const auto requiresParentPointer = m_tables.m_parentPointers.contains(f.typeName);
                 if (itC != std::end(m_types.classes)) {
-                    switch (f.cardinality) {
+                    switch (f.cardinality()) {
                         case Cardinality::Optional:
                             cpp << f.fieldName() << " = boost::in_place(" << ctorArgumentList(itC->second, c) << ");";
                             if (c_generateTryCatchAroundOptionalClassReads) {
@@ -539,7 +539,7 @@ namespace tigl {
 
             // fundamental types
             if (m_tables.m_fundamentalTypes.contains(f.typeName)) {
-                switch (f.cardinality) {
+                switch (f.cardinality()) {
                     case Cardinality::Optional:
                         writeOptionalAttributeOrElement([&] {
                             if (isAtt)
@@ -569,7 +569,7 @@ namespace tigl {
             // enums
             const auto itE = m_types.enums.find(f.typeName);
             if (itE != std::end(m_types.enums)) {
-                switch (f.cardinality) {
+                switch (f.cardinality()) {
                     case Cardinality::Optional:
                         writeOptionalAttributeOrElement([&] {
                             cpp << tixiHelperNamespace << "::TixiSave" << (isAtt ? "Attribute" : "Element") << "(tixiHandle, xpath" << (isAtt ? ", \"" : " + \"/") << f.cpacsName + "\", " << enumToStringFunc(itE->second, m_tables) << "(*" << f.fieldName() << "));";
@@ -589,7 +589,7 @@ namespace tigl {
             if (f.xmlType != XMLConstruct::Attribute && f.xmlType != XMLConstruct::FundamentalTypeBase) {
                 const auto itC = m_types.classes.find(f.typeName);
                 if (itC != std::end(m_types.classes)) {
-                    switch (f.cardinality) {
+                    switch (f.cardinality()) {
                         case Cardinality::Optional:
                             writeOptionalAttributeOrElement([&] {
                                 cpp << f.fieldName() << "->WriteCPACS(tixiHandle, xpath + \"/" << f.cpacsName << "\");";
@@ -671,7 +671,7 @@ namespace tigl {
                         writeReadAttributeOrElementImplementation(cpp, c, f);
                     }
                     cpp << "}";
-                    if (f.cardinality == Cardinality::Mandatory) {
+                    if (f.cardinality() == Cardinality::Mandatory) {
                         // attribute or element must exist
                         cpp << "else {";
                         {
@@ -776,7 +776,7 @@ namespace tigl {
             bool optionalHeader = false;
             bool timeHeader = false;
             for (const auto& f : c.fields) {
-                switch (f.cardinality) {
+                switch (f.cardinality()) {
                     case Cardinality::Optional:
                         optionalHeader = true;
                         break;
@@ -828,7 +828,7 @@ namespace tigl {
 
                     const auto p = m_tables.m_customTypes.find(f.typeName);
                     if (!p) {
-                        switch (f.cardinality) {
+                        switch (f.cardinality()) {
                             case Cardinality::Optional:
                             case Cardinality::Mandatory:
                                 deps.hppIncludes.push_back("\"" + f.typeName + ".h\"");
@@ -840,7 +840,7 @@ namespace tigl {
                         }
                     } else {
                         // custom types are Tigl types and resolved using include paths and require a different namespace
-                        switch (f.cardinality) {
+                        switch (f.cardinality()) {
                             case Cardinality::Optional:
                             case Cardinality::Mandatory:
                                 deps.hppIncludes.push_back("<" + *p + ".h>");
@@ -948,7 +948,7 @@ namespace tigl {
                 if (hasUid)
                     writeMember("m_uidMgr", "uidMgr");
                 for (const auto& f : c.fields) {
-                    if (f.cardinality == Cardinality::Mandatory) {
+                    if (f.cardinality() == Cardinality::Mandatory) {
                         // if the field is a fundamental data type, but not string, provide zero initializer
                         if (m_tables.m_fundamentalTypes.contains(f.typeName) && f.typeName != "std::string")
                             writeMember(f.fieldName(), "0");

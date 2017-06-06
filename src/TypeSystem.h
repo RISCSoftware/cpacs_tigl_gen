@@ -48,9 +48,21 @@ namespace tigl {
         std::string cpacsName;
         std::string typeName;
         XMLConstruct xmlType;
-        Cardinality cardinality;
+        unsigned int minOccurs = 0;
+        unsigned int maxOccurs = 0;
 
         std::string customName;
+
+        auto cardinality() const -> Cardinality {
+            if (minOccurs == 0 && maxOccurs == 1)
+                return Cardinality::Optional;
+            else if (minOccurs == 1 && maxOccurs == 1)
+                return Cardinality::Mandatory;
+            else if (minOccurs >= 0 && maxOccurs > 1)
+                return Cardinality::Vector;
+            else
+                throw std::runtime_error("Invalid cardinalities, min: " + std::to_string(minOccurs) + ", max: " + std::to_string(maxOccurs));
+        }
 
         auto name() const -> std::string {
             if (!customName.empty())

@@ -57,10 +57,8 @@ namespace tigl {
                 m.cpacsName = a.name;
                 m.typeName = resolveType(types, a.type, tables);
                 m.xmlType = XMLConstruct::Attribute;
-                if (a.optional)
-                    m.cardinality = Cardinality::Optional;
-                else
-                    m.cardinality = Cardinality::Mandatory;
+                m.minOccurs = a.optional ? 0 : 1;
+                m.maxOccurs = 1;
                 members.push_back(m);
             }
 
@@ -71,78 +69,78 @@ namespace tigl {
 
                 void emitField(Field f) const {
                     // append "s" to vector fields
-                    if (f.cardinality == Cardinality::Vector && f.name().back() != 's')
+                    if (f.cardinality() == Cardinality::Vector && f.name().back() != 's')
                         f.customName = f.name() + "s";
 
                     if (!choiceIndices.empty()) {
                         // make optional
-                        if (f.cardinality == Cardinality::Mandatory)
-                            f.cardinality = Cardinality::Optional;
+                        const auto minBefore = f.minOccurs;
+                        f.minOccurs = 0;
 
                         // give custom name
                         f.customName = f.name() + "_choice" + boost::join(choiceIndices | boost::adaptors::transformed([](std::size_t i) { return std::to_string(i); }), "_");
 
-                        if (expr.size() > 0)
-                            expr += " && ";
-                        // TODO(bgruber): this whole expression generation is already code generation and would logically belong into CodeGen. However, it is easier to construct here ..
-                        if (f.cardinality == Cardinality::Optional)
-                            expr += f.fieldName() + ".is_initialized()";
-                        else if(f.cardinality == Cardinality::Vector)
-                            expr += "!" + f.fieldName() + ".empty()";
+                        if (minBefore > 0) {
+                            if (expr.size() > 0)
+                                expr += " && ";
+                            // TODO(bgruber): this whole expression generation is already code generation and would logically belong into CodeGen. However, it is easier to construct here ..
+                            if (f.cardinality() == Cardinality::Optional)
+                                expr += f.fieldName() + ".is_initialized()";
+                            else if (f.cardinality() == Cardinality::Vector)
+                                expr += "!" + f.fieldName() + ".empty()";
+                        }
 
                     }
                     members.push_back(std::move(f));
                 }
 
                 void operator()(const Element& e) const {
+                    if (e.minOccurs == 0 && e.maxOccurs == 0) {
+                        std::cerr << "Warning: Element " + e.name + " with type " + e.type + " was omitted as minOccurs and maxOccurs are both zero" << std::endl;
+                        return; // skip this type
+                    }
+
                     Field m;
                     m.originXPath = e.xpath;
                     m.cpacsName = e.name;
                     m.typeName = resolveType(types, e.type, tables);
                     m.xmlType = XMLConstruct::Element;
-                    if (e.minOccurs == 0 && e.maxOccurs == 1)
-                        m.cardinality = Cardinality::Optional;
-                    else if (e.minOccurs == 1 && e.maxOccurs == 1)
-                        m.cardinality = Cardinality::Mandatory;
-                    else if (e.minOccurs >= 0 && e.maxOccurs > 1)
-                        m.cardinality = Cardinality::Vector;
-                    else if (e.minOccurs == 0 && e.maxOccurs == 0) {
-                        std::cerr << "Warning: Element " + e.name + " with type " + e.type + " was omitted as minOccurs and maxOccurs are both zero" << std::endl;
-                        return; // skip this type
-                    } else
-                        throw std::runtime_error("Invalid cardinalities, min: " + std::to_string(e.minOccurs) + ", max: " + std::to_string(e.maxOccurs));
+                    m.minOccurs = e.minOccurs;
+                    m.maxOccurs = e.maxOccurs;
                     emitField(std::move(m));
                 }
 
                 void operator()(const Choice& c) const {
                     const auto countBefore = members.size();
-                    if (expr.size() > 0)
-                        expr += " && ";
-                    expr += "(";
+
+                    std::string allSubExpr;
                     for (const auto& v : c.elements | boost::adaptors::indexed(1)) {
                         // collect members of one choice
                         auto indices = choiceIndices;
                         indices.push_back(v.index());
                         std::string subExpr;
                         v.value().visit(ContentVisitor(types, members, subExpr, attributeCount, tables, indices));
-                        if (v.index() > 1)
-                            expr += " || ";
-                        if (subExpr.find(' ') == std::string::npos) // no spaces mean no && or ||, thus a single ident
-                            expr += subExpr;
-                        else
-                            expr += "(" + subExpr + ")";
+                        if (!subExpr.empty()) {
+                            if (!allSubExpr.empty())
+                                allSubExpr += " || ";
+                            allSubExpr += "(" + subExpr + ")";
+                        }
+                     }
+                    if (!allSubExpr.empty()) {
+                        if (!expr.empty())
+                            expr += " && ";
+                        expr += "(" + allSubExpr + ")";
                     }
-                    expr += ")";
 
                     // consistency check, two types with the same name but different types or cardinality are problematic
                     for (std::size_t i = countBefore; i < members.size(); i++) {
                         const auto& f1 = members[i];
                         for (std::size_t j = i + 1; j < members.size(); j++) {
                             const auto& f2 = members[j];
-                            if (f1.cpacsName == f2.cpacsName && (f1.cardinality != f2.cardinality || f1.typeName != f2.typeName)) {
+                            if (f1.cpacsName == f2.cpacsName && (f1.cardinality() != f2.cardinality() || f1.typeName != f2.typeName)) {
                                 std::cerr << "Elements with same name but different cardinality or type inside choice" << std::endl;
                                 for (const auto& f : { f1, f2 })
-                                    std::cerr << f.cpacsName << " " << toString(f.cardinality) << " " << f.typeName << std::endl;
+                                    std::cerr << f.cpacsName << " " << toString(f.cardinality()) << " " << f.typeName << std::endl;
                             }
                         }
                     }
@@ -171,7 +169,8 @@ namespace tigl {
                     m.originXPath = g.xpath;
                     m.cpacsName = "";
                     m.customName = "simpleContent";
-                    m.cardinality = Cardinality::Mandatory;
+                    m.minOccurs = 1;
+                    m.maxOccurs = 1;
                     m.typeName = resolveType(types, g.type, tables);
                     m.xmlType = XMLConstruct::SimpleContent;
                     emitField(std::move(m));
@@ -221,7 +220,8 @@ namespace tigl {
                                 Field f;
                                 f.cpacsName = "";
                                 f.customName = "base";
-                                f.cardinality = Cardinality::Mandatory;
+                                f.minOccurs = 1;
+                                f.maxOccurs = 1;
                                 f.typeName = c.base;
                                 f.xmlType = XMLConstruct::FundamentalTypeBase;
 

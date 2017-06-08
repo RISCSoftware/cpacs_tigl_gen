@@ -122,14 +122,14 @@ namespace tigl {
                         v.value().visit(ContentVisitor(types, members, subExpr, attributeCount, tables, indices));
                         if (!subExpr.empty()) {
                             if (!allSubExpr.empty())
-                                allSubExpr += " || ";
+                                allSubExpr += " + ";
                             allSubExpr += "(" + subExpr + ")";
                         }
                      }
                     if (!allSubExpr.empty()) {
                         if (!expr.empty())
                             expr += " && ";
-                        expr += "(" + allSubExpr + ")";
+                        expr += "(" + allSubExpr + " == 1)";
                     }
 
                     // consistency check, two types with the same name but different types or cardinality are problematic

@@ -18,7 +18,7 @@ namespace tigl {
                 name[0] = std::toupper(name[0]);
 
                 // strip Type suffix if exists
-                name = stripTypeSuffix(name);
+                name = xsd::stripTypeSuffix(name);
 
                 // prefix CPACS
                 name = "CPACS" + name;
@@ -27,7 +27,7 @@ namespace tigl {
             return name;
         }
 
-        auto resolveType(const SchemaTypes& types, const std::string& name, const Tables& tables) -> std::string {
+        auto resolveType(const xsd::SchemaTypes& types, const std::string& name, const Tables& tables) -> std::string {
             // search simple and complex types
             const auto cit = types.find(name);
             if (cit != std::end(types)) {
@@ -46,7 +46,7 @@ namespace tigl {
             throw std::runtime_error("Unknown type: " + name);
         }
 
-        auto buildFieldListAndChoiceExpression(const SchemaTypes& types, const ComplexType& type, const Tables& tables) -> std::tuple<std::vector<Field>, std::string> {
+        auto buildFieldListAndChoiceExpression(const xsd::SchemaTypes& types, const xsd::ComplexType& type, const Tables& tables) -> std::tuple<std::vector<Field>, std::string> {
             std::vector<Field> members;
             std::string expr;
 
@@ -64,7 +64,7 @@ namespace tigl {
 
             // elements
             struct ContentVisitor : public boost::static_visitor<> {
-                ContentVisitor(const SchemaTypes& types, std::vector<Field>& members, std::string& expr, std::size_t attributeCount, const Tables& tables, std::vector<std::size_t> choiceIndices = {})
+                ContentVisitor(const xsd::SchemaTypes& types, std::vector<Field>& members, std::string& expr, std::size_t attributeCount, const Tables& tables, std::vector<std::size_t> choiceIndices = {})
                     : types(types), members(members), expr(expr), attributeCount(attributeCount), tables(tables), choiceIndices(choiceIndices) {}
 
                 void emitField(Field f) const {
@@ -94,7 +94,7 @@ namespace tigl {
                     members.push_back(std::move(f));
                 }
 
-                void operator()(const Element& e) const {
+                void operator()(const xsd::Element& e) const {
                     if (e.minOccurs == 0 && e.maxOccurs == 0) {
                         std::cerr << "Warning: Element " + e.name + " with type " + e.type + " was omitted as minOccurs and maxOccurs are both zero" << std::endl;
                         return; // skip this type
@@ -110,7 +110,7 @@ namespace tigl {
                     emitField(std::move(m));
                 }
 
-                void operator()(const Choice& c) const {
+                void operator()(const xsd::Choice& c) const {
                     const auto countBefore = members.size();
 
                     std::string allSubExpr;
@@ -146,25 +146,25 @@ namespace tigl {
                     }
                 }
 
-                void operator()(const Sequence& s) const {
+                void operator()(const xsd::Sequence& s) const {
                     for (const auto& v : s.elements)
                         v.visit(*this);
                 }
 
-                void operator()(const All& a) const {
+                void operator()(const xsd::All& a) const {
                     for (const auto& e : a.elements)
                         operator()(e);
                 }
 
-                void operator()(const Any& a) const {
+                void operator()(const xsd::Any& a) const {
                     throw NotImplementedException("Generating fields for any is not implemented");
                 }
 
-                void operator()(const Group& g) const {
+                void operator()(const xsd::Group& g) const {
                     throw NotImplementedException("Generating fields for group is not implemented");
                 }
 
-                void operator()(const SimpleContent& g) const {
+                void operator()(const xsd::SimpleContent& g) const {
                     Field m;
                     m.originXPath = g.xpath;
                     m.cpacsName = "";
@@ -177,7 +177,7 @@ namespace tigl {
                 }
 
             private:
-                const SchemaTypes& types;
+                const xsd::SchemaTypes& types;
                 std::vector<Field>& members;
                 std::string& expr;
                 const std::size_t attributeCount;
@@ -193,7 +193,7 @@ namespace tigl {
 
     class TypeSystemBuilder {
     public:
-        TypeSystemBuilder(SchemaTypes types, const Tables& tables)
+        TypeSystemBuilder(xsd::SchemaTypes types, const Tables& tables)
             : m_types(std::move(types)), tables(tables) {}
 
         void build() {
@@ -201,10 +201,10 @@ namespace tigl {
                 const auto& type = p.second;
 
                 struct TypeVisitor {
-                    TypeVisitor(const SchemaTypes& types, TypeSystemBuilder& typeSystem, const Tables& tables)
+                    TypeVisitor(const xsd::SchemaTypes& types, TypeSystemBuilder& typeSystem, const Tables& tables)
                         : types(types), typeSystem(typeSystem), tables(tables) {}
 
-                    void operator()(const ComplexType& type) {
+                    void operator()(const xsd::ComplexType& type) {
                         Class c;
                         c.originXPath = type.xpath;
                         c.name = makeClassName(type.name);
@@ -233,7 +233,7 @@ namespace tigl {
                         typeSystem.m_classes[c.name] = c;
                     }
 
-                    void operator()(const SimpleType& type) {
+                    void operator()(const xsd::SimpleType& type) {
                         if (type.restrictionValues.size() > 0) {
                             // create enum
                             Enum e;
@@ -247,7 +247,7 @@ namespace tigl {
                     }
 
                 private:
-                    const SchemaTypes& types;
+                    const xsd::SchemaTypes& types;
                     TypeSystemBuilder& typeSystem;
                     const Tables& tables;
                 };
@@ -355,7 +355,7 @@ namespace tigl {
                             name.erase(name.length() - 1);
                     
                         // remove _SimpleContent
-                        name = stripSimpleContentSuffix(name);
+                        name = xsd::stripSimpleContentSuffix(name);
 
                         // if type contains an underscore, remove preceding part
                         const auto& pos = name.find_last_of('_');
@@ -366,7 +366,7 @@ namespace tigl {
                         name[0] = std::toupper(name[0]);
 
                         // strip Type suffix if exists
-                        name = stripTypeSuffix(name);
+                        name = xsd::stripTypeSuffix(name);
 
                         // prefix CPACS if not exists
                         if (name.compare(0, 5, "CPACS") != 0)
@@ -569,12 +569,12 @@ namespace tigl {
         }
 
         const Tables& tables;
-        SchemaTypes m_types;
+        xsd::SchemaTypes m_types;
         std::unordered_map<std::string, Class> m_classes;
         std::unordered_map<std::string, Enum> m_enums;
     };
 
-    auto buildTypeSystem(SchemaTypes types, const Tables& tables) -> TypeSystem {
+    auto buildTypeSystem(xsd::SchemaTypes types, const Tables& tables) -> TypeSystem {
         TypeSystemBuilder builder(std::move(types), tables);
         builder.build();
         builder.collapseEnums();

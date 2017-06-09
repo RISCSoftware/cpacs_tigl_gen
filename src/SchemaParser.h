@@ -9,68 +9,70 @@
 #include "Variant.hpp"
 
 namespace tigl {
-    struct XSDElement {
-        std::string xpath;
-    };
+    namespace xsd {
+        struct XSDElement {
+            std::string xpath;
+        };
 
-    struct Attribute : XSDElement {
-        std::string name;
-        std::string type;
-        std::string defaultValue;
-        std::string fixed;
-        bool optional;
-    };
+        struct Attribute : XSDElement {
+            std::string name;
+            std::string type;
+            std::string defaultValue;
+            std::string fixed;
+            bool optional;
+        };
 
-    struct Element : XSDElement {
-        std::string name;
-        std::string type;
-        int minOccurs;
-        int maxOccurs;
-    };
+        struct Element : XSDElement {
+            std::string name;
+            std::string type;
+            int minOccurs;
+            int maxOccurs;
+        };
 
-    struct Any : XSDElement {
+        struct Any : XSDElement {
 
-    };
+        };
 
-    struct Group : XSDElement {
+        struct Group : XSDElement {
 
-    };
+        };
 
-    struct All : XSDElement {
-        std::vector<Element> elements;
-    };
+        struct All : XSDElement {
+            std::vector<Element> elements;
+        };
 
-    struct Choice;
-    struct Sequence : XSDElement {
-        std::vector<Variant<Element, Group, Choice, Sequence, Any>> elements;
-    };
+        struct Choice;
+        struct Sequence : XSDElement {
+            std::vector<Variant<Element, Group, Choice, Sequence, Any>> elements;
+        };
 
-    struct Choice : XSDElement {
-        std::vector<Variant<Element, Group, Choice, Sequence, Any>> elements;
-    };
+        struct Choice : XSDElement {
+            std::vector<Variant<Element, Group, Choice, Sequence, Any>> elements;
+        };
 
-    struct SimpleContent : XSDElement {
-        std::string type;
-    };
+        struct SimpleContent : XSDElement {
+            std::string type;
+        };
 
-    struct Type : XSDElement {
-        std::string name;
-        std::string base;
-    };
+        struct Type : XSDElement {
+            std::string name;
+            std::string base;
+        };
 
-    struct ComplexType : Type {
-        Variant<Group, All, Choice, Sequence, SimpleContent, Any> content;
-        std::vector<Attribute> attributes;
-    };
+        struct ComplexType : Type {
+            Variant<Group, All, Choice, Sequence, SimpleContent, Any> content;
+            std::vector<Attribute> attributes;
+        };
 
-    struct SimpleType : Type {
-        std::vector<std::string> restrictionValues;
-    };
+        struct SimpleType : Type {
+            std::vector<std::string> restrictionValues;
+        };
 
-    using SchemaTypes = std::unordered_map<std::string, Variant<ComplexType, SimpleType>>;
+        using SchemaTypes = std::unordered_map<std::string, Variant<ComplexType, SimpleType>>;
 
-    auto parseSchema(const std::string& cpacsLocation) -> SchemaTypes;
+        auto parseSchema(const std::string& cpacsLocation)->SchemaTypes;
 
-    auto stripTypeSuffix(const std::string& name) -> std::string;
-    auto stripSimpleContentSuffix(const std::string& name) -> std::string;
+        auto stripTypeSuffix(const std::string& name)->std::string;
+        auto stripSimpleContentSuffix(const std::string& name)->std::string;
+    }
 }

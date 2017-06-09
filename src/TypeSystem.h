@@ -10,12 +10,6 @@
 #include "SchemaParser.h"
 
 namespace tigl {
-    struct Attribute;
-    struct Element;
-    struct SimpleContent;
-    struct ComplexType;
-    struct SimpleType;
-    class SchemaParser;
     class Tables;
 
     enum class Cardinality {
@@ -137,7 +131,7 @@ namespace tigl {
         std::unordered_map<std::string, Enum> enums;
     };
 
-    auto buildTypeSystem(SchemaTypes types, const Tables& tables) -> TypeSystem;
+    auto buildTypeSystem(xsd::SchemaTypes types, const Tables& tables) -> TypeSystem;
 
     void writeGraphVisFile(const TypeSystem& ts, const std::string& typeSystemGraphVisFile);
 }

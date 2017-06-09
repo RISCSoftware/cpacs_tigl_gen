@@ -24,7 +24,7 @@ namespace tigl {
         // read types and elements
         const auto& cpacsLocation = inputDirectory + "/cpacs_schema.xsd";
         std::cout << "Parsing " << cpacsLocation << std::endl;
-        auto types = parseSchema(cpacsLocation);
+        auto types = xsd::parseSchema(cpacsLocation);
 
         // generate type system from schema
         std::cout << "Creating type system" << std::endl;

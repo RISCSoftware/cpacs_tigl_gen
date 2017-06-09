@@ -358,8 +358,8 @@ namespace tigl {
             hpp << "";
         }
 
-        void writeChoiceValidatorDeclaration(IndentingStreamWrapper& hpp, const std::string& choiceExpression) {
-            if (!choiceExpression.empty()) {
+        void writeChoiceValidatorDeclaration(IndentingStreamWrapper& hpp, const Class& c) {
+            if (!c.choices.empty()) {
                 hpp << "TIGL_EXPORT bool ValidateChoices() const;";
                 hpp << "";
             }
@@ -692,7 +692,7 @@ namespace tigl {
                 }
 
                 // validate choices
-                if (!c.choiceExpression.empty()) {
+                if (!c.choices.empty()) {
                     cpp << "if (!ValidateChoices()) {";
                     {
                         Scope s(cpp);
@@ -731,12 +731,65 @@ namespace tigl {
         }
 
         void writeChoiceValidatorImplementation(IndentingStreamWrapper& cpp, const Class& c) {
-            if (!c.choiceExpression.empty()) {
+            if (!c.choices.empty()) {
                 cpp << "bool " << c.name << "::ValidateChoices() const";
                 cpp << "{";
                 {
                     Scope s(cpp);
-                    cpp << "return " << c.choiceExpression << ";";
+
+                    struct ChoiceWriter : public boost::static_visitor<> {
+                        ChoiceWriter(IndentingStreamWrapper& cpp, const Class& c)
+                            : cpp(cpp), c(c) {}
+
+                        void operator()(const ChoiceElement& ce) {
+                            const auto& f = c.fields[ce.index];
+                            if (!ce.optionalBefore) {
+                                if (f.cardinality() == Cardinality::Optional)
+                                    cpp << f.fieldName() + ".is_initialized()";
+                                else if (f.cardinality() == Cardinality::Vector)
+                                    cpp << "!" + f.fieldName() + ".empty()";
+                                else
+                                    throw std::logic_error("elements inside choice can only be optional or vector");
+                            } else
+                                cpp << "true // " << f.fieldName() << " is optional in choice";
+                        }
+
+                        void operator()(const Choice& c) {
+                            cpp << "(";
+                            {
+                                Scope s(cpp);
+                                for (const auto& cc : c.options) {
+                                    (*this)(cc);
+                                    if (&cc != &c.options.back())
+                                        cpp << "+";
+                                }
+                                cpp << "== 1";
+                            }
+                            cpp << ")";
+                        }
+
+                        void operator()(const ChoiceElements& ces) {
+                            cpp << "(";
+                            {
+                                Scope s(cpp);
+                                auto first = true;
+                                for (const auto& ce : ces) {
+                                    ce.apply_visitor(*this);
+                                    if (&ce != &ces.back())
+                                        cpp << "&&";
+                                }
+                            }
+                            cpp << ")";
+                        }
+
+                    private:
+                        IndentingStreamWrapper& cpp;
+                        const Class& c;
+                    };
+
+                    cpp << "return";
+                    ChoiceWriter{cpp, c}(c.choices);
+                    cpp << ";";
                 }
                 cpp << "}";
                 cpp << "";
@@ -1089,7 +1142,7 @@ namespace tigl {
                         writeIODeclarations(hpp, c.name, c.fields);
 
                         // choice validator
-                        writeChoiceValidatorDeclaration(hpp, c.choiceExpression);
+                        writeChoiceValidatorDeclaration(hpp, c);
 
                         // accessors
                         writeAccessorDeclarations(hpp, c.fields);

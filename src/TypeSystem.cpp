@@ -46,9 +46,9 @@ namespace tigl {
             throw std::runtime_error("Unknown type: " + name);
         }
 
-        auto buildFieldListAndChoiceExpression(const xsd::SchemaTypes& types, const xsd::ComplexType& type, const Tables& tables) -> std::tuple<std::vector<Field>, std::string> {
+        auto buildFieldListAndChoiceExpression(const xsd::SchemaTypes& types, const xsd::ComplexType& type, const Tables& tables) -> std::tuple<std::vector<Field>, ChoiceElements> {
             std::vector<Field> members;
-            std::string expr;
+            ChoiceElements choiceItems;
 
             // attributes
             for (const auto& a : type.attributes) {
@@ -64,8 +64,8 @@ namespace tigl {
 
             // elements
             struct ContentVisitor : public boost::static_visitor<> {
-                ContentVisitor(const xsd::SchemaTypes& types, std::vector<Field>& members, std::string& expr, std::size_t attributeCount, const Tables& tables, std::vector<std::size_t> choiceIndices = {})
-                    : types(types), members(members), expr(expr), attributeCount(attributeCount), tables(tables), choiceIndices(choiceIndices) {}
+                ContentVisitor(const xsd::SchemaTypes& types, std::vector<Field>& members, ChoiceElements& choiceItems, std::size_t attributeCount, const Tables& tables, std::vector<std::size_t> choiceIndices = {})
+                    : types(types), members(members), choiceItems(choiceItems), attributeCount(attributeCount), tables(tables), choiceIndices(choiceIndices) {}
 
                 void emitField(Field f) const {
                     // append "s" to vector fields
@@ -80,16 +80,7 @@ namespace tigl {
                         // give custom name
                         f.customName = f.name() + "_choice" + boost::join(choiceIndices | boost::adaptors::transformed([](std::size_t i) { return std::to_string(i); }), "_");
 
-                        if (minBefore > 0) {
-                            if (expr.size() > 0)
-                                expr += " && ";
-                            // TODO(bgruber): this whole expression generation is already code generation and would logically belong into CodeGen. However, it is easier to construct here ..
-                            if (f.cardinality() == Cardinality::Optional)
-                                expr += f.fieldName() + ".is_initialized()";
-                            else if (f.cardinality() == Cardinality::Vector)
-                                expr += "!" + f.fieldName() + ".empty()";
-                        }
-
+                        choiceItems.push_back(ChoiceElement{ members.size(), minBefore == 0 });
                     }
                     members.push_back(std::move(f));
                 }
@@ -113,24 +104,16 @@ namespace tigl {
                 void operator()(const xsd::Choice& c) const {
                     const auto countBefore = members.size();
 
-                    std::string allSubExpr;
+                    Choice choice;
                     for (const auto& v : c.elements | boost::adaptors::indexed(1)) {
                         // collect members of one choice
                         auto indices = choiceIndices;
                         indices.push_back(v.index());
-                        std::string subExpr;
-                        v.value().visit(ContentVisitor(types, members, subExpr, attributeCount, tables, indices));
-                        if (!subExpr.empty()) {
-                            if (!allSubExpr.empty())
-                                allSubExpr += " + ";
-                            allSubExpr += "(" + subExpr + ")";
-                        }
-                     }
-                    if (!allSubExpr.empty()) {
-                        if (!expr.empty())
-                            expr += " && ";
-                        expr += "(" + allSubExpr + " == 1)";
+                        ChoiceElements subChoiceItems;
+                        v.value().visit(ContentVisitor(types, members, subChoiceItems, attributeCount, tables, indices));
+                        choice.options.push_back(std::move(subChoiceItems));
                     }
+                    choiceItems.push_back(std::move(choice));
 
                     // consistency check, two types with the same name but different types or cardinality are problematic
                     for (std::size_t i = countBefore; i < members.size(); i++) {
@@ -179,15 +162,15 @@ namespace tigl {
             private:
                 const xsd::SchemaTypes& types;
                 std::vector<Field>& members;
-                std::string& expr;
+                ChoiceElements& choiceItems;
                 const std::size_t attributeCount;
                 const Tables& tables;
                 const std::vector<std::size_t> choiceIndices; // not empty when inside a choice
             };
 
-            type.content.visit(ContentVisitor(types, members, expr, members.size(), tables));
+            type.content.visit(ContentVisitor(types, members, choiceItems, members.size(), tables));
 
-            return std::make_tuple(members, expr);
+            return std::make_tuple(members, choiceItems);
         }
     }
 
@@ -208,7 +191,7 @@ namespace tigl {
                         Class c;
                         c.originXPath = type.xpath;
                         c.name = makeClassName(type.name);
-                        std::tie(c.fields, c.choiceExpression) = buildFieldListAndChoiceExpression(types, type, tables);
+                        std::tie(c.fields, c.choices) = buildFieldListAndChoiceExpression(types, type, tables);
 
                         if (!type.base.empty()) {
                             c.base = resolveType(types, type.base, tables);

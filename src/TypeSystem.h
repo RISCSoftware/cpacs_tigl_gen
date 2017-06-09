@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/variant/recursive_wrapper.hpp>
+
 #include <string>
 #include <algorithm>
 #include <unordered_map>
@@ -82,12 +84,24 @@ namespace tigl {
         std::vector<Enum*> enumChildren;
     };
 
+    struct ChoiceElement {
+        std::size_t index;
+        bool optionalBefore;
+    };
+
+    struct Choice;
+    using ChoiceElements = std::vector<boost::variant<ChoiceElement, boost::recursive_wrapper<Choice>>>;
+
+    struct Choice {
+        std::vector<ChoiceElements> options;
+    };
+
     struct Class {
         std::string originXPath;
         std::string name;
         std::string base;
         std::vector<Field> fields;
-        std::string choiceExpression;
+        ChoiceElements choices;
         bool pruned = false;
 
         ClassDependencies deps;

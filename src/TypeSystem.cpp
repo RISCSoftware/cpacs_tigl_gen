@@ -67,17 +67,13 @@ namespace tigl {
                     : types(types), members(members), choiceItems(choiceItems), attributeCount(attributeCount), tables(tables), choiceIndices(choiceIndices) {}
 
                 void emitField(Field f) const {
-                    // append "s" to vector fields
-                    if (f.cardinality() == Cardinality::Vector && f.name().back() != 's')
-                        f.customName = f.name() + "s";
-
                     if (!choiceIndices.empty()) {
                         // make optional
                         const auto minBefore = f.minOccurs;
                         f.minOccurs = 0;
 
                         // give custom name
-                        f.customName = f.name() + "_choice" + boost::join(choiceIndices | boost::adaptors::transformed([](std::size_t i) { return std::to_string(i); }), "_");
+                        f.namePostfix = "_choice" + boost::join(choiceIndices | boost::adaptors::transformed([](std::size_t i) { return std::to_string(i); }), "_");
 
                         choiceItems.push_back(ChoiceElement{ members.size(), minBefore == 0 });
                     }
@@ -150,7 +146,7 @@ namespace tigl {
                     Field m;
                     m.originXPath = g.xpath;
                     m.cpacsName = "";
-                    m.customName = "simpleContent";
+                    m.namePostfix = "simpleContent";
                     m.minOccurs = 1;
                     m.maxOccurs = 1;
                     m.typeName = resolveType(types, g.type, tables);
@@ -201,7 +197,7 @@ namespace tigl {
 
                                 Field f;
                                 f.cpacsName = "";
-                                f.customName = "base";
+                                f.namePostfix = "base";
                                 f.minOccurs = 1;
                                 f.maxOccurs = 1;
                                 f.typeName = c.base;

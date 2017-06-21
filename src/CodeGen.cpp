@@ -466,39 +466,39 @@ namespace tigl {
             }
 
             // classes
-            if (f.xmlType != XMLConstruct::Attribute && f.xmlType != XMLConstruct::FundamentalTypeBase) {
-                const auto itC = m_types.classes.find(f.typeName);
-                const auto requiresParentPointer = m_tables.m_parentPointers.contains(f.typeName);
-                if (itC != std::end(m_types.classes)) {
-                    switch (f.cardinality()) {
-                        case Cardinality::Optional:
-                            cpp << f.fieldName() << " = boost::in_place(" << ctorArgumentList(itC->second, c) << ");";
-                            if (c_generateTryCatchAroundOptionalClassReads) {
-                                cpp << "try {";
-                                {
-                                    Scope s(cpp);
-                                    cpp << f.fieldName() << "->ReadCPACS(tixiHandle, xpath + \"/" << f.cpacsName << "\");";
-                                }
-                                cpp << "} catch(const std::exception& e) {";
-                                {
-                                    Scope s(cpp);
-                                    cpp << "LOG(ERROR) << \"Failed to read " << f.cpacsName << " at xpath \" << xpath << \": \" << e.what();";
-                                    cpp << f.fieldName() << " = boost::none;";
-                                }
-                                cpp << "}";
-                            } else
+            const auto itC = m_types.classes.find(f.typeName);
+            if (itC != std::end(m_types.classes)) {
+                if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::FundamentalTypeBase)
+                    throw std::logic_error("fields of class type cannot be attributes or fundamental type bases");
+
+                switch (f.cardinality()) {
+                    case Cardinality::Optional:
+                        cpp << f.fieldName() << " = boost::in_place(" << ctorArgumentList(itC->second, c) << ");";
+                        if (c_generateTryCatchAroundOptionalClassReads) {
+                            cpp << "try {";
+                            {
+                                Scope s(cpp);
                                 cpp << f.fieldName() << "->ReadCPACS(tixiHandle, xpath + \"/" << f.cpacsName << "\");";
-                            break;
-                        case Cardinality::Mandatory:
-                            cpp << f.fieldName() << ".ReadCPACS(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
-                            break;
-                        case Cardinality::Vector:
-                            const auto moreArgs = ctorArgumentList(itC->second, c);
-                            cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << (moreArgs.empty() ? "" : ", " + moreArgs) << ");";
-                            break;
-                    }
-                    return;
+                            }
+                            cpp << "} catch(const std::exception& e) {";
+                            {
+                                Scope s(cpp);
+                                cpp << "LOG(ERROR) << \"Failed to read " << f.cpacsName << " at xpath \" << xpath << \": \" << e.what();";
+                                cpp << f.fieldName() << " = boost::none;";
+                            }
+                            cpp << "}";
+                        } else
+                            cpp << f.fieldName() << "->ReadCPACS(tixiHandle, xpath + \"/" << f.cpacsName << "\");";
+                        break;
+                    case Cardinality::Mandatory:
+                        cpp << f.fieldName() << ".ReadCPACS(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
+                        break;
+                    case Cardinality::Vector:
+                        const auto moreArgs = ctorArgumentList(itC->second, c);
+                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << (moreArgs.empty() ? "" : ", " + moreArgs) << ");";
+                        break;
                 }
+                return;
             }
 
             throw std::logic_error("No read function provided for type " + f.typeName);
@@ -868,6 +868,91 @@ namespace tigl {
             }
         }
 
+        void writeTreeManipulatorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
+            for (const auto& f : fields) {
+                if (m_types.classes.find(f.typeName) != std::end(m_types.classes)) {
+                    if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::FundamentalTypeBase)
+                        throw std::logic_error("fields of class type cannot be attributes or fundamental type bases");
+
+                    switch (f.cardinality()) {
+                        case Cardinality::Optional:
+                            hpp << "TIGL_EXPORT virtual " << customReplacedType(f) << "& Create" << capitalizeFirstLetter(f.name()) << "();";
+                            hpp << "TIGL_EXPORT virtual void Remove" << capitalizeFirstLetter(f.name()) << "();";
+                            hpp << "";
+                            break;
+                        case Cardinality::Vector:
+                            hpp << "TIGL_EXPORT virtual " << customReplacedType(f) << "& Add" << capitalizeFirstLetter(f.nameWithoutVectorS()) << "();";
+                            hpp << "TIGL_EXPORT virtual void Remove" << capitalizeFirstLetter(f.nameWithoutVectorS()) << "(" <<  customReplacedType(f) << "& ref);";
+                            hpp << "";
+                            break;
+                    }
+                }
+            }
+        }
+        void writeTreeManipulatorImplementations(IndentingStreamWrapper& cpp, const Class& c) {
+            for (const auto& f : c.fields) {
+                const auto itC = m_types.classes.find(f.typeName);
+                if (itC != std::end(m_types.classes)) {
+                    if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::FundamentalTypeBase)
+                        throw std::logic_error("fields of class type cannot be attributes or fundamental type bases");
+
+                    switch (f.cardinality()) {
+                        case Cardinality::Optional:
+                            cpp << "" << customReplacedType(f) << "& " << c.name << "::Create" << capitalizeFirstLetter(f.name()) << "()";
+                            cpp << "{";
+                            {
+                                Scope s(cpp);
+                                cpp << f.fieldName() << " = boost::in_place(" << ctorArgumentList(itC->second, c) << ");";
+                                cpp << "return *" << f.fieldName() << ";";
+                            }
+                            cpp << "}";
+                            cpp << "";
+                            cpp << "void " << c.name << "::Remove" << capitalizeFirstLetter(f.name()) << "()";
+                            cpp << "{";
+                            {
+                                Scope s(cpp);
+                                cpp << f.fieldName() << " = boost::none;";
+                            }
+                            cpp << "}";
+                            cpp << "";
+                            break;
+                        case Cardinality::Vector:
+                            cpp << "" << customReplacedType(f) << "& " << c.name << "::Add" << capitalizeFirstLetter(f.nameWithoutVectorS()) << "()";
+                            cpp << "{";
+                            {
+                                Scope s(cpp);
+                                cpp << f.fieldName() << ".push_back(make_unique<" << customReplacedType(f) << ">(" << ctorArgumentList(itC->second, c) << "));";
+                                cpp << "return *" << f.fieldName() << ".back();";
+                            }
+                            cpp << "}";
+                            cpp << "";
+                            cpp << "void " << c.name << "::Remove" << capitalizeFirstLetter(f.nameWithoutVectorS()) << "(" <<  customReplacedType(f) << "& ref)";
+                            cpp << "{";
+                            {
+                                Scope s(cpp);
+                                // TODO: replace by find_if and lambda when C++11 is available
+                                cpp << "for (std::size_t i = 0; i < " << f.fieldName() << ".size(); i++) {";
+                                {
+                                    Scope s(cpp);
+                                    cpp << "if (" << f.fieldName() << "[i].get() == &ref) {";
+                                    {
+                                        Scope s(cpp);
+                                        cpp << f.fieldName() << ".erase(" << f.fieldName() << ".begin() + i);";
+                                        cpp << "return;";
+                                    }
+                                    cpp << "}";
+                                }
+                                cpp << "}";
+                                cpp << "throw CTiglError(\"Element not found\");";
+                            }
+                            cpp << "}";
+                            cpp << "";
+                            break;
+                    }
+                }
+            }
+        }
+
         void writeLicenseHeader(IndentingStreamWrapper& f) {
             f.raw() << "// Copyright (c) 2016 RISC Software GmbH";
             f       << "//";
@@ -1226,6 +1311,8 @@ namespace tigl {
                         // accessors
                         writeAccessorDeclarations(hpp, c.fields);
 
+                        // tree manipulators
+                        writeTreeManipulatorDeclarations(hpp, c.fields);
                     }
                     hpp << "protected:";
                     {
@@ -1340,6 +1427,9 @@ namespace tigl {
 
                     // accessors
                     writeAccessorImplementations(cpp, c.name, c.fields);
+
+                    // tree manipulators
+                    writeTreeManipulatorImplementations(cpp, c);
 
                     if (!m_namespace.empty()) {
                         ops = boost::none;

@@ -47,7 +47,7 @@ namespace tigl {
         unsigned int minOccurs = 0;
         unsigned int maxOccurs = 0;
 
-        std::string customName;
+        std::string namePostfix;
 
         auto cardinality() const -> Cardinality {
             if (minOccurs == 0 && maxOccurs == 1)
@@ -61,10 +61,15 @@ namespace tigl {
         }
 
         auto name() const -> std::string {
-            if (!customName.empty())
-                return customName;
-            else
-                return cpacsName;
+            auto n = cpacsName;
+            // append "s" to vector fields
+            if (cardinality() == Cardinality::Vector && !cpacsName.empty() && cpacsName.back() != 's')
+                n += "s";
+            return n + namePostfix;
+        }
+
+        auto nameWithoutVectorS() const -> std::string {
+            return cpacsName + namePostfix;
         }
 
         auto fieldName() const -> std::string {

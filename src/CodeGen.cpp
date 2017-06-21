@@ -902,7 +902,11 @@ namespace tigl {
                             cpp << "{";
                             {
                                 Scope s(cpp);
-                                cpp << f.fieldName() << " = boost::in_place(" << ctorArgumentList(itC->second, c) << ");";
+                                cpp << "if (!" << f.fieldName() << ")";
+                                {
+                                    Scope s(cpp);
+                                    cpp << f.fieldName() << " = boost::in_place(" << ctorArgumentList(itC->second, c) << ");";
+                                }
                                 cpp << "return *" << f.fieldName() << ";";
                             }
                             cpp << "}";

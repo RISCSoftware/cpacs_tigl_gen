@@ -24,7 +24,7 @@ namespace tigl {
         const auto c_generateTryCatchAroundOptionalClassReads = true;
         const auto c_generateCpp11ScopedEnums = false;
 
-        const auto tixiHelperNamespace = "tixihelper";
+        const auto tixiHelperNamespace = "tixi";
         const auto c_uidMgrName = std::string("CTiglUIDManager");
     }
 

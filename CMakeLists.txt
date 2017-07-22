@@ -19,6 +19,8 @@ mark_as_advanced(CLEAR BOOST_ROOT) # find module for boost marks this variable a
 set(CMAKE_PREFIX_PATH "${TIXI_PATH};${CMAKE_PREFIX_PATH}")
 find_package(TIXI REQUIRED)
 
+set(TIXI_LIBRARIES ${TIXI_PATH}/lib/tixi3.lib) # TODO: remove when tixi3 config has been fixed
+
 # definitions
 add_definitions(-DCPACS_GEN)
 
@@ -36,6 +38,7 @@ add_executable(${PROJECT_NAME} ${ALL_INPUTS})
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${TIXI_LIBRARIES})
 
+# put all files in the same source group
 source_group(" " FILES ${ALL_INPUTS})
 
 if(TIGL_PATH)
@@ -57,3 +60,7 @@ add_custom_target(
 if (NOT WIN32)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif (NOT WIN32)
+
+# copy shared library to ouput directory
+get_target_property(TIXI_SHARED_LIBRARY tixi3 LOCATION)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${TIXI_SHARED_LIBRARY}" "${CMAKE_BINARY_DIR}/$<CONFIG>/")

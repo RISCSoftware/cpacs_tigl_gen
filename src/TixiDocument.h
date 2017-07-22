@@ -31,37 +31,37 @@ namespace tigl {
             }
 
             static TixiDocument createFromFile(const std::string& filename) {
-                TixiDocument doc(TixiOpenDocument(filename));
+                TixiDocument doc(tixi::TixiOpenDocument(filename));
                 return doc;
             }
 
             static TixiDocument createNew(const std::string& rootElement) {
-                return TixiDocument(TixiCreateDocument(rootElement));
+                return TixiDocument(tixi::TixiCreateDocument(rootElement));
             }
 
             static TixiDocument createFromString(const std::string& xml) {
-                TixiDocument doc(TixiImportFromString(xml));
+                TixiDocument doc(tixi::TixiImportFromString(xml));
                 return doc;
             }
 
             void addCpacsHeader(const std::string& name, const std::string& creator, const std::string& version, const std::string& description, const std::string& cpacsVersion) {
-                TixiAddCpacsHeader(m_handle, name, creator, version, description, cpacsVersion);
+                tixi::TixiAddCpacsHeader(m_handle, name, creator, version, description, cpacsVersion);
             }
 
             bool checkAttribute(const std::string& xpath, const std::string& attribute) const {
-                return TixiCheckAttribute(m_handle, xpath, attribute);
+                return tixi::TixiCheckAttribute(m_handle, xpath, attribute);
             }
 
             bool checkElement(const std::string& xpath) const {
-                return TixiCheckElement(m_handle, xpath);
+                return tixi::TixiCheckElement(m_handle, xpath);
             }
 
             int namedChildCount(const std::string& xpath) const {
-                return TixiGetNamedChildrenCount(m_handle, xpath);
+                return tixi::TixiGetNamedChildrenCount(m_handle, xpath);
             }
 
             std::vector<std::string> attributeNames(const std::string& xpath) const {
-                return TixiGetAttributeNames(m_handle, xpath);
+                return tixi::TixiGetAttributeNames(m_handle, xpath);
             }
 
             template <typename Func>
@@ -72,116 +72,116 @@ namespace tigl {
             }
 
             std::string textAttribute(const std::string& xpath, const std::string& attribute) const {
-                return TixiGetTextAttribute(m_handle, xpath, attribute);
+                return tixi::TixiGetTextAttribute(m_handle, xpath, attribute);
             }
 
             double doubleAttribute(const std::string& xpath, const std::string& attribute) const {
-                return TixiGetDoubleAttribute(m_handle, xpath, attribute);
+                return tixi::TixiGetDoubleAttribute(m_handle, xpath, attribute);
             }
 
             bool boolAttribute(const std::string& xpath, const std::string& attribute) const {
-                return TixiGetBoolAttribute(m_handle, xpath, attribute);
+                return tixi::TixiGetBoolAttribute(m_handle, xpath, attribute);
             }
 
             int intAttribute(const std::string& xpath, const std::string& attribute) const {
-                return TixiGetIntAttribute(m_handle, xpath, attribute);
+                return tixi::TixiGetIntegerAttribute(m_handle, xpath, attribute);
             }
 
             std::string textElement(const std::string& xpath) const {
-                return TixiGetTextElement(m_handle, xpath);
+                return tixi::TixiGetTextElement(m_handle, xpath);
             }
 
             double doubleElement(const std::string& xpath) const {
-                return TixiGetDoubleElement(m_handle, xpath);
+                return tixi::TixiGetDoubleElement(m_handle, xpath);
             }
 
             bool boolElement(const std::string& xpath) const {
-                return TixiGetBoolElement(m_handle, xpath);
+                return tixi::TixiGetBoolElement(m_handle, xpath);
             }
 
             int intElement(const std::string& xpath) const {
-                return TixiGetIntElement(m_handle, xpath);
+                return tixi::TixiGetIntElement(m_handle, xpath);
             }
 
             std::time_t timeTElement(const std::string& xpath) const {
-                return TixiGetTimeTElement(m_handle, xpath);
+                return tixi::TixiGetTimeTElement(m_handle, xpath);
             }
 
             void saveAttribute(const std::string& xpath, const std::string& attribute, const char* value) {
-                return TixiSaveAttribute(m_handle, xpath, attribute, value);
+                return tixi::TixiSaveAttribute(m_handle, xpath, attribute, value);
             }
 
             void saveAttribute(const std::string& xpath, const std::string& attribute, const std::string& value) {
-                return TixiSaveAttribute(m_handle, xpath, attribute, value);
+                return tixi::TixiSaveAttribute(m_handle, xpath, attribute, value);
             }
 
             void saveAttribute(const std::string& xpath, const std::string& attribute, double value) {
-                return TixiSaveAttribute(m_handle, xpath, attribute, value);
+                return tixi::TixiSaveAttribute(m_handle, xpath, attribute, value);
             }
 
             void saveAttribute(const std::string& xpath, const std::string& attribute, bool value) {
-                return TixiSaveAttribute(m_handle, xpath, attribute, value);
+                return tixi::TixiSaveAttribute(m_handle, xpath, attribute, value);
             }
 
             void saveAttribute(const std::string& xpath, const std::string& attribute, int value) {
-                return TixiSaveAttribute(m_handle, xpath, attribute, value);
+                return tixi::TixiSaveAttribute(m_handle, xpath, attribute, value);
             }
 
             void saveElement(const std::string& xpath, const char* value) {
-                return TixiSaveElement(m_handle, xpath, value);
+                return tixi::TixiSaveElement(m_handle, xpath, value);
             }
 
             void saveElement(const std::string& xpath, const std::string& value) {
-                return TixiSaveElement(m_handle, xpath, value);
+                return tixi::TixiSaveElement(m_handle, xpath, value);
             }
 
             void saveElement(const std::string& xpath, double value, const std::string& format = "%g") {
-                return TixiSaveElement(m_handle, xpath, value, format);
+                return tixi::TixiSaveElement(m_handle, xpath, value, format);
             }
 
             void saveElement(const std::string& xpath, bool value) {
-                return TixiSaveElement(m_handle, xpath, value);
+                return tixi::TixiSaveElement(m_handle, xpath, value);
             }
 
             void saveElement(const std::string& xpath, int value) {
-                return TixiSaveElement(m_handle, xpath, value);
+                return tixi::TixiSaveElement(m_handle, xpath, value);
             }
 
             void saveElement(const std::string& xpath, std::time_t value) {
-                return TixiSaveElement(m_handle, xpath, value);
+                return tixi::TixiSaveElement(m_handle, xpath, value);
             }
 
             void createElement(const std::string& xpath) {
-                TixiCreateElement(m_handle, xpath);
+                tixi::TixiCreateElement(m_handle, xpath);
             }
 
             void createElementIfNotExists(const std::string& xpath) {
-                TixiCreateElementIfNotExists(m_handle, xpath);
+                tixi::TixiCreateElementIfNotExists(m_handle, xpath);
             }
 
             // includes creation of all parent elements
             void createElementsNotExists(const std::string& xpath) {
-                TixiCreateElementsIfNotExists(m_handle, xpath);
+                tixi::TixiCreateElementsIfNotExists(m_handle, xpath);
             }
 
             void removeAttribute(const std::string& xpath, const std::string& attribute) {
-                TixiRemoveAttribute(m_handle, xpath, attribute);
+                tixi::TixiRemoveAttribute(m_handle, xpath, attribute);
             }
 
             void removeElement(const std::string& xpath) {
-                TixiRemoveElement(m_handle, xpath);
+                tixi::TixiRemoveElement(m_handle, xpath);
             }
 
             std::string toString() const {
-                return TixiExportDocumentAsString(m_handle);
+                return tixi::TixiExportDocumentAsString(m_handle);
             }
 
             void registerNamespaces() {
-                TixiRegisterNamespacesFromDocument(m_handle);
+                tixi::TixiRegisterNamespacesFromDocument(m_handle);
             }
 
             void registerNamespace(const std::string& namespaceURI, const std::string& prefix) {
-                TixiRegisterNamespace(m_handle, namespaceURI, prefix);
+                tixi::TixiRegisterNamespace(m_handle, namespaceURI, prefix);
             }
 
             const TixiDocumentHandle& handle() const {

@@ -14,7 +14,6 @@ namespace fs = boost::filesystem;
 namespace tigl {
     const auto runtimeFiles = {
         "TixiHelper.h",
-        "TixiHelper.cpp",
         "UniquePtr.h",
     };
 

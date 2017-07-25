@@ -19,8 +19,6 @@ mark_as_advanced(CLEAR BOOST_ROOT) # find module for boost marks this variable a
 set(CMAKE_PREFIX_PATH "${TIXI_PATH};${CMAKE_PREFIX_PATH}")
 find_package(TIXI REQUIRED)
 
-set(TIXI_LIBRARIES ${TIXI_PATH}/lib/tixi3.lib) # TODO: remove when tixi3 config has been fixed
-
 # definitions
 add_definitions(-DCPACS_GEN)
 

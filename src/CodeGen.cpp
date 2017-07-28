@@ -418,7 +418,7 @@ namespace tigl {
                             cpp << "if (" << f.fieldName() << ".empty()) {";
                             {
                                 Scope s(cpp);
-                                cpp << "LOG(ERROR) << \"Required "  << (isAtt ? "attribute " : "element ") << f.cpacsName << " is empty at xpath \" << xpath;";
+                                cpp << "LOG(WARNING) << \"Required "  << (isAtt ? "attribute " : "element ") << f.cpacsName << " is empty at xpath \" << xpath;";
                             }
                             cpp << "}";
                         }
@@ -428,7 +428,7 @@ namespace tigl {
                             cpp << "if (" << f.fieldName() << "->empty()) {";
                             {
                                 Scope s(cpp);
-                                cpp << "LOG(ERROR) << \"Optional "  << (isAtt ? "attribute " : "element ") << f.cpacsName << " is present but empty at xpath \" << xpath;";
+                                cpp << "LOG(WARNING) << \"Optional "  << (isAtt ? "attribute " : "element ") << f.cpacsName << " is present but empty at xpath \" << xpath;";
                             }
                             cpp << "}";
                         }

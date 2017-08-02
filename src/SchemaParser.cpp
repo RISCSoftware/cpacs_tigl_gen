@@ -24,7 +24,7 @@ namespace tigl {
                 });
 
                 document.forEachChild("/xsd:schema/xsd:element", [&](const std::string& xpath) {
-                    readElement(xpath);
+                    m_types.roots.push_back(readElement(xpath).type);
                 });
             }
 
@@ -143,7 +143,7 @@ namespace tigl {
                         stype.xpath = xpath;
                         stype.name = stripTypeSuffix(type.name) + c_simpleContentTypeSuffx;
                         readRestriction(xpath + "/xsd:restriction", stype);
-                        m_types[stype.name] = stype;
+                        m_types.types[stype.name] = stype;
 
                         SimpleContent sc;
                         sc.xpath = xpath;
@@ -242,7 +242,7 @@ namespace tigl {
                         return generateUniqueTypeName(nameHint);
                 }();
 
-                if (m_types.find(name) != std::end(m_types))
+                if (m_types.types.find(name) != std::end(m_types.types))
                     throw std::runtime_error("Type with name " + name + " already exists");
 
                 ComplexType type;
@@ -287,8 +287,8 @@ namespace tigl {
                     auto name = sc.type;
 
                     // move type out of type map
-                    auto v = std::move(m_types[name]);
-                    m_types.erase(name);
+                    auto v = std::move(m_types.types[name]);
+                    m_types.types.erase(name);
 
                     // strip simple content suffix
                     const auto it = name.rfind(c_simpleContentTypeSuffx);
@@ -300,13 +300,13 @@ namespace tigl {
                     v.as<SimpleType>().name = name;
 
                     // readd it
-                    m_types[name] = v;
+                    m_types.types[name] = v;
 
                     return name;
                 }
 
                 // add
-                m_types[name] = type;
+                m_types.types[name] = type;
 
                 return name;
             }
@@ -342,7 +342,7 @@ namespace tigl {
                     }
                 }();
 
-                if (m_types.find(name) != std::end(m_types))
+                if (m_types.types.find(name) != std::end(m_types.types))
                     throw std::runtime_error("Type with name " + name + " already exists");
 
                 SimpleType type;
@@ -357,7 +357,7 @@ namespace tigl {
                 else if (document.checkElement(xpath + "/xsd:union"))       throw NotImplementedException("XSD simpleType union is not implemented");
 
                 // add
-                m_types[name] = type;
+                m_types.types[name] = type;
 
                 return name;
             }
@@ -412,7 +412,7 @@ namespace tigl {
                 };
 
                 unsigned int id = 0;
-                while (m_types.find(newNameSuggestion + "Type" + toString(id)) != std::end(m_types))
+                while (m_types.types.find(newNameSuggestion + "Type" + toString(id)) != std::end(m_types.types))
                     id++;
                 const auto n = newNameSuggestion + "Type" + toString(id);
                 return n;

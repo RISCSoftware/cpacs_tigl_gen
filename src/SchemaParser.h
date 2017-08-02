@@ -68,11 +68,14 @@ namespace tigl {
             std::vector<std::string> restrictionValues;
         };
 
-        using SchemaTypes = std::unordered_map<std::string, Variant<ComplexType, SimpleType>>;
+        struct SchemaTypes {
+            std::vector<std::string> roots;
+            std::unordered_map<std::string, Variant<ComplexType, SimpleType>> types;
+        };
 
-        auto parseSchema(const std::string& cpacsLocation)->SchemaTypes;
+        auto parseSchema(const std::string& cpacsLocation) -> SchemaTypes;
 
-        auto stripTypeSuffix(const std::string& name)->std::string;
-        auto stripSimpleContentSuffix(const std::string& name)->std::string;
+        auto stripTypeSuffix(const std::string& name) -> std::string;
+        auto stripSimpleContentSuffix(const std::string& name) -> std::string;
     }
 }

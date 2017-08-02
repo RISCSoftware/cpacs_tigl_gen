@@ -19,31 +19,35 @@ namespace tigl {
 
     void run(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile) {
         // load tables
-        Tables tables(inputDirectory);
+        const Tables tables(inputDirectory);
 
-        // read types and elements
-        const auto& cpacsLocation = inputDirectory + "/cpacs_schema.xsd";
-        std::cout << "Parsing " << cpacsLocation << std::endl;
-        auto types = xsd::parseSchema(cpacsLocation);
+        // iterate all *.xsd files in the input directory
+        for (const auto& e : fs::directory_iterator(inputDirectory)) {
+            if (fs::is_regular_file(e.status()) && e.path().has_extension() && e.path().extension() == ".xsd") {
+                // read types and elements
+                std::cout << "Parsing " << e.path() << std::endl;
+                auto types = xsd::parseSchema(e.path().string());
 
-        // generate type system from schema
-        std::cout << "Creating type system" << std::endl;
-        const auto& typeSystem = buildTypeSystem(types, tables);
+                // generate type system from schema
+                std::cout << "Creating type system" << std::endl;
+                const auto& typeSystem = buildTypeSystem(types, tables);
 
-        // write graph vis file for the generated type system
-        if (!typeSystemGraphVisFile.empty()) {
-            auto p = fs::path{typeSystemGraphVisFile};
-            if (p.has_parent_path())
-                fs::create_directories(p.parent_path());
-            writeGraphVisFile(typeSystem, typeSystemGraphVisFile);
+                // write graph vis file for the generated type system
+                if (!typeSystemGraphVisFile.empty()) {
+                    auto p = fs::path{ typeSystemGraphVisFile };
+                    if (p.has_parent_path())
+                        fs::create_directories(p.parent_path());
+                    writeGraphVisFile(typeSystem, typeSystemGraphVisFile);
+                }
+
+                // create output directory
+                fs::create_directories(outputDirectory);
+
+                // generate code
+                std::cout << "Generating classes" << std::endl;
+                genCode(outputDirectory, typeSystem, tables);
+            }
         }
-
-        // create output directory
-        fs::create_directories(outputDirectory);
-
-        // generate code
-        std::cout << "Generating classes" << std::endl;
-        genCode(outputDirectory, typeSystem, tables);
 
         std::cout << "Copying runtime" << std::endl;
         WriteIfDifferentFiles files;

@@ -29,8 +29,8 @@ namespace tigl {
 
         auto resolveType(const xsd::SchemaTypes& types, const std::string& name, const Tables& tables) -> std::string {
             // search simple and complex types
-            const auto cit = types.find(name);
-            if (cit != std::end(types)) {
+            const auto cit = types.types.find(name);
+            if (cit != std::end(types.types)) {
                 const auto p = tables.m_typeSubstitutions.find(name);
                 if (p)
                     return *p;
@@ -180,7 +180,7 @@ namespace tigl {
             : m_types(std::move(types)), tables(tables) {}
 
         void build() {
-            for (const auto& p : m_types) {
+            for (const auto& p : m_types.types) {
                 const auto& type = p.second;
 
                 struct TypeVisitor {
@@ -500,14 +500,19 @@ namespace tigl {
             for (auto& p : m_enums)
                 p.second.pruned = true;
 
-            // find root type
-            const auto rootElementTypeName = std::string("CPACSCpacs");
-            const auto it = m_classes.find(rootElementTypeName);
-            if (it == std::end(m_classes))
-                throw std::runtime_error("Could not find root element. Expected: " + rootElementTypeName);
-            auto& root = it->second;
+            // recurse on all root nodes
+            for (const auto& root : m_types.roots) {
+                const auto rootElementTypeName = makeClassName(root);
+                const auto it = m_classes.find(rootElementTypeName);
+                if (it == std::end(m_classes)) {
+                    throw std::runtime_error("Could not find root element: " + rootElementTypeName);
+                    return;
+                }
+                std::cout << "\tstarting at " << rootElementTypeName << std::endl;
 
-            includeNode(root, tables.m_pruneList, 0);
+                auto& root = it->second;
+                includeNode(root, tables.m_pruneList, 0);
+            }
 
             std::cout << "The following types have been pruned:" << std::endl;
             std::vector<std::string> prunedTypeNames;

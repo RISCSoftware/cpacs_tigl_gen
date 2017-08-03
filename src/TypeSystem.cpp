@@ -226,7 +226,7 @@ namespace tigl {
                                 e.values.push_back(EnumValue(v));
                             typeSystem.m_enums[e.name] = e;
                         } else
-                            throw NotImplementedException("Simple times which are not m_enums are not implemented");
+                            throw NotImplementedException("Simple types which are not enums are not implemented: " + type.name);
                     }
 
                 private:
@@ -492,8 +492,6 @@ namespace tigl {
         }
 
         void runPruneList() {
-            std::cout << "Running prune list" << std::endl;
-
             // mark all types as pruned
             for (auto& p : m_classes)
                 p.second.pruned = true;
@@ -503,12 +501,13 @@ namespace tigl {
             // recurse on all root nodes
             for (const auto& root : m_types.roots) {
                 const auto rootElementTypeName = makeClassName(root);
+                std::cout << "Running prune list starting at " << rootElementTypeName << std::endl;
+
                 const auto it = m_classes.find(rootElementTypeName);
                 if (it == std::end(m_classes)) {
                     throw std::runtime_error("Could not find root element: " + rootElementTypeName);
                     return;
                 }
-                std::cout << "\tstarting at " << rootElementTypeName << std::endl;
 
                 auto& root = it->second;
                 includeNode(root, tables.m_pruneList, 0);

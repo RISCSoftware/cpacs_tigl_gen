@@ -136,31 +136,27 @@ namespace tigl {
                 // (annotation?,(restriction|extension))
                 // </simpleContent>
 
+                SimpleContent sc;
+                sc.xpath = xpath;
                 if (document.checkElement(xpath + "/xsd:restriction")) {
                     if (document.checkElement(xpath + "/xsd:restriction/xsd:enumeration")) {
-                        // generating an additional type for this enum
+                        // generate an additional type for this enum
                         SimpleType stype;
                         stype.xpath = xpath;
                         stype.name = stripTypeSuffix(type.name) + c_simpleContentTypeSuffx;
                         readRestriction(xpath + "/xsd:restriction", stype);
                         m_types.types[stype.name] = stype;
 
-                        SimpleContent sc;
-                        sc.xpath = xpath;
                         sc.type = stype.name;
-                        type.content = sc;
-
                     } else {
-                        // we ignore other kinds of restrictions as those are hard to support
-                        std::cerr << "Warning: restricted simpleContent is not an enum: " << type.name << std::endl;
+                        // we simplify this case be creating a field for the value of the simpleContent
+                        sc.type = document.textAttribute(xpath + "/xsd:restriction", "base");
                     }
                 } else if (document.checkElement(xpath + "/xsd:extension")) {
                     // we simplify this case be creating a field for the value of the simpleContent
-                    SimpleContent sc;
-                    sc.xpath = xpath;
                     sc.type = document.textAttribute(xpath + "/xsd:extension", "base");
-                    type.content = sc;
                 }
+                type.content = sc;
             }
 
             void readComplexContent(const std::string& xpath, ComplexType& type) {
@@ -281,26 +277,32 @@ namespace tigl {
                     }
                 }
 
+                // try to inline simple contents
                 if (type.attributes.size() == 0 && type.base.empty() && type.content.is<SimpleContent>()) {
-                    // this is just an inline enum definiton, just use the type generated for the simple content
+                    // this is just an empty type with a simple content, just use the type generated for the simple content
                     const auto& sc = type.content.as<SimpleContent>();
                     auto name = sc.type;
 
-                    // move type out of type map
-                    auto v = std::move(m_types.types[name]);
-                    m_types.types.erase(name);
+                    // if the inner typ is an enum, replace outer type, otherwise we assume it is a primitive type
+                    auto& resolvedType = m_types.types[name];
+                    if (resolvedType.is<SimpleType>() && resolvedType.as<SimpleType>().restrictionValues.size() > 0) {
 
-                    // strip simple content suffix
-                    const auto it = name.rfind(c_simpleContentTypeSuffx);
-                    if (it == name.npos)
-                        throw std::logic_error("Expected type of simple content type to have " + c_simpleContentTypeSuffx + " suffix");
-                    name.erase(it);
+                        // move simple content type out of type map
+                        auto v = std::move(resolvedType);
+                        m_types.types.erase(name);
 
-                    // rename type
-                    v.as<SimpleType>().name = name;
+                        // strip simple content suffix, if exists
+                        const auto it = name.rfind(c_simpleContentTypeSuffx);
+                        if (it == name.npos)
+                            throw std::logic_error("Expected type of simple content type to have " + c_simpleContentTypeSuffx + " suffix");
 
-                    // readd it
-                    m_types.types[name] = v;
+                        // rename simple content type to outer type
+                        assert(v.is<SimpleType>());
+                        v.as<SimpleType>().name = name;
+
+                        // readd it
+                        m_types.types[name] = v;
+                    }
 
                     return name;
                 }
@@ -312,6 +314,19 @@ namespace tigl {
             }
 
             void readRestriction(const std::string& xpath, SimpleType& type) {
+                // <restriction
+                // id = ID
+                // base = QName
+                // any attributes
+                // >
+                // Content for simpleType:
+                // (annotation?, (simpleType?, (minExclusive | minInclusive | maxExclusive | maxInclusive | totalDigits | fractionDigits | length | minLength | maxLength | enumeration | whiteSpace | pattern)*))
+                // Content for simpleContent :
+                // (annotation?, (simpleType?, (minExclusive | minInclusive | maxExclusive | maxInclusive | totalDigits | fractionDigits | length | minLength | maxLength | enumeration | whiteSpace | pattern)*)? , ((attribute | attributeGroup)*, anyAttribute ? ))
+                // Content for complexContent:
+                // (annotation?, (group | all | choice | sequence)?, ((attribute | attributeGroup)*, anyAttribute?))
+                // </restriction>
+
                 type.base = document.textAttribute(xpath, "base");
 
                 document.forEachChild(xpath + "/xsd:enumeration", [&](const std::string& expath) {
@@ -319,9 +334,22 @@ namespace tigl {
                     type.restrictionValues.push_back(enumValue);
                 });
 
-                if (type.restrictionValues.size() == 0)
-                    std::cerr << "XSD restriction without enumeration is not implemented: " << xpath << std::endl;
-                //throw NotImplementedException("XSD restriction without enumeration is not implemented");
+                auto writeError = [&](const char* element) {
+                    std::cerr << "XSD restriction " << element << " is not implemented. No restrictions will be checked by generated code" << std::endl;
+                };
+
+                if (document.checkElement(xpath + "/xsd:simpleType"    )) throw NotImplementedException("XSD restriction simpleType is not implemented");
+                if (document.checkElement(xpath + "/xsd:minExclusive"  )) writeError("minExclusive"  );
+                if (document.checkElement(xpath + "/xsd:minInclusive"  )) writeError("minInclusive"  );
+                if (document.checkElement(xpath + "/xsd:maxExclusive"  )) writeError("maxExclusive"  );
+                if (document.checkElement(xpath + "/xsd:maxInclusive"  )) writeError("maxInclusive"  );
+                if (document.checkElement(xpath + "/xsd:totalDigits"   )) writeError("totalDigits"   );
+                if (document.checkElement(xpath + "/xsd:fractionDigits")) writeError("fractionDigits");
+                if (document.checkElement(xpath + "/xsd:length"        )) writeError("length"        );
+                if (document.checkElement(xpath + "/xsd:minLength"     )) writeError("minLength"     );
+                if (document.checkElement(xpath + "/xsd:maxLength"     )) writeError("maxLength"     );
+                if (document.checkElement(xpath + "/xsd:whiteSpace"    )) writeError("whiteSpace"    );
+                if (document.checkElement(xpath + "/xsd:pattern"       )) writeError("pattern"       );
             }
 
             std::string readSimpleType(const std::string& xpath, const std::string& nameHint = "") {
@@ -352,19 +380,21 @@ namespace tigl {
                 if (document.checkAttribute(xpath, "id"))
                     throw NotImplementedException("XSD complextype id is not implemented");
 
-                if (document.checkElement(xpath + "/xsd:restriction")) readRestriction(xpath + "/xsd:restriction", type);
-                else if (document.checkElement(xpath + "/xsd:list"))        throw NotImplementedException("XSD simpleType list is not implemented");
-                else if (document.checkElement(xpath + "/xsd:union"))       throw NotImplementedException("XSD simpleType union is not implemented");
+                     if (document.checkElement(xpath + "/xsd:restriction")) readRestriction(xpath + "/xsd:restriction", type);
+                else if (document.checkElement(xpath + "/xsd:list"       )) throw NotImplementedException("XSD simpleType list is not implemented");
+                else if (document.checkElement(xpath + "/xsd:union"      )) throw NotImplementedException("XSD simpleType union is not implemented");
 
-                // add
-                m_types.types[name] = type;
-
-                return name;
+                // add only simple types with restrictions (will become enums), otherwise just return underlying type
+                if (type.restrictionValues.size() > 0) {
+                    m_types.types[name] = type;
+                    return name;
+                } else
+                    return type.base;
             }
 
             std::string readInlineType(const std::string& xpath, const std::string& nameHint) {
-                if (document.checkElement(xpath + "/xsd:complexType")) return readComplexType(xpath + "/xsd:complexType", nameHint);
-                else if (document.checkElement(xpath + "/xsd:simpleType")) return readSimpleType(xpath + "/xsd:simpleType", nameHint);
+                     if (document.checkElement(xpath + "/xsd:complexType")) return readComplexType(xpath + "/xsd:complexType", nameHint);
+                else if (document.checkElement(xpath + "/xsd:simpleType" )) return readSimpleType (xpath + "/xsd:simpleType",  nameHint);
                 else throw std::runtime_error("Unexpected type or no type at xpath: " + xpath);
             }
 

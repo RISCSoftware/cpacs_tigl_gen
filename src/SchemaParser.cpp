@@ -295,6 +295,7 @@ namespace tigl {
                         const auto it = name.rfind(c_simpleContentTypeSuffx);
                         if (it == name.npos)
                             throw std::logic_error("Expected type of simple content type to have " + c_simpleContentTypeSuffx + " suffix");
+                        name.erase(it);
 
                         // rename simple content type to outer type
                         assert(v.is<SimpleType>());

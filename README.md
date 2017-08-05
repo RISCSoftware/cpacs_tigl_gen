@@ -17,20 +17,24 @@ The following components are required to build and run CPACSGen
 * A working copy of TiGL with CPACSGen input files (https://github.com/DLR-SC/tigl)
 
 ## Input files
-CPACSGen requires the following input files:
-* cpacs_schema.xml
+Given an input directory, CPACSGen searches for the following input files:
+* *.xsd _(any number of XML schema files)_
 * CustomTypes.txt
 * ParentPointer.txt
 * PrefixedEnums.txt
 * PruneList.txt
 * TypeSubstitution.txt
 
-These files are typically part of the TiGL distribution and do not have to be created. Altering these files influences CPACSGen’s output and may require further adaption of the TiGL code depending on the generated code.  
+These files are typically part of the TiGL distribution and do not have to be created.
+Altering these files influences CPACSGen’s output and may require further adaption of the TiGL code depending on the generated code.
 
 In addition to these files, three more files have existed with are now compiled into CPACSGen and inside Tables.cpp:
 * FundamentalTypes.txt
 * ReservedNames.txt
 * XsdTypes.txt
+
+Furthermore, in addition to the discussed input files, subdirectories may be present containing the same input files as listed above.
+For each subdirectory, CPACSGen runs an additional pass, putting the generated files into an equally named subfolder in the output directory and generating an equally named additional namespace in the generated code.
 
 ## Workflow
 1. Clone the CPACSGen repository from Github

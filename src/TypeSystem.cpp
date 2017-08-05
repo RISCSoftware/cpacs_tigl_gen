@@ -357,11 +357,12 @@ namespace tigl {
                         return name;
                     };
 
-                    if (e1.values.size() == e2.values.size()) {
+                    // check for equal enum values
+                    if (e1.values.size() == e2.values.size() && std::equal(std::begin(e1.values), std::end(e1.values), std::begin(e2.values))) {
                         // strip name decorators
                         const auto& e1StrippedName = stripNumber(e1.name);
                         const auto& e2StrippedName = stripNumber(e2.name);
-                        if (e1StrippedName == e2StrippedName && std::equal(std::begin(e1.values), std::end(e1.values), std::begin(e2.values))) {
+                        if (e1StrippedName == e2StrippedName) {
                             // choose new name
                             const auto newName = [&] {
                                 // if the stripped name is not already taken, use it. Otherwise, take the shorter of the two enum names
@@ -377,9 +378,10 @@ namespace tigl {
 
                             std::cout << "\t" << e1.name << " and " << e2.name << " to " << newName << std::endl;
 
-                            // remove e2 and rename e1
+                            // rename e1 and remove e2
                             enumVec.erase(std::begin(enumVec) + j);
                             e1.name = newName;
+                            j--;
                         }
                     }
                 }

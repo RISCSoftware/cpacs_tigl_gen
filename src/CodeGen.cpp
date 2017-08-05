@@ -1,4 +1,5 @@
 #include <boost/algorithm/string.hpp>
+#include <boost/utility/in_place_factory.hpp>
 
 #include <vector>
 #include <cctype>
@@ -81,8 +82,8 @@ namespace tigl {
 
     class CodeGen {
     public:
-        CodeGen(TypeSystem types, const Tables& tables)
-            : m_types(std::move(types)), m_tables(tables) {}
+        CodeGen(TypeSystem types, const std::string& ns, const Tables& tables)
+            : m_types(std::move(types)), m_namespace(ns), m_tables(tables) {}
 
         void writeFiles(const std::string& outputLocation) {
             WriteIfDifferentFiles files;
@@ -129,6 +130,7 @@ namespace tigl {
         };
 
         TypeSystem m_types;
+        std::string m_namespace;
         const Tables& m_tables;
 
         auto customReplacedType(const std::string& name) const -> std::string {
@@ -1107,6 +1109,13 @@ namespace tigl {
                 {
                     Scope s(hpp);
 
+                    boost::optional<Scope> ops;
+                    if (!m_namespace.empty()) {
+                        hpp << "namespace " << m_namespace;
+                        hpp << "{";
+                        ops = boost::in_place(std::ref(hpp));
+                    }
+
                     // forward declarations
                     for (const auto& fwd : includes.hppForwards)
                         hpp << "class " << fwd << ";";
@@ -1175,11 +1184,19 @@ namespace tigl {
                         hpp << "#endif";
                     }
                     hpp << "};";
+
+                    if (!m_namespace.empty()) {
+                        ops = boost::none;
+                        hpp << "}";
+                    }
                 }
+
                 hpp << "}";
                 hpp << "";
 
                 // export non-custom types into tigl namespace
+                const auto generatedNs = "generated" + (m_namespace.empty() ? "" : "::" + m_namespace);
+
                 std::vector<std::string> exportedTypes;
                 const auto& customName = m_tables.m_customTypes.find(c.name);
                 if (customName) {
@@ -1196,10 +1213,10 @@ namespace tigl {
                     hpp << "// Aliases in tigl namespace";
                     hpp << "#ifdef HAVE_CPP11";
                     for (const auto& name : exportedTypes)
-                        hpp << "using C" << name << " = generated::" << name << ";";
+                        hpp << "using C" << name << " = " << generatedNs << "::" << name << ";";
                     hpp << "#else";
                     for (const auto& name : exportedTypes)
-                        hpp << "typedef generated::" << name << " C" << name << ";";
+                        hpp << "typedef " << generatedNs << "::" << name << " C" << name << ";";
                     hpp << "#endif";
                 }
             }
@@ -1228,6 +1245,13 @@ namespace tigl {
                 {
                     Scope s(cpp);
 
+                    boost::optional<Scope> ops;
+                    if (!m_namespace.empty()) {
+                        cpp << "namespace " << m_namespace;
+                        cpp << "{";
+                        ops = boost::in_place(std::ref(cpp));
+                    }
+
                     // ctor
                     writeCtorImplementations(cpp, c);
 
@@ -1246,6 +1270,11 @@ namespace tigl {
 
                     // accessors
                     writeAccessorImplementations(cpp, c.name, c.fields);
+
+                    if (!m_namespace.empty()) {
+                        ops = boost::none;
+                        cpp << "}";
+                    }
                 }
                 cpp << "}";
             }
@@ -1304,6 +1333,13 @@ namespace tigl {
                 hpp << "{";
                 {
                     Scope s(hpp);
+
+                    boost::optional<Scope> ops;
+                    if (!m_namespace.empty()) {
+                        hpp << "namespace " << m_namespace;
+                        hpp << "{";
+                        ops = boost::in_place(std::ref(hpp));
+                    }
 
                     // meta information from schema
                     hpp << "// This enum is used in:";
@@ -1364,12 +1400,20 @@ namespace tigl {
 
                         hpp << "throw CTiglError(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";
                     }
+
                     hpp << "}";
+
+                    if (!m_namespace.empty()) {
+                        ops = boost::none;
+                        hpp << "}";
+                    }
                 }
                 hpp << "}";
                 hpp << "";
 
                 // export non-custom types into tigl namespace
+                const auto generatedNs = "generated" + (m_namespace.empty() ? "" : "::" + m_namespace);
+
                 const auto& customName = m_tables.m_customTypes.find(e.name);
                 if (customName) {
                     hpp << "// " << e.name << " is customized, use type " << *customName << " directly";
@@ -1377,13 +1421,13 @@ namespace tigl {
                     hpp << "// Aliases in tigl namespace";
                     if (!c_generateCpp11ScopedEnums)
                         hpp << "#ifdef HAVE_CPP11";
-                    hpp << "using E" << e.name << " = generated::" << e.name << ";";
+                    hpp << "using E" << e.name << " = " << generatedNs << "::" << e.name << ";";
                     if (!c_generateCpp11ScopedEnums) {
                         hpp << "#else";
-                        hpp << "typedef generated::" << e.name << " E" << e.name << ";";
+                        hpp << "typedef " << generatedNs << "::" << e.name << " E" << e.name << ";";
                         hpp << "#endif";
                         for (const auto& v : e.values)
-                            hpp << "using generated::" << enumCppName(v.name(), m_tables) << ";";
+                            hpp << "using " << generatedNs << "::" << enumCppName(v.name(), m_tables) << ";";
                     }
                 }
             }
@@ -1392,8 +1436,8 @@ namespace tigl {
         }
     };
 
-    void genCode(const std::string& outputLocation, TypeSystem typeSystem, const Tables& tables) {
-        CodeGen gen(std::move(typeSystem), tables);
+    void genCode(const std::string& outputLocation, TypeSystem typeSystem, const std::string& ns, const Tables& tables) {
+        CodeGen gen(std::move(typeSystem), ns, tables);
         gen.writeFiles(outputLocation);
     }
 }

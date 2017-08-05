@@ -31,16 +31,15 @@ namespace tigl {
             // search simple and complex types
             const auto cit = types.types.find(name);
             if (cit != std::end(types.types)) {
-                const auto p = tables.m_typeSubstitutions.find(name);
-                if (p)
+                // apply type substitution
+                if (const auto p = tables.m_typeSubstitutions.find(name))
                     return *p;
                 else
                     return makeClassName(name);
             }
 
             // search predefined xml schema types and replace them
-            const auto p = tables.m_typeSubstitutions.find(name);
-            if (p)
+            if (const auto p = tables.m_xsdTypes.find(name))
                 return *p;
 
             throw std::runtime_error("Unknown type: " + name);

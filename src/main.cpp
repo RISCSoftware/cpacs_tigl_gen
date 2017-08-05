@@ -7,6 +7,7 @@
 #include "CodeGen.h"
 #include "Tables.h"
 #include "WriteIfDifferentFiles.h"
+#include "NotImplementedException.h"
 
 namespace fs = boost::filesystem;
 
@@ -17,13 +18,13 @@ namespace tigl {
         "UniquePtr.h",
     };
 
-    void run(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile) {
-        // load tables
+    void processDirectory(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile, const std::string& ns = "") {
+        // load tables from this directory
         const Tables tables(inputDirectory);
 
         // iterate all *.xsd files in the input directory
         for (const auto& e : fs::directory_iterator(inputDirectory)) {
-            if (fs::is_regular_file(e.status()) && e.path().has_extension() && e.path().extension() == ".xsd") {
+            if (fs::is_regular_file(e) && e.path().has_extension() && e.path().extension() == ".xsd") {
                 // read types and elements
                 std::cout << "Parsing " << e.path() << std::endl;
                 auto types = xsd::parseSchema(e.path().string());
@@ -41,13 +42,30 @@ namespace tigl {
                 }
 
                 // create output directory
-                fs::create_directories(outputDirectory);
+                const auto nsOutputDirectory = ns.empty() ? outputDirectory : outputDirectory + "/" + ns;
+                fs::create_directories(nsOutputDirectory);
 
                 // generate code
                 std::cout << "Generating classes" << std::endl;
-                genCode(outputDirectory, typeSystem, tables);
+                genCode(nsOutputDirectory, typeSystem, ns, tables);
             }
         }
+
+        // recurse on sub directories
+        for (const auto& e : fs::directory_iterator(inputDirectory)) {
+            if (fs::is_directory(e)) {
+                if (!ns.empty())
+                    throw NotImplementedException("Nested input directories are not implemented. Only 1 level of subdirectories (namespaces) is allowed.");
+
+                const auto& leafDir = e.path().leaf().string();
+                processDirectory(e.path().string(), srcDirectory, outputDirectory, typeSystemGraphVisFile, leafDir);
+            }
+        }
+    }
+
+    void run(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile) {
+        // create runtime output directory
+        fs::create_directories(outputDirectory);
 
         std::cout << "Copying runtime" << std::endl;
         WriteIfDifferentFiles files;
@@ -56,6 +74,9 @@ namespace tigl {
         std::cout << "\tWrote   " << std::setw(5) << files.newlywritten << " new files" << std::endl;
         std::cout << "\tUpdated " << std::setw(5) << files.overwritten << " existing files" << std::endl;
         std::cout << "\tSkipped " << std::setw(5) << files.skipped << " files, no changes" << std::endl;
+
+        // process schema files
+        processDirectory(inputDirectory, srcDirectory, outputDirectory, typeSystemGraphVisFile);
     }
 }
 

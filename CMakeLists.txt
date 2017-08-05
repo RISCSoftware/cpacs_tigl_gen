@@ -17,32 +17,26 @@ mark_as_advanced(CLEAR BOOST_ROOT) # find module for boost marks this variable a
 
 # find tixi
 set(CMAKE_PREFIX_PATH "${TIXI_PATH};${CMAKE_PREFIX_PATH}")
-find_package(TIXI 2.1.0 REQUIRED)
-if(TIXI_VERSION VERSION_GREATER 2.1.0)
-  set(HAVE_TIXI_SETPRINTMSG TRUE)
-endif()
+find_package(TIXI REQUIRED)
 
 # definitions
 add_definitions(-DCPACS_GEN)
 
-# source files
-file(GLOB ALL_SRCS src/*.cpp)
-file(GLOB ALL_HEADERS src/*.h*)
-file(GLOB ALL_INPUTS input/*.*)
+# input files
+file(GLOB ALL_INPUTS src/*.cpp *src/*.h *.md)
 
 #includes
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${TIXI_INCLUDE_DIRS})
 
 # exe
-add_executable(${PROJECT_NAME} ${ALL_SRCS} ${ALL_HEADERS} ${ALL_INPUTS})
+add_executable(${PROJECT_NAME} ${ALL_INPUTS})
 
 # library dependencies
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${TIXI_LIBRARIES})
 
-source_group(" " FILES ${ALL_SRCS} ${ALL_HEADERS})
-source_group("inputs" FILES ${ALL_INPUTS})
+source_group(" " FILES ${ALL_INPUTS})
 
 if(TIGL_PATH)
 	set(GENERATOR_INPUT_DIR  ${TIGL_PATH}/cpacs_gen_input CACHE PATH "Generator input files (Tigl cpacs_gen_input directory)")

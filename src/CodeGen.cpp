@@ -732,6 +732,15 @@ namespace tigl {
             cpp << "";
         }
 
+        static auto writeIsFieldThere(IndentingStreamWrapper& cpp, const Field& f) {
+            if (f.cardinality() == Cardinality::Optional)
+                cpp << f.fieldName() + ".is_initialized()";
+            else if (f.cardinality() == Cardinality::Vector)
+                cpp << "!" + f.fieldName() + ".empty()";
+            else
+                throw std::logic_error("elements inside choice can only be optional or vector");
+        }
+
         void writeChoiceValidatorImplementation(IndentingStreamWrapper& cpp, const Class& c) {
             if (!c.choices.empty()) {
                 cpp << "bool " << c.name << "::ValidateChoices() const";
@@ -739,20 +748,35 @@ namespace tigl {
                 {
                     Scope s(cpp);
 
+
+
+                    struct RecursiveColletor : public boost::static_visitor<> {
+                        void operator()(const ChoiceElement& ce) {
+                            indices.push_back(ce.index);
+                        }
+
+                        void operator()(const Choice& c) {
+                            for (const auto& cc : c.options)
+                                (*this)(cc);
+                        }
+
+                        void operator()(const ChoiceElements& ces) {
+                            for (const auto& ce : ces)
+                                ce.apply_visitor(*this);
+                        }
+
+                        std::vector<std::size_t> indices;
+                    };
+
                     struct ChoiceWriter : public boost::static_visitor<> {
                         ChoiceWriter(IndentingStreamWrapper& cpp, const Class& c)
                             : cpp(cpp), c(c) {}
 
                         void operator()(const ChoiceElement& ce) {
                             const auto& f = c.fields[ce.index];
-                            if (!ce.optionalBefore) {
-                                if (f.cardinality() == Cardinality::Optional)
-                                    cpp << f.fieldName() + ".is_initialized()";
-                                else if (f.cardinality() == Cardinality::Vector)
-                                    cpp << "!" + f.fieldName() + ".empty()";
-                                else
-                                    throw std::logic_error("elements inside choice can only be optional or vector");
-                            } else
+                            if (!ce.optionalBefore)
+                                writeIsFieldThere(cpp, f);
+                            else
                                 cpp << "true // " << f.fieldName() << " is optional in choice";
                         }
 
@@ -761,7 +785,7 @@ namespace tigl {
                             {
                                 Scope s(cpp);
                                 for (const auto& cc : c.options) {
-                                    (*this)(cc);
+                                    (*this)(cc, c);
                                     if (&cc != &c.options.back())
                                         cpp << "+";
                                 }
@@ -770,15 +794,61 @@ namespace tigl {
                             cpp << ")";
                         }
 
-                        void operator()(const ChoiceElements& ces) {
+                        void operator()(const ChoiceElements& ces, boost::optional<const Choice&> parentChoice = {}) {
                             cpp << "(";
                             {
                                 Scope s(cpp);
-                                auto first = true;
+
+                                if (parentChoice)
+                                    cpp << "// mandatory elements of this choice must be there";
                                 for (const auto& ce : ces) {
                                     ce.apply_visitor(*this);
                                     if (&ce != &ces.back())
                                         cpp << "&&";
+                                }
+
+                                if (parentChoice) {
+                                    cpp << "&&";
+                                    cpp << "// elements of other choices must not be there";
+                                    cpp << "!(";
+                                    {
+                                        Scope s(cpp);
+
+                                        RecursiveColletor parentCollector;
+                                        parentCollector(*parentChoice);
+                                        auto& allIndices = parentCollector.indices;
+
+                                        RecursiveColletor childCollector;
+                                        childCollector(ces);
+                                        auto& childIndices = childCollector.indices;
+
+                                        auto unique = [](std::vector<std::size_t>& v) {
+                                            std::sort(std::begin(v), std::end(v));
+                                            const auto it = std::unique(std::begin(v), std::end(v));
+                                            v.erase(it, std::end(v));
+                                        };
+                                        unique(allIndices);
+                                        unique(childIndices);
+
+                                        const auto it = std::remove_if(std::begin(allIndices), std::end(allIndices), [&](std::size_t ai) {
+                                            for (const auto ci : childIndices) {
+                                                if (ci == ai)
+                                                    return true;
+                                                // additionally exclude elements with the same name in cpacs (choices with the same element in both alternatives)
+                                                if (c.fields[ci].cpacsName == c.fields[ai].cpacsName)
+                                                    return true;
+                                            }
+                                            return false;
+                                        });
+                                        allIndices.erase(it, std::end(allIndices));
+
+                                        for (const auto& i : allIndices) {
+                                            writeIsFieldThere(cpp, c.fields[i]);
+                                            if (&i != &allIndices.back())
+                                                cpp << "||";
+                                        }
+                                    }
+                                    cpp << ")";
                                 }
                             }
                             cpp << ")";

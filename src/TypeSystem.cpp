@@ -375,8 +375,8 @@ namespace tigl {
                             std::cout << "\t" << e1.name << " and " << e2.name << " to " << newName << std::endl;
 
                             // rename e1 and remove e2
-                            enumVec.erase(std::begin(enumVec) + j);
                             e1.name = newName;
+                            enumVec.erase(std::begin(enumVec) + j);
                             j--;
                         }
                     }

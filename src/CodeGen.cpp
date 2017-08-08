@@ -889,6 +889,7 @@ namespace tigl {
                 }
             }
         }
+
         void writeTreeManipulatorImplementations(IndentingStreamWrapper& cpp, const Class& c) {
             for (const auto& f : c.fields) {
                 const auto itC = m_types.classes.find(f.typeName);

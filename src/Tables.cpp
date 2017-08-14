@@ -1,6 +1,5 @@
 #include <fstream>
 #include <sstream>
-#include <regex>
 #include <iostream>
 
 #include "Tables.h"

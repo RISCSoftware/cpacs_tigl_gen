@@ -111,7 +111,9 @@ namespace tigl {
             { "xsd:float"         , "float" },
             { "xsd:double"        , "double" },
             { "xsd:decimal"       , "double" }, // TODO: implement custom type?
+            { "xsd:date"          , "std::time_t" },
             { "xsd:dateTime"      , "std::time_t" },
+            { "xsd:time"          , "std::time_t" },
             { "xsd:string"        , "std::string" }
         }),
 

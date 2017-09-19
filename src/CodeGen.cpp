@@ -876,7 +876,7 @@ namespace tigl {
 
                     switch (f.cardinality()) {
                         case Cardinality::Optional:
-                            hpp << "TIGL_EXPORT virtual " << customReplacedType(f) << "& Create" << capitalizeFirstLetter(f.name()) << "();";
+                            hpp << "TIGL_EXPORT virtual " << customReplacedType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "(CreateIfNotExistsTag);";
                             hpp << "TIGL_EXPORT virtual void Remove" << capitalizeFirstLetter(f.name()) << "();";
                             hpp << "";
                             break;
@@ -899,7 +899,7 @@ namespace tigl {
 
                     switch (f.cardinality()) {
                         case Cardinality::Optional:
-                            cpp << "" << customReplacedType(f) << "& " << c.name << "::Create" << capitalizeFirstLetter(f.name()) << "()";
+                            cpp << "" << customReplacedType(f) << "& " << c.name << "::Get" << capitalizeFirstLetter(f.name()) << "(CreateIfNotExistsTag)";
                             cpp << "{";
                             {
                                 Scope s(cpp);
@@ -989,11 +989,14 @@ namespace tigl {
             bool vectorHeader = false;
             bool makeUnique = false;
             bool optionalHeader = false;
+            bool createIfNotExistsHeader = false;
             bool timeHeader = false;
             for (const auto& f : c.fields) {
                 switch (f.cardinality()) {
                     case Cardinality::Optional:
                         optionalHeader = true;
+                        if (m_types.classes.find(f.typeName) != std::end(m_types.classes))
+                            createIfNotExistsHeader = true;
                         break;
                     case Cardinality::Vector:
                         vectorHeader = true;
@@ -1015,6 +1018,8 @@ namespace tigl {
             if (optionalHeader) {
                 deps.hppIncludes.push_back("<boost/optional.hpp>");
                 deps.hppIncludes.push_back("<boost/utility/in_place_factory.hpp>");
+                if (createIfNotExistsHeader)
+                    deps.hppIncludes.push_back("\"CreateIfNotExists.h\"");
             }
             if (timeHeader)
                 deps.hppIncludes.push_back("<ctime>");

@@ -1378,6 +1378,14 @@ namespace tigl {
 
                 if (!exportedTypes.empty()) {
                     hpp << "// Aliases in tigl namespace";
+
+                    boost::optional<Scope> ops;
+                    if (!m_namespace.empty()) {
+                        hpp << "namespace " << m_namespace;
+                        hpp << "{";
+                        ops = boost::in_place(std::ref(hpp));
+                    }
+
                     hpp << "#ifdef HAVE_CPP11";
                     for (const auto& name : exportedTypes)
                         hpp << "using C" << name << " = " << generatedNs << "::" << name << ";";
@@ -1385,6 +1393,11 @@ namespace tigl {
                     for (const auto& name : exportedTypes)
                         hpp << "typedef " << generatedNs << "::" << name << " C" << name << ";";
                     hpp << "#endif";
+
+                    if (!m_namespace.empty()) {
+                        ops = boost::none;
+                        hpp << "}";
+                    }
                 }
             }
             hpp << "}";
@@ -1589,6 +1602,14 @@ namespace tigl {
                     hpp << "// " << e.name << " is customized, use type " << *customName << " directly";
                 } else {
                     hpp << "// Aliases in tigl namespace";
+
+                    boost::optional<Scope> ops;
+                    if (!m_namespace.empty()) {
+                        hpp << "namespace " << m_namespace;
+                        hpp << "{";
+                        ops = boost::in_place(std::ref(hpp));
+                    }
+
                     if (!c_generateCpp11ScopedEnums)
                         hpp << "#ifdef HAVE_CPP11";
                     hpp << "using E" << e.name << " = " << generatedNs << "::" << e.name << ";";
@@ -1598,6 +1619,11 @@ namespace tigl {
                         hpp << "#endif";
                         for (const auto& v : e.values)
                             hpp << "using " << generatedNs << "::" << enumCppName(v.name(), m_tables) << ";";
+                    }
+
+                    if (!m_namespace.empty()) {
+                        ops = boost::none;
+                        hpp << "}";
                     }
                 }
             }

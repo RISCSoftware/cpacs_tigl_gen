@@ -688,7 +688,7 @@ namespace tigl {
                 // register
                 if (hasUidField(c)) {
                     if (hasMandatoryUidField(c))
-                        cpp << "if (m_uidMgr) m_uidMgr->RegisterObject(m_uID, *this);";
+                        cpp << "if (m_uidMgr && !m_uID.empty()) m_uidMgr->RegisterObject(m_uID, *this);";
                     else
                         cpp << "if (m_uidMgr && m_uID) m_uidMgr->RegisterObject(*m_uID, *this);";
                 }

@@ -267,7 +267,7 @@ namespace tigl {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "template<typename P>";
-                    hpp << "TIGL_EXPORT bool IsParent() const";
+                    hpp << "bool IsParent() const";
                     hpp << "{";
                     {
                         Scope s(hpp);
@@ -276,7 +276,7 @@ namespace tigl {
                     hpp << "}";
                     hpp << "";
                     hpp << "template<typename P>";
-                    hpp << "TIGL_EXPORT P* GetParent() const";
+                    hpp << "P* GetParent() const";
                     hpp << "{";
                     {
                         Scope s(hpp);

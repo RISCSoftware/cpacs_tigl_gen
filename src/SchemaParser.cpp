@@ -296,6 +296,7 @@ namespace tigl {
                         if (it == name.npos)
                             throw std::logic_error("Expected type of simple content type to have " + c_simpleContentTypeSuffx + " suffix");
                         name.erase(it);
+                        name += "Type"; // readd Type suffix
 
                         // rename simple content type to outer type
                         assert(v.is<SimpleType>());

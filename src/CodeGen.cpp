@@ -1204,7 +1204,8 @@ namespace tigl {
             } else {
                 cpp << c.name << "::" << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ")";
                 writeInitializationList();
-                cpp.raw() << " {}";
+                cpp << "{";
+                cpp << "}";
                 cpp << "";
             }
         }
@@ -1226,8 +1227,11 @@ namespace tigl {
                         cpp << "if (m_uidMgr && m_uID) m_uidMgr->TryUnregisterObject(*m_uID);";
                 }
                 cpp << "}";
-            } else
-                cpp << c.name << "::~" << c.name << "() {}";
+            } else {
+                cpp << c.name << "::~" << c.name << "()";
+                cpp << "{";
+                cpp << "}";
+            }
             cpp << "";
         }
 

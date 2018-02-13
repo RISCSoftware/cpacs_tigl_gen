@@ -520,7 +520,8 @@ namespace tigl {
                     createElement();
                     writeReadFunc();
                 }
-                cpp << "} else {";
+                cpp << "}";
+                cpp << "else {";
                 {
                     Scope s(cpp);
                     if (isAtt)
@@ -1159,11 +1160,11 @@ namespace tigl {
                 bool first = true;
                 auto writeMember = [&](const std::string& memberName, const std::string& value) {
                     if (first) {
-                        cpp.raw() << " :";
+                        cpp << ": ";
                         first = false;
                     } else
-                        cpp.raw() << ", ";
-                    cpp << memberName << "(" << value << ")";
+                        cpp << ", ";
+                    cpp.raw() << memberName << "(" << value << ")";
                 };
                 if (hasUid)
                     writeMember("m_uidMgr", "uidMgr");

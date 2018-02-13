@@ -280,7 +280,7 @@ namespace tigl {
                     hpp << "{";
                     {
                         Scope s(hpp);
-                        hpp << "#ifdef HAVE_STDIS_SAME";
+                        hpp.raw() << "\n#ifdef HAVE_STDIS_SAME";
                         hpp << "static_assert(";
                         for (const auto& dep : c.deps.parents) {
                             if (&dep != &c.deps.parents[0])
@@ -288,7 +288,7 @@ namespace tigl {
                             hpp.raw() << "std::is_same<P, " << customReplacedType(dep->name) << ">::value";
                         }
                         hpp.raw() << ", \"template argument for P is not a parent class of " << c.name << "\");";
-                        hpp << "#endif";
+                        hpp.raw() << "\n#endif";
                         if (c_generateDefaultCtorsForParentPointerTypes) {
                             hpp << "if (m_parent == NULL) {";
                             {
@@ -1342,16 +1342,16 @@ namespace tigl {
                         Scope s(hpp);
 
                         // copy ctor and assign, move ctor and assign
-                        hpp << "#ifdef HAVE_CPP11";
+                        hpp.raw() << "\n#ifdef HAVE_CPP11";
                         hpp << c.name << "(const " << c.name << "&) = delete;";
                         hpp << "" << c.name << "& operator=(const " << c.name << "&) = delete;";
                         hpp << "";
                         hpp << c.name << "(" << c.name << "&&) = delete;";
                         hpp << c.name << "& operator=(" << c.name << "&&) = delete;";
-                        hpp << "#else";
+                        hpp.raw() << "\n#else";
                         hpp << c.name << "(const " << c.name << "&);";
                         hpp << c.name << "& operator=(const " << c.name << "&);";
-                        hpp << "#endif";
+                        hpp.raw() << "\n#endif";
                     }
                     hpp << "};";
 
@@ -1389,13 +1389,13 @@ namespace tigl {
                         ops = boost::in_place(std::ref(hpp));
                     }
 
-                    hpp << "#ifdef HAVE_CPP11";
+                    hpp.raw() << "\n#ifdef HAVE_CPP11";
                     for (const auto& name : exportedTypes)
                         hpp << "using C" << name << " = " << generatedNs << "::" << name << ";";
-                    hpp << "#else";
+                    hpp.raw() << "\n#else";
                     for (const auto& name : exportedTypes)
                         hpp << "typedef " << generatedNs << "::" << name << " C" << name << ";";
-                    hpp << "#endif";
+                    hpp.raw() << "\n#endif";
 
                     if (!m_namespace.empty()) {
                         ops = boost::none;
@@ -1611,12 +1611,12 @@ namespace tigl {
                     }
 
                     if (!c_generateCpp11ScopedEnums)
-                        hpp << "#ifdef HAVE_CPP11";
+                        hpp.raw() << "\n#ifdef HAVE_CPP11";
                     hpp << "using E" << e.name << " = " << generatedNs << "::" << e.name << ";";
                     if (!c_generateCpp11ScopedEnums) {
-                        hpp << "#else";
+                        hpp.raw() << "\n#else";
                         hpp << "typedef " << generatedNs << "::" << e.name << " E" << e.name << ";";
-                        hpp << "#endif";
+                        hpp.raw() << "\n#endif";
                         for (const auto& v : e.values)
                             hpp << "using " << generatedNs << "::" << enumCppName(v.name(), m_tables) << ";";
                     }

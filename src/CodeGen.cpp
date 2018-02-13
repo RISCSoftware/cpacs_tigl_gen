@@ -1266,8 +1266,6 @@ namespace tigl {
             hpp << "namespace tigl";
             hpp << "{";
             {
-                Scope s(hpp);
-
                 // custom Tigl types declarations
                 for (const auto& fwd : includes.hppCustomForwards)
                     hpp << "class " << fwd << ";";
@@ -1363,7 +1361,7 @@ namespace tigl {
                     }
                 }
 
-                hpp << "}";
+                hpp << "} // namespace generated";
                 hpp << "";
 
                 // export non-custom types into tigl namespace
@@ -1405,7 +1403,7 @@ namespace tigl {
                     }
                 }
             }
-            hpp << "}";
+            hpp << "} // namespace tigl";
             hpp << "";
         }
 
@@ -1423,8 +1421,6 @@ namespace tigl {
             cpp << "namespace tigl";
             cpp << "{";
             {
-                Scope s(cpp);
-
                 cpp << "namespace generated";
                 cpp << "{";
                 {
@@ -1464,9 +1460,9 @@ namespace tigl {
                         cpp << "}";
                     }
                 }
-                cpp << "}";
+                cpp << "} // namespace generated";
             }
-            cpp << "}";
+            cpp << "} // namespace tigl";
             cpp << "";
         }
 
@@ -1515,7 +1511,6 @@ namespace tigl {
             hpp << "namespace tigl";
             hpp << "{";
             {
-                Scope s(hpp);
 
                 hpp << "namespace generated";
                 hpp << "{";
@@ -1596,7 +1591,7 @@ namespace tigl {
                         hpp << "}";
                     }
                 }
-                hpp << "}";
+                hpp << "} // namespace generated";
                 hpp << "";
 
                 // export non-custom types into tigl namespace
@@ -1632,7 +1627,7 @@ namespace tigl {
                     }
                 }
             }
-            hpp << "}";
+            hpp << "} // namespace tigl";
             hpp << "";
         }
     };

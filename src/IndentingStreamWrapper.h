@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iosfwd>
+#include <ostream>
 
 namespace tigl {
     struct Scope;
@@ -13,8 +13,9 @@ namespace tigl {
         // indents on first use
         template<typename T>
         friend auto operator<<(IndentingStreamWrapper& isw, T&& t) -> std::ostream& {
-            // finish last line
-            isw.os << '\n';
+            // finish last line if we have written something before
+            if (isw.os.tellp() > 0)
+                isw.os << '\n';
 
             // indentation
             for (unsigned int i = 0; i < isw.level; i++)
@@ -27,7 +28,13 @@ namespace tigl {
             return isw.os;
         }
 
-        auto raw() -> std::ostream& {
+        auto contLine() -> std::ostream& {
+            return os;
+        }
+
+        auto noIndent() -> std::ostream& {
+            // finish last line
+            os << '\n';
             return os;
         }
 

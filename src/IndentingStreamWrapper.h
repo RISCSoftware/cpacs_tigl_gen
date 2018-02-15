@@ -5,6 +5,9 @@
 namespace tigl {
     struct Scope;
 
+    struct EmptyLineTag {};
+    constexpr EmptyLineTag EmptyLine;
+
     class IndentingStreamWrapper {
     public:
         IndentingStreamWrapper(std::ostream& os)
@@ -13,19 +16,22 @@ namespace tigl {
         // indents on first use
         template<typename T>
         friend auto operator<<(IndentingStreamWrapper& isw, T&& t) -> std::ostream& {
-            // finish last line if we have written something before
-            if (isw.os.tellp() > 0)
-                isw.os << '\n';
+            auto& os = isw.noIndent();
 
             // indentation
             for (unsigned int i = 0; i < isw.level; i++)
-                isw.os << "    ";
+                os << "    ";
 
             // write
-            isw.os << std::forward<T>(t);
+            os << std::forward<T>(t);
 
-            // just return the unterlying stream
-            return isw.os;
+            // just return raw stream
+            return os;
+        }
+
+        friend auto operator<<(IndentingStreamWrapper& isw, EmptyLineTag) -> IndentingStreamWrapper& {
+            isw.noIndent();
+            return isw;
         }
 
         auto contLine() -> std::ostream& {
@@ -33,8 +39,9 @@ namespace tigl {
         }
 
         auto noIndent() -> std::ostream& {
-            // finish last line
-            os << '\n';
+            // finish last line if we have written something before
+            if (os.tellp() > 0)
+                os << '\n';
             return os;
         }
 

@@ -5,7 +5,7 @@ CPACSGen (short for CPACS generator) creates source code for classes and enums f
 ## GitHub
 
 CPACSGen is hosted on Github:
-https://github.com/RlanderRISCSW/cpacs_tigl_gen
+https://github.com/RISCSoftware/cpacs_tigl_gen
 
 ## Dependencies
 The following components are required to build and run CPACSGen

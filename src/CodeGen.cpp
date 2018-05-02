@@ -674,10 +674,11 @@ namespace tigl {
 
                 // register
                 if (hasUidField(c)) {
+                    // cast this to most derived type to allow templates to operate on the actual type of the registered object
                     if (hasMandatoryUidField(c))
-                        cpp << "if (m_uidMgr && !m_uID.empty()) m_uidMgr->RegisterObject(m_uID, *this);";
+                        cpp << "if (m_uidMgr && !m_uID.empty()) m_uidMgr->RegisterObject(m_uID, *reinterpret_cast<" << customReplacedType(c.name) << "*>(this));";
                     else
-                        cpp << "if (m_uidMgr && m_uID) m_uidMgr->RegisterObject(*m_uID, *this);";
+                        cpp << "if (m_uidMgr && m_uID) m_uidMgr->RegisterObject(*m_uID, *reinterpret_cast<" << customReplacedType(c.name) << "*>(this));";
                 }
 
                 // validate choices
@@ -1017,6 +1018,7 @@ namespace tigl {
             if (requiresUidManager(c)) {
                 deps.hppCustomForwards.push_back(c_uidMgrName);
                 deps.cppIncludes.push_back("\"" + c_uidMgrName + ".h\"");
+                deps.cppIncludes.push_back("\"" + customReplacedType(c.name) +".h\""); // include most derived type to allow templates to operate on it during uid registration
             }
 
             // base class
@@ -1079,7 +1081,7 @@ namespace tigl {
             // misc cpp includes
             deps.cppIncludes.push_back("\"TixiHelper.h\"");
             deps.cppIncludes.push_back("\"CTiglLogging.h\"");
-            deps.cppIncludes.push_back("\"CTiglError.h\""); // remove this, when CTiglError inherits std::exception
+            deps.cppIncludes.push_back("\"CTiglError.h\"");
             deps.cppIncludes.push_back("\"" + c.name + ".h\"");
 
             // sort

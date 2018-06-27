@@ -2,6 +2,7 @@
 
 #include <string>
 #include <sstream>
+#include <memory>
 
 namespace tigl {
     auto readFile(const std::string& filename) -> std::string;
@@ -23,7 +24,7 @@ namespace tigl {
 
         WriteIfDifferentFile(std::string filename, WriteIfDifferentFiles* parent);
 
-        std::stringstream m_stream;
+        std::unique_ptr<std::stringstream> m_stream; // workaround for GCC < 5.0, where stringstream is not moveable ..
         std::string m_filename;
         WriteIfDifferentFiles* m_parent;
     };

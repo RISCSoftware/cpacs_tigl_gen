@@ -506,8 +506,7 @@ namespace tigl {
                     return;
                 }
 
-                auto& root = it->second;
-                includeNode(root, tables.m_pruneList, 0);
+                includeNode(it->second, tables.m_pruneList, 0);
             }
 
             std::cout << "The following types have been pruned:" << std::endl;

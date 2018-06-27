@@ -502,7 +502,7 @@ namespace tigl {
                     cpp << tixiHelperNamespace << "::TixiCreateElementIfNotExists(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
             };
 
-            auto writeOptionalAttributeOrElement = [&](auto writeReadFunc) {
+            auto writeOptionalAttributeOrElement = [&](std::function<void()> writeReadFunc) { // make parameter auto when C++14 available
                 cpp << "if (" << f.fieldName() << ") {";
                 {
                     Scope s(cpp);

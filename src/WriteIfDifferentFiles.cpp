@@ -27,14 +27,14 @@ namespace tigl {
 	}
 
 	WriteIfDifferentFile::WriteIfDifferentFile(std::string filename, WriteIfDifferentFiles* parent)
-		: m_filename(std::move(filename)), m_parent(parent) {}
+		: m_stream(new std::stringstream), m_filename(std::move(filename)), m_parent(parent) {}
 
 	auto WriteIfDifferentFile::stream() -> std::ostream& {
-		return m_stream;
+		return *m_stream;
 	}
 
 	WriteIfDifferentFile::~WriteIfDifferentFile() {
-		const auto& newContent = m_stream.str();
+		const auto& newContent = m_stream->str();
 
 		{
 			// check if a file already exists

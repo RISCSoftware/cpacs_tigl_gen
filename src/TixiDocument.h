@@ -7,8 +7,7 @@ namespace tigl {
         class TixiDocument {
             static const TixiDocumentHandle invalidTixiHandle = -1;
         public:
-            TixiDocument()
-                : m_handle(invalidTixiHandle) {}
+            TixiDocument() = default;
 
             explicit TixiDocument(TixiDocumentHandle handle)
                 : m_handle(handle) {}
@@ -16,11 +15,11 @@ namespace tigl {
             TixiDocument(const TixiDocument&) = delete;
             TixiDocument& operator=(const TixiDocument&) = delete;
 
-            TixiDocument(TixiDocument&& other) {
+            TixiDocument(TixiDocument&& other) noexcept {
                 swap(other);
             }
 
-            TixiDocument& operator=(TixiDocument&& other) {
+            TixiDocument& operator=(TixiDocument&& other) noexcept {
                 swap(other);
                 return *this;
             }
@@ -189,13 +188,13 @@ namespace tigl {
             }
 
             TixiDocumentHandle releaseHandle() {
-                auto h =  m_handle;
+                const auto h =  m_handle;
                 m_handle = invalidTixiHandle;
                 return h;
             }
 
         private:
-            void swap(TixiDocument& other) {
+            void swap(TixiDocument& other) noexcept {
                 using std::swap;
                 swap(m_handle, other.m_handle);
             }

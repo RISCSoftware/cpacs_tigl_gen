@@ -21,7 +21,7 @@ namespace tigl {
     private:
         friend class WriteIfDifferentFiles;
 
-        WriteIfDifferentFile(const std::string& filename, WriteIfDifferentFiles* parent);
+        WriteIfDifferentFile(std::string filename, WriteIfDifferentFiles* parent);
 
         std::stringstream m_stream;
         std::string m_filename;

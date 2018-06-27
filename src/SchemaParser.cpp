@@ -60,7 +60,7 @@ namespace tigl {
                 // (annotation?,(element|group|choice|sequence|any)*)
                 // </choice>
                 Choice ch;
-                ch.xpath;
+                ch.xpath = xpath;
                 document.forEachChild(xpath + "/xsd:element", [&](const std::string& xpath) {
                     ch.elements.push_back(readElement(xpath, containingTypeName));
                 });
@@ -260,7 +260,7 @@ namespace tigl {
                 readComplexTypeElementConfiguration(xpath, type);
 
                 // read attributes
-                for (auto path : {
+                for (const auto& path : {
                     xpath,
                     xpath + "/xsd:complexContent/xsd:restriction",
                     xpath + "/xsd:complexContent/xsd:extension",
@@ -278,14 +278,14 @@ namespace tigl {
                 }
 
                 // try to inline simple contents
-                if (type.attributes.size() == 0 && type.base.empty() && type.content.is<SimpleContent>()) {
+                if (type.attributes.empty() && type.base.empty() && type.content.is<SimpleContent>()) {
                     // this is just an empty type with a simple content, just use the type generated for the simple content
                     const auto& sc = type.content.as<SimpleContent>();
                     auto name = sc.type;
 
                     // if the inner typ is an enum, replace outer type, otherwise we assume it is a primitive type
                     auto& resolvedType = m_types.types[name];
-                    if (resolvedType.is<SimpleType>() && resolvedType.as<SimpleType>().restrictionValues.size() > 0) {
+                    if (resolvedType.is<SimpleType>() && !resolvedType.as<SimpleType>().restrictionValues.empty()) {
 
                         // move simple content type out of type map
                         auto v = std::move(resolvedType);
@@ -293,7 +293,7 @@ namespace tigl {
 
                         // strip simple content suffix, if exists
                         const auto it = name.rfind(c_simpleContentTypeSuffx);
-                        if (it == name.npos)
+                        if (it == std::string::npos)
                             throw std::logic_error("Expected type of simple content type to have " + c_simpleContentTypeSuffx + " suffix");
                         name.erase(it);
                         name += "Type"; // readd Type suffix
@@ -387,7 +387,7 @@ namespace tigl {
                 else if (document.checkElement(xpath + "/xsd:union"      )) throw NotImplementedException("XSD simpleType union is not implemented");
 
                 // add only simple types with restrictions (will become enums), otherwise just return underlying type
-                if (type.restrictionValues.size() > 0) {
+                if (!type.restrictionValues.empty()) {
                     m_types.types[name] = type;
                     return name;
                 } else

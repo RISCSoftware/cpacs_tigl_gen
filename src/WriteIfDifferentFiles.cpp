@@ -1,6 +1,7 @@
 #include "WriteIfDifferentFiles.h"
 
 #include <fstream>
+#include <utility>
 
 namespace tigl {
 	namespace {
@@ -16,17 +17,17 @@ namespace tigl {
 			return{};
 
 		// read file to string
-		existingFile.seekg(0, existingFile.end);
+		existingFile.seekg(0, std::ifstream::end);
 		const auto length = existingFile.tellg();
-		existingFile.seekg(0, existingFile.beg);
+		existingFile.seekg(0, std::ifstream::beg);
 		std::string content;
 		content.reserve(length);
 		content.assign(std::istreambuf_iterator<char>{existingFile}, std::istreambuf_iterator<char>{});
 		return content;
 	}
 
-	WriteIfDifferentFile::WriteIfDifferentFile(const std::string& filename, WriteIfDifferentFiles* parent)
-		: m_filename(filename), m_parent(parent) {}
+	WriteIfDifferentFile::WriteIfDifferentFile(std::string filename, WriteIfDifferentFiles* parent)
+		: m_filename(std::move(filename)), m_parent(parent) {}
 
 	auto WriteIfDifferentFile::stream() -> std::ostream& {
 		return m_stream;

@@ -1,9 +1,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/utility/in_place_factory.hpp>
 
+#include <utility>
 #include <vector>
 #include <cctype>
-#include <fstream>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -82,8 +82,8 @@ namespace tigl {
 
     class CodeGen {
     public:
-        CodeGen(TypeSystem types, const std::string& ns, const Tables& tables)
-            : m_types(std::move(types)), m_namespace(ns), m_tables(tables) {}
+        CodeGen(TypeSystem types, std::string ns, const Tables& tables)
+            : m_types(std::move(types)), m_namespace(std::move(ns)), m_tables(tables) {}
 
         void writeFiles(const std::string& outputLocation) {
             WriteIfDifferentFiles files;
@@ -93,26 +93,29 @@ namespace tigl {
                 const auto hppFileName = outputLocation + "/" + c.name + ".h";
                 const auto cppFileName = outputLocation + "/" + c.name + ".cpp";
                 if (c.pruned) {
-                    files.removeIfExists(hppFileName.c_str());
-                    files.removeIfExists(cppFileName.c_str());
+                    files.removeIfExists(hppFileName);
+                    files.removeIfExists(cppFileName);
                     continue;
                 }
 
                 auto hpp = files.newFile(hppFileName);
                 auto cpp = files.newFile(cppFileName);
-                writeClass(IndentingStreamWrapper(hpp.stream()), IndentingStreamWrapper(cpp.stream()), c);
+                IndentingStreamWrapper hppStream(hpp.stream());
+                IndentingStreamWrapper cppStream(cpp.stream());
+                writeClass(hppStream, cppStream, c);
             }
 
             for (const auto& p : m_types.enums) {
                 const auto e = p.second;
                 const auto hppFileName = outputLocation + "/" + e.name + ".h";
                 if (e.pruned) {
-                    files.removeIfExists(hppFileName.c_str());
+                    files.removeIfExists(hppFileName);
                     continue;
                 }
 
                 auto hpp = files.newFile(hppFileName);
-                writeEnum(IndentingStreamWrapper(hpp.stream()), e);
+                IndentingStreamWrapper hppStream(hpp.stream());
+                writeEnum(hppStream, e);
             }
 
             std::cout << "\tWrote   " << std::setw(5) << files.newlywritten << " new files" << std::endl;
@@ -164,7 +167,7 @@ namespace tigl {
             return getterSetterType(field);
         }
 
-        void writeFields(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
+        void writeFields(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) const {
             std::size_t length = 0;
             for (const auto& f : fields)
                 length = std::max(length, fieldType(f).length());
@@ -176,11 +179,11 @@ namespace tigl {
                 //if (&f != &fields.back())
                 //    hpp << EmptyLine;
             }
-            if (fields.size() > 0)
+            if (!fields.empty())
                 hpp << EmptyLine;
         }
 
-        void writeAccessorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
+        void writeAccessorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) const {
             for (const auto& f : fields) {
                 hpp << "TIGL_EXPORT virtual const " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "() const;";
 
@@ -194,7 +197,7 @@ namespace tigl {
             }
         }
 
-        void writeAccessorImplementations(IndentingStreamWrapper& cpp, const std::string& className, const std::vector<Field>& fields) {
+        void writeAccessorImplementations(IndentingStreamWrapper& cpp, const std::string& className, const std::vector<Field>& fields) const {
             for (const auto& f : fields) {
                 cpp << "const " << getterSetterType(f) << "& " << className << "::Get" << capitalizeFirstLetter(f.name()) << "() const";
                 cpp << "{";
@@ -249,7 +252,7 @@ namespace tigl {
             }
         }
 
-        void writeParentPointerAndUidManagerGetters(IndentingStreamWrapper& hpp, const Class& c) {
+        void writeParentPointerAndUidManagerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "template<typename P>";
@@ -305,7 +308,7 @@ namespace tigl {
             }
         }
 
-        void writeParentPointerAndUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) {
+        void writeParentPointerAndUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() == 1) {
                     cpp << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent() const";
@@ -340,20 +343,20 @@ namespace tigl {
             }
         }
 
-        void writeIODeclarations(IndentingStreamWrapper& hpp, const std::string& className, const std::vector<Field>& fields) {
+        void writeIODeclarations(IndentingStreamWrapper& hpp) const {
             hpp << "TIGL_EXPORT virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);";
             hpp << "TIGL_EXPORT virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;";
             hpp << EmptyLine;
         }
 
-        void writeChoiceValidatorDeclaration(IndentingStreamWrapper& hpp, const Class& c) {
+        void writeChoiceValidatorDeclaration(IndentingStreamWrapper& hpp, const Class& c) const {
             if (!c.choices.empty()) {
                 hpp << "TIGL_EXPORT bool ValidateChoices() const;";
                 hpp << EmptyLine;
             }
         }
 
-        auto isAttribute(const XMLConstruct& construct) -> bool {
+        auto isAttribute(const XMLConstruct& construct) const -> bool {
             switch (construct) {
                 case XMLConstruct::Attribute:
                     return true;
@@ -366,7 +369,7 @@ namespace tigl {
             }
         }
 
-        auto xmlConstructToString(const XMLConstruct& construct) -> std::string {
+        auto xmlConstructToString(const XMLConstruct& construct) const -> std::string {
             switch (construct) {
                 case XMLConstruct::Attribute:           return "attribute";
                 case XMLConstruct::Element:             return "element";
@@ -376,7 +379,7 @@ namespace tigl {
             }
         }
 
-        auto ctorArgumentList(const Class& c, const Class& parentClass) -> std::string {
+        auto ctorArgumentList(const Class& c, const Class& parentClass) const -> std::string {
             std::vector<std::string> arguments;
             const auto requiresParentPointer = m_tables.m_parentPointers.contains(c.name);
             if (requiresParentPointer)
@@ -386,7 +389,7 @@ namespace tigl {
             return boost::join(arguments, ", ");
         }
 
-        void writeReadAttributeOrElementImplementation(IndentingStreamWrapper& cpp, const Class& c, const Field& f) {
+        void writeReadAttributeOrElementImplementation(IndentingStreamWrapper& cpp, const Class& c, const Field& f) const {
             const bool isAtt = isAttribute(f.xmlType);
 
             // fundamental types
@@ -490,7 +493,7 @@ namespace tigl {
             throw std::logic_error("No read function provided for type " + f.typeName);
         }
 
-        void writeWriteAttributeOrElementImplementation(IndentingStreamWrapper& cpp, const Field& f) {
+        void writeWriteAttributeOrElementImplementation(IndentingStreamWrapper& cpp, const Field& f) const {
             const auto isAtt = isAttribute(f.xmlType);
             const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
 
@@ -599,7 +602,7 @@ namespace tigl {
             throw std::logic_error("No write function provided for type " + f.typeName);
         }
 
-        void writeReadBaseImplementation(IndentingStreamWrapper& cpp, const std::string& type) {
+        void writeReadBaseImplementation(IndentingStreamWrapper& cpp, const std::string& type) const {
             // fundamental types
             if (m_tables.m_fundamentalTypes.contains(type))
                 throw std::logic_error("fundamental types cannot be base classes"); // this should be prevented by TypeSystemBuilder
@@ -614,7 +617,7 @@ namespace tigl {
             throw std::logic_error("No read function provided for type " + type);
         }
 
-        void writeWriteBaseImplementation(IndentingStreamWrapper& cpp, const std::string& type) {
+        void writeWriteBaseImplementation(IndentingStreamWrapper& cpp, const std::string& type) const {
             // fundamental types
             if (m_tables.m_fundamentalTypes.contains(type)) {
                 cpp << tixiHelperNamespace << "::TixiSaveElement(tixiHandle, xpath, *this);";
@@ -631,7 +634,7 @@ namespace tigl {
             throw std::logic_error("No write function provided for type " + type);
         }
 
-        void writeReadImplementation(IndentingStreamWrapper& cpp, const Class& c, const std::vector<Field>& fields) {
+        void writeReadImplementation(IndentingStreamWrapper& cpp, const Class& c, const std::vector<Field>& fields) const {
             cpp << "void " << c.name << "::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)";
             cpp << "{";
             {
@@ -694,7 +697,7 @@ namespace tigl {
             cpp << EmptyLine;
         }
 
-        void writeWriteImplementation(IndentingStreamWrapper& cpp, const Class& c, const std::vector<Field>& fields) {
+        void writeWriteImplementation(IndentingStreamWrapper& cpp, const Class& c, const std::vector<Field>& fields) const {
             cpp << "void " << c.name << "::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const";
             cpp << "{";
             {
@@ -728,7 +731,7 @@ namespace tigl {
                 throw std::logic_error("elements inside choice can only be optional or vector");
         }
 
-        void writeChoiceValidatorImplementation(IndentingStreamWrapper& cpp, const Class& c) {
+        void writeChoiceValidatorImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             if (!c.choices.empty()) {
                 cpp << "bool " << c.name << "::ValidateChoices() const";
                 cpp << "{";
@@ -855,7 +858,7 @@ namespace tigl {
             }
         }
 
-        void writeTreeManipulatorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) {
+        void writeTreeManipulatorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) const {
             for (const auto& f : fields) {
                 if (m_types.classes.find(f.typeName) != std::end(m_types.classes)) {
                     if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::FundamentalTypeBase)
@@ -877,7 +880,7 @@ namespace tigl {
             }
         }
 
-        void writeTreeManipulatorImplementations(IndentingStreamWrapper& cpp, const Class& c) {
+        void writeTreeManipulatorImplementations(IndentingStreamWrapper& cpp, const Class& c) const {
             for (const auto& f : c.fields) {
                 const auto itC = m_types.classes.find(f.typeName);
                 if (itC != std::end(m_types.classes)) {
@@ -945,7 +948,7 @@ namespace tigl {
             }
         }
 
-        void writeLicenseHeader(IndentingStreamWrapper& f) {
+        void writeLicenseHeader(IndentingStreamWrapper& f) const {
             f << "// Copyright (c) 2018 RISC Software GmbH";
             f << "//";
             f << "// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).";
@@ -965,7 +968,7 @@ namespace tigl {
             f << EmptyLine;
         }
 
-        auto resolveIncludes(const Class& c) -> Includes {
+        auto resolveIncludes(const Class& c) const -> Includes {
             Includes deps;
 
             deps.hppIncludes.push_back("<tixi.h>");
@@ -1101,7 +1104,7 @@ namespace tigl {
             return deps;
         }
 
-        void writeCtors(IndentingStreamWrapper& hpp, const Class& c) {
+        void writeCtors(IndentingStreamWrapper& hpp, const Class& c) const {
             const auto hasUid = requiresUidManager(c);
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c_generateDefaultCtorsForParentPointerTypes)
@@ -1114,7 +1117,7 @@ namespace tigl {
             }
         }
 
-        void writeParentPointerAndUidManagerFields(IndentingStreamWrapper& hpp, const Class& c) {
+        void writeParentPointerAndUidManagerFields(IndentingStreamWrapper& hpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "void* m_parent;";
@@ -1138,7 +1141,7 @@ namespace tigl {
                 return "this";
         }
 
-        void writeCtorImplementations(IndentingStreamWrapper& cpp, const Class& c) {
+        void writeCtorImplementations(IndentingStreamWrapper& cpp, const Class& c) const {
             const auto hasUid = requiresUidManager(c);
 
             auto writeInitializationList = [&] {
@@ -1210,12 +1213,12 @@ namespace tigl {
             }
         }
 
-        void writeDtor(IndentingStreamWrapper& hpp, const Class& c) {
+        void writeDtor(IndentingStreamWrapper& hpp, const Class& c) const {
             hpp << "TIGL_EXPORT virtual ~" << c.name << "();";
             hpp << EmptyLine;
         }
 
-        void writeDtorImplementation(IndentingStreamWrapper& cpp, const Class& c) {
+        void writeDtorImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             if (hasUidField(c)) {
                 cpp << c.name << "::~" << c.name << "()";
                 cpp << "{";
@@ -1235,7 +1238,7 @@ namespace tigl {
             cpp << EmptyLine;
         }
 
-        void writeHeader(IndentingStreamWrapper& hpp, const Class& c, const Includes& includes) {
+        void writeHeader(IndentingStreamWrapper& hpp, const Class& c, const Includes& includes) const {
             // file header
             writeLicenseHeader(hpp);
 
@@ -1302,7 +1305,7 @@ namespace tigl {
                         writeParentPointerAndUidManagerGetters(hpp, c);
 
                         // io
-                        writeIODeclarations(hpp, c.name, c.fields);
+                        writeIODeclarations(hpp);
 
                         // choice validator
                         writeChoiceValidatorDeclaration(hpp, c);
@@ -1393,7 +1396,7 @@ namespace tigl {
             hpp << EmptyLine;
         }
 
-        void writeSource(IndentingStreamWrapper& cpp, const Class& c, const Includes& includes) {
+        void writeSource(IndentingStreamWrapper& cpp, const Class& c, const Includes& includes) const {
             // file header
             writeLicenseHeader(cpp);
 
@@ -1452,13 +1455,13 @@ namespace tigl {
             cpp << EmptyLine;
         }
 
-        void writeClass(IndentingStreamWrapper& hpp, IndentingStreamWrapper& cpp, const Class& c) {
+        void writeClass(IndentingStreamWrapper& hpp, IndentingStreamWrapper& cpp, const Class& c) const {
             const auto includes = resolveIncludes(c);
             writeHeader(hpp, c, includes);
             writeSource(cpp, c, includes);
         }
 
-        auto enumCppName(std::string name, const Tables& tables) {
+        auto enumCppName(std::string name, const Tables& tables) const {
             // prefix numbers with "num" and replace minus with "neg"
             if (std::isdigit(name[0]))
                 name = "_" + name;
@@ -1477,7 +1480,7 @@ namespace tigl {
             return name;
         }
 
-        void writeEnum(IndentingStreamWrapper& hpp, const Enum& e) {
+        void writeEnum(IndentingStreamWrapper& hpp, const Enum& e) const {
             // file header
             writeLicenseHeader(hpp);
 

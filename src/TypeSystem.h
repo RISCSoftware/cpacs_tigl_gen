@@ -3,8 +3,8 @@
 #include <boost/variant/recursive_wrapper.hpp>
 
 #include <string>
-#include <algorithm>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <stdexcept>
 
@@ -52,12 +52,11 @@ namespace tigl {
         auto cardinality() const -> Cardinality {
             if (minOccurs == 0 && maxOccurs == 1)
                 return Cardinality::Optional;
-            else if (minOccurs == 1 && maxOccurs == 1)
+            if (minOccurs == 1 && maxOccurs == 1)
                 return Cardinality::Mandatory;
-            else if (minOccurs >= 0 && maxOccurs > 1)
+            if (minOccurs >= 0 && maxOccurs > 1)
                 return Cardinality::Vector;
-            else
-                throw std::runtime_error("Invalid cardinalities, min: " + std::to_string(minOccurs) + ", max: " + std::to_string(maxOccurs));
+            throw std::runtime_error("Invalid cardinalities, min: " + std::to_string(minOccurs) + ", max: " + std::to_string(maxOccurs));
         }
 
         auto name() const -> std::string {
@@ -117,8 +116,8 @@ namespace tigl {
         std::string customName;
 
         EnumValue() = default;
-        EnumValue(const std::string& name)
-            : cpacsName(name) {}
+        EnumValue(std::string name)
+            : cpacsName(std::move(name)) {}
 
         auto name() const -> std::string {
             if (!customName.empty())

@@ -42,17 +42,17 @@ source_group(" " FILES ${ALL_INPUTS})
 if(TIGL_PATH)
 	set(GENERATOR_INPUT_DIR  ${TIGL_PATH}/cpacs_gen_input CACHE PATH "Generator input files (Tigl cpacs_gen_input directory)")
 	set(GENERATOR_OUTPUT_DIR ${TIGL_PATH}/src/generated   CACHE PATH "Output directory for the generated CPACS classes (Tigl src/generated directory)")
-else()
-	message(FATAL_ERROR "TIGL_PATH is not specified")
-endif()
 
-# add custom target step to generate files side by side to TIGL source
-add_custom_target(
-	generate
-	COMMAND ${PROJECT_NAME} ${GENERATOR_INPUT_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src ${GENERATOR_OUTPUT_DIR}
-	COMMENT Running CPACSGen
-	VERBATIM
-)
+	# add custom target to generate files side by side to TIGL source
+	add_custom_target(
+		generate
+		COMMAND ${PROJECT_NAME} ${GENERATOR_INPUT_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src ${GENERATOR_OUTPUT_DIR}
+		COMMENT Running CPACSGen
+		VERBATIM
+	)
+else()
+	message(WARNING "TIGL_PATH is not specified. Target generate will not be created")
+endif()
 
 # linker flags
 if (NOT WIN32)

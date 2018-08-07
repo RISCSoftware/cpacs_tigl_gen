@@ -58,6 +58,7 @@ namespace tigl {
                 m.xmlType = XMLConstruct::Attribute;
                 m.minOccurs = a.optional ? 0 : 1;
                 m.maxOccurs = 1;
+                m.defaultValue = a.defaultValue;
                 members.push_back(m);
             }
 
@@ -93,6 +94,7 @@ namespace tigl {
                     m.xmlType = XMLConstruct::Element;
                     m.minOccurs = e.minOccurs;
                     m.maxOccurs = e.maxOccurs;
+                    m.defaultValue = e.defaultValue;
                     emitField(std::move(m));
                 }
 

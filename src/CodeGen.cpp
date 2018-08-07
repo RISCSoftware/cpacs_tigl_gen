@@ -1159,10 +1159,15 @@ namespace tigl {
                     writeMember("m_uidMgr", "uidMgr");
                 for (const auto& f : c.fields) {
                     if (f.cardinality() == Cardinality::Mandatory) {
-                        // if the field is a fundamental data type, but not string, provide zero initializer
-                        if (m_tables.m_fundamentalTypes.contains(f.typeName) && f.typeName != "std::string")
-                            writeMember(f.fieldName(), "0");
-                        else {
+                        if (m_tables.m_fundamentalTypes.contains(f.typeName)) {
+                            auto args = f.defaultValue;
+                            if (!args.empty() && f.typeName == "std::string")
+                                args = "\"" + args + "\"";
+                            else if (args.empty() && f.typeName != "std::string")
+                                args = "0"; // if the field has no default value and is a fundamental data type, but not string, provide zero initializer
+                            if (!args.empty())
+                                writeMember(f.fieldName(), args);
+                        } else {
                             const auto fci = m_types.classes.find(f.typeName);
                             if (fci != std::end(m_types.classes)) {
                                 const auto args = ctorArgumentList(fci->second, c);

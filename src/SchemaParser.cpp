@@ -424,6 +424,7 @@ namespace tigl {
                         element.maxOccurs = std::stoi(maxOccurs);
                 }
 
+                // type
                 if (document.checkAttribute(xpath, "type"))
                     // referencing other type
                     element.type = document.textAttribute(xpath, "type");
@@ -431,6 +432,10 @@ namespace tigl {
                     element.type = readInlineType(xpath, containingTypeName.empty() ? element.name : containingTypeName + "_" + element.name);
 
                 assert(!element.type.empty());
+
+                // default
+                if (document.checkAttribute(xpath, "default"))
+                    element.defaultValue = document.textAttribute(xpath, "default");
 
                 return element;
             }

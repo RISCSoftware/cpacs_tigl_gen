@@ -27,6 +27,7 @@ namespace tigl {
             std::string type;
             int minOccurs;
             int maxOccurs;
+            std::string defaultValue;
         };
 
         struct Any : XSDElement {

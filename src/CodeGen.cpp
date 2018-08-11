@@ -264,41 +264,53 @@ namespace tigl {
                     }
                     hpp << "}";
                     hpp << EmptyLine;
-                    hpp << "template<typename P>";
-                    hpp << "P* GetParent() const";
-                    hpp << "{";
-                    {
-                        Scope s(hpp);
-                        hpp.noIndent() << "#ifdef HAVE_STDIS_SAME";
-                        hpp << "static_assert(";
-                        for (const auto& dep : c.deps.parents) {
-                            if (&dep != &c.deps.parents[0])
-                                hpp.contLine() << " || ";
-                            hpp.contLine() << "std::is_same<P, " << customReplacedType(dep->name) << ">::value";
-                        }
-                        hpp.contLine() << ", \"template argument for P is not a parent class of " << c.name << "\");";
-                        hpp.noIndent() << "#endif";
-                        if (c_generateDefaultCtorsForParentPointerTypes) {
-                            hpp << "if (m_parent == NULL) {";
-                            {
-                                Scope s(hpp);
-                                hpp << "return NULL;";
-                            }
-                            hpp << "}";
-                        }
-                        hpp << "if (!IsParent<P>()) {";
+                }
+
+                for (auto isConst : { false, true }) {
+                    if (c.deps.parents.size() > 1) {
+                        hpp << "template<typename P>";
+                        if (isConst)
+                            hpp << "const P* GetParent() const";
+                        else
+                            hpp << "P* GetParent()";
+                        hpp << "{";
                         {
                             Scope s(hpp);
-                            hpp << "throw CTiglError(\"bad parent\");";
+                            hpp.noIndent() << "#ifdef HAVE_STDIS_SAME";
+                            hpp << "static_assert(";
+                            for (const auto& dep : c.deps.parents) {
+                                if (&dep != &c.deps.parents[0])
+                                    hpp.contLine() << " || ";
+                                hpp.contLine() << "std::is_same<P, " << customReplacedType(dep->name) << ">::value";
+                            }
+                            hpp.contLine() << ", \"template argument for P is not a parent class of " << c.name << "\");";
+                            hpp.noIndent() << "#endif";
+                            if (c_generateDefaultCtorsForParentPointerTypes) {
+                                hpp << "if (m_parent == NULL) {";
+                                {
+                                    Scope s(hpp);
+                                    hpp << "return NULL;";
+                                }
+                                hpp << "}";
+                            }
+                            hpp << "if (!IsParent<P>()) {";
+                            {
+                                Scope s(hpp);
+                                hpp << "throw CTiglError(\"bad parent\");";
+                            }
+                            hpp << "}";
+                            hpp << "return static_cast<P*>(m_parent);";
                         }
                         hpp << "}";
-                        hpp << "return static_cast<P*>(m_parent);";
                     }
-                    hpp << "}";
-                } else if (c.deps.parents.size() == 1) {
-                    hpp << "TIGL_EXPORT " << customReplacedType(c.deps.parents[0]->name) << "* GetParent() const;";
+                    else if (c.deps.parents.size() == 1) {
+                        if (isConst)
+                            hpp << "TIGL_EXPORT const " << customReplacedType(c.deps.parents[0]->name) << "* GetParent() const;";
+                        else
+                            hpp << "TIGL_EXPORT " << customReplacedType(c.deps.parents[0]->name) << "* GetParent();";
+                    }
+                    hpp << EmptyLine;
                 }
-                hpp << EmptyLine;
             }
 
             if (requiresUidManager(c)) {
@@ -311,14 +323,19 @@ namespace tigl {
         void writeParentPointerAndUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() == 1) {
-                    cpp << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent() const";
-                    cpp << "{";
-                    {
-                        Scope s(cpp);
-                        cpp << "return m_parent;";
+                    for (auto isConst : { false, true }) {
+                        if (isConst)
+                            cpp<< customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent()";
+                        else
+                            cpp << "const " << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent() const";
+                        cpp << "{";
+                        {
+                            Scope s(cpp);
+                            cpp << "return m_parent;";
+                        }
+                        cpp << "}";
+                        cpp << EmptyLine;
                     }
-                    cpp << "}";
-                    cpp << EmptyLine;
                 }
             }
 

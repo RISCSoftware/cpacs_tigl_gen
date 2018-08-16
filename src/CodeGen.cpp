@@ -13,7 +13,7 @@
 #include "TypeSystem.h"
 #include "NotImplementedException.h"
 #include "IndentingStreamWrapper.h"
-#include "WriteIfDifferentFiles.h"
+#include "Filesystem.h"
 #include "CodeGen.h"
 
 namespace tigl {
@@ -85,21 +85,19 @@ namespace tigl {
         CodeGen(TypeSystem types, std::string ns, const Tables& tables)
             : m_types(std::move(types)), m_namespace(std::move(ns)), m_tables(tables) {}
 
-        void writeFiles(const std::string& outputLocation) {
-            WriteIfDifferentFiles files;
-
+        void writeFiles(const std::string& outputLocation, Filesystem& fs) {
             for (const auto& p : m_types.classes) {
                 const auto c = p.second;
                 const auto hppFileName = outputLocation + "/" + c.name + ".h";
                 const auto cppFileName = outputLocation + "/" + c.name + ".cpp";
                 if (c.pruned) {
-                    files.removeIfExists(hppFileName);
-                    files.removeIfExists(cppFileName);
+                    fs.removeIfExists(hppFileName);
+                    fs.removeIfExists(cppFileName);
                     continue;
                 }
 
-                auto hpp = files.newFile(hppFileName);
-                auto cpp = files.newFile(cppFileName);
+                auto hpp = fs.newFile(hppFileName);
+                auto cpp = fs.newFile(cppFileName);
                 IndentingStreamWrapper hppStream(hpp.stream());
                 IndentingStreamWrapper cppStream(cpp.stream());
                 writeClass(hppStream, cppStream, c);
@@ -109,19 +107,14 @@ namespace tigl {
                 const auto e = p.second;
                 const auto hppFileName = outputLocation + "/" + e.name + ".h";
                 if (e.pruned) {
-                    files.removeIfExists(hppFileName);
+                    fs.removeIfExists(hppFileName);
                     continue;
                 }
 
-                auto hpp = files.newFile(hppFileName);
+                auto hpp = fs.newFile(hppFileName);
                 IndentingStreamWrapper hppStream(hpp.stream());
                 writeEnum(hppStream, e);
             }
-
-            std::cout << "\tWrote   " << std::setw(5) << files.newlywritten << " new files" << std::endl;
-            std::cout << "\tUpdated " << std::setw(5) << files.overwritten << " existing files" << std::endl;
-            std::cout << "\tSkipped " << std::setw(5) << files.skipped << " files, no changes" << std::endl;
-            std::cout << "\tDeleted " << std::setw(5) << files.deleted << " files, pruned" << std::endl;
         }
 
     private:
@@ -1643,8 +1636,8 @@ namespace tigl {
         }
     };
 
-    void genCode(const std::string& outputLocation, TypeSystem typeSystem, const std::string& ns, const Tables& tables) {
+    void genCode(const std::string& outputLocation, TypeSystem typeSystem, const std::string& ns, const Tables& tables, Filesystem& fs) {
         CodeGen gen(std::move(typeSystem), ns, tables);
-        gen.writeFiles(outputLocation);
+        gen.writeFiles(outputLocation, fs);
     }
 }

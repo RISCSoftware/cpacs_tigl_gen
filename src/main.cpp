@@ -6,7 +6,7 @@
 #include "TypeSystem.h"
 #include "CodeGen.h"
 #include "Tables.h"
-#include "WriteIfDifferentFiles.h"
+#include "Filesystem.h"
 #include "NotImplementedException.h"
 
 namespace fs = boost::filesystem;
@@ -17,7 +17,7 @@ namespace tigl {
         "UniquePtr.h",
     };
 
-    void processDirectory(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile, const std::string& ns = "") {
+    void processDirectory(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile, Filesystem& fs, const std::string& ns = "") {
         // load tables from this directory
         const Tables tables(inputDirectory);
 
@@ -46,7 +46,7 @@ namespace tigl {
 
                 // generate code
                 std::cout << "Generating classes" << std::endl;
-                genCode(nsOutputDirectory, typeSystem, ns, tables);
+                genCode(nsOutputDirectory, typeSystem, ns, tables, fs);
             }
         }
 
@@ -57,7 +57,7 @@ namespace tigl {
                     throw NotImplementedException("Nested input directories are not implemented. Only 1 level of subdirectories (namespaces) is allowed.");
 
                 const auto& leafDir = e.path().leaf().string();
-                processDirectory(e.path().string(), srcDirectory, outputDirectory, typeSystemGraphVisFile, leafDir);
+                processDirectory(e.path().string(), srcDirectory, outputDirectory, typeSystemGraphVisFile, fs, leafDir);
             }
         }
     }
@@ -67,15 +67,17 @@ namespace tigl {
         fs::create_directories(outputDirectory);
 
         std::cout << "Copying runtime" << std::endl;
-        WriteIfDifferentFiles files;
+        Filesystem fs;
         for (const auto& file : runtimeFiles)
-            files.newFile(outputDirectory + "/" + file).stream() << readFile(srcDirectory + "/" + file);
-        std::cout << "\tWrote   " << std::setw(5) << files.newlywritten << " new files" << std::endl;
-        std::cout << "\tUpdated " << std::setw(5) << files.overwritten << " existing files" << std::endl;
-        std::cout << "\tSkipped " << std::setw(5) << files.skipped << " files, no changes" << std::endl;
+            fs.newFile(outputDirectory + "/" + file).stream() << readFile(srcDirectory + "/" + file);
 
         // process schema files
-        processDirectory(inputDirectory, srcDirectory, outputDirectory, typeSystemGraphVisFile);
+        processDirectory(inputDirectory, srcDirectory, outputDirectory, typeSystemGraphVisFile, fs);
+
+        std::cout << "\tWrote   " << std::setw(5) << fs.newlywritten << " new files" << std::endl;
+        std::cout << "\tUpdated " << std::setw(5) << fs.overwritten << " existing files" << std::endl;
+        std::cout << "\tSkipped " << std::setw(5) << fs.skipped << " files, no changes" << std::endl;
+        std::cout << "\tDeleted " << std::setw(5) << fs.deleted << " files, pruned" << std::endl;
     }
 }
 

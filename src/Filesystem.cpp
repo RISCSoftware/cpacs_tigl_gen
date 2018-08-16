@@ -1,18 +1,11 @@
-#include "WriteIfDifferentFiles.h"
+#include "Filesystem.h"
 
 #include <fstream>
 #include <utility>
 
 namespace tigl {
-	namespace {
-		auto fileExists(const std::string& filename) {
-			std::ifstream f(filename);
-			return f.good();
-		}
-	}
-
-	auto readFile(const std::string& filename) -> std::string {
-		std::ifstream existingFile(filename);
+	auto readFile(const boost::filesystem::path& filename) -> std::string {
+		std::ifstream existingFile(filename.string());
 		if (!existingFile)
 			return{};
 
@@ -26,19 +19,19 @@ namespace tigl {
 		return content;
 	}
 
-	WriteIfDifferentFile::WriteIfDifferentFile(std::string filename, WriteIfDifferentFiles* parent)
+	File::File(boost::filesystem::path filename, Filesystem* parent)
 		: m_stream(new std::stringstream), m_filename(std::move(filename)), m_parent(parent) {}
 
-	auto WriteIfDifferentFile::stream() -> std::ostream& {
+	auto File::stream() -> std::ostream& {
 		return *m_stream;
 	}
 
-	WriteIfDifferentFile::~WriteIfDifferentFile() {
+	File::~File() {
 		const auto& newContent = m_stream->str();
 
 		{
 			// check if a file already exists
-			if (fileExists(m_filename)) {
+			if (boost::filesystem::exists(m_filename)) {
 				// read existing file to string and compare
 				const auto& content = readFile(m_filename);
 
@@ -54,18 +47,18 @@ namespace tigl {
 		}
 
 		// write new content to file
-		std::ofstream f(m_filename);
+		std::ofstream f(m_filename.string());
 		f.exceptions(std::ios::failbit | std::ios::badbit);
 		f.write(newContent.c_str(), newContent.size());
 	}
 
-	auto WriteIfDifferentFiles::newFile(const std::string& filename) -> WriteIfDifferentFile {
-		return WriteIfDifferentFile(filename, this);
+	auto Filesystem::newFile(const boost::filesystem::path& filename) -> File {
+		return File(filename, this);
 	}
 
-	void WriteIfDifferentFiles::removeIfExists(const std::string & path) {
-		if (fileExists(path)) {
-			std::remove(path.c_str());
+	void Filesystem::removeIfExists(const boost::filesystem::path& path) {
+		if (boost::filesystem::exists(path)) {
+			boost::filesystem::remove(path);
 			deleted++;
 		}
 	}

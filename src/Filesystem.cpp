@@ -19,41 +19,44 @@ namespace tigl {
 		return content;
 	}
 
-	File::File(boost::filesystem::path filename, Filesystem* parent)
-		: m_stream(new std::stringstream), m_filename(std::move(filename)), m_parent(parent) {}
+	File::File(boost::filesystem::path filename)
+		: m_stream(new std::ostringstream), m_filename(std::move(filename)) {}
 
 	auto File::stream() -> std::ostream& {
 		return *m_stream;
 	}
 
-	File::~File() {
-		const auto& newContent = m_stream->str();
+	void Filesystem::flushToDisk() {
+		for (auto& file : m_files) {
+			const auto& newContent = file.m_stream->str();
 
-		{
 			// check if a file already exists
-			if (boost::filesystem::exists(m_filename)) {
+			if (boost::filesystem::exists(file.m_filename)) {
 				// read existing file to string and compare
-				const auto& content = readFile(m_filename);
+				const auto& content = readFile(file.m_filename);
 
 				// if existing file has same content, skip overwriting it
 				if (content == newContent) {
-					m_parent->skipped++;
-					return;
+					skipped++;
+					continue;
 				}
 
-				m_parent->overwritten++;
-			} else
-				m_parent->newlywritten++;
-		}
+				overwritten++;
+			}
+			else
+				newlywritten++;
 
-		// write new content to file
-		std::ofstream f(m_filename.string());
-		f.exceptions(std::ios::failbit | std::ios::badbit);
-		f.write(newContent.c_str(), newContent.size());
+			// write new content to file
+			std::ofstream f(file.m_filename.string());
+			f.exceptions(std::ios::failbit | std::ios::badbit);
+			f.write(newContent.c_str(), newContent.size());
+			f.close();
+		}
 	}
 
-	auto Filesystem::newFile(const boost::filesystem::path& filename) -> File {
-		return File(filename, this);
+	auto Filesystem::newFile(boost::filesystem::path filename) -> File& {
+		m_files.emplace_back(std::move(filename));
+		return m_files.back();
 	}
 
 	void Filesystem::removeIfExists(const boost::filesystem::path& path) {
@@ -61,5 +64,14 @@ namespace tigl {
 			boost::filesystem::remove(path);
 			deleted++;
 		}
+	}
+
+	void Filesystem::mergeFilesInto(boost::filesystem::path filename) {
+		std::ostringstream oss;
+		for (auto& file : m_files) {
+			auto str = file.m_stream->str();
+			oss.write(str.c_str(), str.size());
+		}
+		*newFile(std::move(filename)).m_stream = std::move(oss);
 	}
 }

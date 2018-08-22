@@ -74,6 +74,8 @@ namespace tigl {
         // process schema files
         processDirectory(inputDirectory, srcDirectory, outputDirectory, typeSystemGraphVisFile, fs);
 
+        fs.flushToDisk();
+
         std::cout << "\tWrote   " << std::setw(5) << fs.newlywritten << " new files" << std::endl;
         std::cout << "\tUpdated " << std::setw(5) << fs.overwritten << " existing files" << std::endl;
         std::cout << "\tSkipped " << std::setw(5) << fs.skipped << " files, no changes" << std::endl;
@@ -84,14 +86,16 @@ namespace tigl {
 int main(int argc, char* argv[]) {
     // parse command line arguments
     if (argc != 4 && argc != 5) {
-        std::cerr << "Usage: CPACSGen configDir cpascGenSourceDir outputDir [typeSystemGraphVisFile] \n\n";
-        std::cerr << "Options:\n\n"
-                     "  configDir          The directory containing the CPACS schema and\n"
-                     "                     the table files.\n"
-                     "  cpacsGenSourceDir  The src directory of the CPACSGen source code.\n"
-                     "  outputDir          The directory to which the CPACSGen output\n"
-                     "                     file are written\n"
-                  << std::endl;
+        std::cerr
+            << "Usage: CPACSGen configDir cpascGenSourceDir outputDir [typeSystemGraphVisFile] \n\n"
+            << "Options:\n\n"
+            << "  configDir              The directory containing the CPACS schema and\n"
+            << "                         the table files.\n"
+            << "  cpacsGenSourceDir      The src directory of the CPACSGen source code.\n"
+            << "  outputDir              The directory to which the CPACSGen output\n"
+            << "                         file are written\n"
+            << "  typeSystemGraphVisFile GraphVis file visualizing the built type system."
+            << std::endl;
         return -1;
     }
 

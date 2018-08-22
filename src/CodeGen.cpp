@@ -96,8 +96,8 @@ namespace tigl {
                     continue;
                 }
 
-                auto hpp = fs.newFile(hppFileName);
-                auto cpp = fs.newFile(cppFileName);
+                auto& hpp = fs.newFile(hppFileName);
+                auto& cpp = fs.newFile(cppFileName);
                 IndentingStreamWrapper hppStream(hpp.stream());
                 IndentingStreamWrapper cppStream(cpp.stream());
                 writeClass(hppStream, cppStream, c);
@@ -111,7 +111,7 @@ namespace tigl {
                     continue;
                 }
 
-                auto hpp = fs.newFile(hppFileName);
+                auto& hpp = fs.newFile(hppFileName);
                 IndentingStreamWrapper hppStream(hpp.stream());
                 writeEnum(hppStream, e);
             }

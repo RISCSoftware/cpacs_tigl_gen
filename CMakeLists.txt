@@ -3,6 +3,9 @@
 
 cmake_minimum_required(VERSION 3.2)
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 project(CPACSGen)
 
 # cache variables
@@ -11,33 +14,36 @@ set(TIXI_PATH  "" CACHE PATH "Tixi installation prefix")
 set(TIGL_PATH  "" CACHE PATH "Tigl installation prefix")
 
 # find boost
-set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_STATIC_LIBS ON CACHE BOOL "Find static or dynamic libs. Static libs require lib prefix.")
 find_package (Boost REQUIRED COMPONENTS system filesystem date_time regex)
-mark_as_advanced(CLEAR BOOST_ROOT) # find module for boost marks this variable as advanced
+mark_as_advanced(CLEAR BOOST_ROOT) # find module for boost marks these variables as advanced
+mark_as_advanced(CLEAR Boost_USE_STATIC_LIBS)
 
 # find tixi
 set(CMAKE_PREFIX_PATH "${TIXI_PATH};${CMAKE_PREFIX_PATH}")
 find_package(TIXI REQUIRED)
 
-# definitions
-add_definitions(-DCPACS_GEN)
-
-# input files
+# input files and exe
 file(GLOB ALL_INPUTS src/*.cpp *src/*.h *.md)
-
-#includes
-include_directories(${Boost_INCLUDE_DIRS})
-include_directories(${TIXI_INCLUDE_DIRS})
-
-# exe
 add_executable(${PROJECT_NAME} ${ALL_INPUTS})
+source_group(" " FILES ${ALL_INPUTS})
+
+# compile definitions
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+	-DCPACS_GEN
+)
+
+# includes
+target_include_directories(${PROJECT_NAME} PRIVATE
+	${Boost_INCLUDE_DIRS}
+	${TIXI_INCLUDE_DIRS}
+)
 
 # library dependencies
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} ${TIXI_LIBRARIES})
-
-# put all files in the same source group
-source_group(" " FILES ${ALL_INPUTS})
+target_link_libraries(${PROJECT_NAME}
+	${Boost_LIBRARIES}
+	${TIXI_LIBRARIES}
+)
 
 if(TIGL_PATH)
 	set(GENERATOR_INPUT_DIR  ${TIGL_PATH}/cpacs_gen_input CACHE PATH "Generator input files (Tigl cpacs_gen_input directory)")

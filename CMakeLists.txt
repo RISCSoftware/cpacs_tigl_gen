@@ -60,5 +60,7 @@ if (NOT WIN32)
 endif (NOT WIN32)
 
 # copy shared library to ouput directory
-get_target_property(TIXI_SHARED_LIBRARY tixi3 LOCATION)
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${TIXI_SHARED_LIBRARY}" "${CMAKE_BINARY_DIR}/$<CONFIG>/")
+if (WIN32)
+	get_target_property(TIXI_SHARED_LIBRARY tixi3 LOCATION)
+	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${TIXI_SHARED_LIBRARY}" "${CMAKE_BINARY_DIR}/$<CONFIG>/")
+endif (WIN32)

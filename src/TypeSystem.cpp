@@ -406,6 +406,8 @@ namespace tigl {
 
             for (auto& p : m_enums) {
                 auto& e = p.second;
+                if (e.pruned)
+                    continue;
                 for (auto& v : e.values) {
                     auto& otherEnums = valueToEnum[v.name()];
                     if (otherEnums.size() == 1) {
@@ -563,9 +565,9 @@ namespace tigl {
         TypeSystemBuilder builder(std::move(types), tables);
         builder.build();
         builder.collapseEnums();
-        builder.prefixClashedEnumValues();
         builder.buildDependencies();
         builder.runPruneList();
+        builder.prefixClashedEnumValues();
         return {
             std::move(builder.m_classes),
             std::move(builder.m_enums)

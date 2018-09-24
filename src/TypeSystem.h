@@ -2,6 +2,7 @@
 
 #include <boost/variant/recursive_wrapper.hpp>
 
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -147,7 +148,7 @@ namespace tigl {
 
     struct TypeSystem {
         std::unordered_map<std::string, Class> classes;
-        std::unordered_map<std::string, Enum> enums;
+        std::map<std::string, Enum> enums;
     };
 
     auto buildTypeSystem(xsd::SchemaTypes types, const Tables& tables) -> TypeSystem;

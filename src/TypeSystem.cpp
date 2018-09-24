@@ -556,7 +556,7 @@ namespace tigl {
         const Tables& tables;
         xsd::SchemaTypes m_types;
         std::unordered_map<std::string, Class> m_classes;
-        std::unordered_map<std::string, Enum> m_enums;
+        std::map<std::string, Enum> m_enums;
     };
 
     auto buildTypeSystem(xsd::SchemaTypes types, const Tables& tables) -> TypeSystem {

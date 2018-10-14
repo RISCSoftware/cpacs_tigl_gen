@@ -15,7 +15,7 @@ set(TIGL_PATH  "" CACHE PATH "Tigl installation prefix")
 
 # find boost
 set(Boost_USE_STATIC_LIBS ON CACHE BOOL "Find static or dynamic libs. Static libs require lib prefix.")
-find_package (Boost REQUIRED COMPONENTS system filesystem date_time regex)
+find_package (Boost REQUIRED COMPONENTS system filesystem date_time regex unit_test_framework)
 mark_as_advanced(CLEAR BOOST_ROOT) # find module for boost marks these variables as advanced
 mark_as_advanced(CLEAR Boost_USE_STATIC_LIBS)
 
@@ -43,6 +43,25 @@ add_executable(${PROJECT_NAME} ${DRIVER_INPUTS})
 source_group(" " FILES ${DRIVER_INPUTS})
 
 target_link_libraries(${PROJECT_NAME}
+	lib${PROJECT_NAME}
+	${Boost_LIBRARIES}
+	${TIXI_LIBRARIES}
+)
+
+# tests
+set(DATA_DIR ${CMAKE_SOURCE_DIR}/test/data)
+configure_file(test/paths.h.in ${CMAKE_BINARY_DIR}/test/paths.h)
+
+file(GLOB TEST_INPUTS test/*.cpp test/*.h)
+list(APPEND TEST_INPUTS ${CMAKE_BINARY_DIR}/test/paths.h)
+add_executable(tests ${TEST_INPUTS})
+source_group(" " FILES ${TEST_INPUTS})
+
+target_include_directories(tests PUBLIC
+	${CMAKE_BINARY_DIR}/test
+)
+
+target_link_libraries(tests
 	lib${PROJECT_NAME}
 	${Boost_LIBRARIES}
 	${TIXI_LIBRARIES}

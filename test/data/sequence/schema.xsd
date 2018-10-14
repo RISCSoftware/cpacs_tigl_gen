@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:element name="root" type="RootType"/>
+	<xsd:complexType name="RootType">
+        <xsd:sequence>
+            <xsd:element                                     name="a" type="xsd:integer"/>
+            <xsd:element minOccurs="0"                       name="b" type="xsd:integer"/>
+			<xsd:element minOccurs="1"                       name="c" type="xsd:integer"/>
+			<xsd:element               maxOccurs="1"         name="d" type="xsd:integer"/>
+			<xsd:element               maxOccurs="unbounded" name="e" type="xsd:integer"/>
+            <xsd:element minOccurs="0" maxOccurs="1"         name="f" type="xsd:integer"/>
+			<xsd:element minOccurs="0" maxOccurs="unbounded" name="g" type="xsd:integer"/>
+			<xsd:element minOccurs="1" maxOccurs="1"         name="h" type="xsd:integer"/>
+			<xsd:element minOccurs="1" maxOccurs="unbounded" name="i" type="xsd:integer"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>

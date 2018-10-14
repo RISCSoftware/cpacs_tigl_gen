@@ -2,12 +2,12 @@
 #include <iostream>
 #include <iomanip>
 
-#include "SchemaParser.h"
-#include "TypeSystem.h"
-#include "CodeGen.h"
-#include "Tables.h"
-#include "Filesystem.h"
-#include "NotImplementedException.h"
+#include "../lib/SchemaParser.h"
+#include "../lib/TypeSystem.h"
+#include "../lib/CodeGen.h"
+#include "../lib/Tables.h"
+#include "../lib/Filesystem.h"
+#include "../lib/NotImplementedException.h"
 
 namespace fs = boost::filesystem;
 
@@ -17,7 +17,7 @@ namespace tigl {
         "UniquePtr.h",
     };
 
-    void processDirectory(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile, Filesystem& fs, const std::string& ns = "") {
+    void processDirectory(const std::string& inputDirectory, const std::string& runtimeDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile, Filesystem& fs, const std::string& ns = "") {
         // load tables from this directory
         const Tables tables(inputDirectory);
 
@@ -57,22 +57,22 @@ namespace tigl {
                     throw NotImplementedException("Nested input directories are not implemented. Only 1 level of subdirectories (namespaces) is allowed.");
 
                 const auto leafDir = e.path().leaf().string();
-                processDirectory(e.path().string(), srcDirectory, outputDirectory, typeSystemGraphVisFile, fs, leafDir);
+                processDirectory(e.path().string(), runtimeDirectory, outputDirectory, typeSystemGraphVisFile, fs, leafDir);
             }
         }
     }
 
-    void run(const std::string& inputDirectory, const std::string& srcDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile) {
+    void run(const std::string& inputDirectory, const std::string& runtimeDirectory, const std::string& outputDirectory, const std::string& typeSystemGraphVisFile) {
         // create runtime output directory
         fs::create_directories(outputDirectory);
 
         std::cout << "Copying runtime" << std::endl;
         Filesystem fs;
         for (const auto& file : runtimeFiles)
-            fs.newFile(outputDirectory + "/" + file).stream() << readFile(srcDirectory + "/" + file);
+            fs.newFile(outputDirectory + "/" + file).stream() << readFile(runtimeDirectory + "/" + file);
 
         // process schema files
-        processDirectory(inputDirectory, srcDirectory, outputDirectory, typeSystemGraphVisFile, fs);
+        processDirectory(inputDirectory, runtimeDirectory, outputDirectory, typeSystemGraphVisFile, fs);
 
         fs.flushToDisk();
 
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
             << "Options:\n\n"
             << "  configDir              The directory containing the CPACS schema and\n"
             << "                         the table files.\n"
-            << "  cpacsGenSourceDir      The src directory of the CPACSGen source code.\n"
+            << "  runtimeDir             The directory of where the runtime source files are.\n"
             << "  outputDir              The directory to which the CPACSGen output\n"
             << "                         file are written\n"
             << "  typeSystemGraphVisFile GraphVis file visualizing the built type system."
@@ -100,12 +100,12 @@ int main(int argc, char* argv[]) {
     }
 
     const std::string inputDirectory         = argv[1];
-    const std::string srcDirectory           = argv[2];
+    const std::string runtimeDirectory       = argv[2];
     const std::string outputDirectory        = argv[3];
     const std::string typeSystemGraphVisFile = argc > 4 ? argv[4] : "";
 
     try {
-        tigl::run(inputDirectory, srcDirectory, outputDirectory, typeSystemGraphVisFile);
+        tigl::run(inputDirectory, runtimeDirectory, outputDirectory, typeSystemGraphVisFile);
         return 0;
     } catch (const std::exception& e) {
         std::cerr << "Exception: " << e.what() << std::endl;

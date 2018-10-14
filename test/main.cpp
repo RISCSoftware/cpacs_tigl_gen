@@ -40,3 +40,7 @@ BOOST_AUTO_TEST_CASE(sequence) {
 BOOST_AUTO_TEST_CASE(all) {
     runTest();
 }
+
+BOOST_AUTO_TEST_CASE(choice) {
+    runTest();
+}

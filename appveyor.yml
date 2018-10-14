@@ -1,0 +1,17 @@
+image: Visual Studio 2017
+environment:
+  VCPKG_DEFAULT_TRIPLET: x64-windows
+
+install:
+  - call C:\\Miniconda35-x64\\Scripts\\activate.bat
+  - conda install --yes -c dlr-sc tixi3
+    
+build_script:
+- ps: |
+    mkdir build
+    pushd build
+    cmake -DBOOST_ROOT=C:\Libraries\boost_1_67_0 -G "Visual Studio 15 2017 Win64" ..
+    cmake --build . --config "Release"
+
+test_script:
+  - Release\tests

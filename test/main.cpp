@@ -36,3 +36,7 @@ void runTest() {
 BOOST_AUTO_TEST_CASE(sequence) {
     runTest();
 }
+
+BOOST_AUTO_TEST_CASE(all) {
+    runTest();
+}

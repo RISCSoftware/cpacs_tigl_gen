@@ -57,6 +57,12 @@ list(APPEND TEST_INPUTS ${CMAKE_BINARY_DIR}/test/paths.h)
 add_executable(tests ${TEST_INPUTS})
 source_group(" " FILES ${TEST_INPUTS})
 
+if(NOT Boost_USE_STATIC_LIBS)
+	target_compile_definitions(tests PUBLIC
+		-DBOOST_TEST_DYN_LINK
+	)
+endif()
+
 target_include_directories(tests PUBLIC
 	${CMAKE_BINARY_DIR}/test
 )

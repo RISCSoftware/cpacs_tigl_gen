@@ -29,7 +29,7 @@ namespace tigl {
             }
 
             Group readGroup(const std::string& xpath, const std::string& containingTypeName) {
-                throw NotImplementedException("XSD group is not implemented");
+                throw NotImplementedException("XSD group is not implemented. xpath: " + xpath);
                 return Group();
             }
 
@@ -119,7 +119,7 @@ namespace tigl {
                 // >
                 // (annotation?)
                 // </any>
-                throw NotImplementedException("XSD any is not implemented");
+                throw NotImplementedException("XSD any is not implemented. xpath: " + xpath);
                 return Any();
             }
 
@@ -169,19 +169,19 @@ namespace tigl {
                 // </complexContent>
 
                 if (document.checkElement(xpath + "/xsd:restriction"))
-                    throw NotImplementedException("XSD complexType complexContent restriction is not implemented");
+                    throw NotImplementedException("XSD complexType complexContent restriction is not implemented. xpath: " + xpath);
                 else if (document.checkElement(xpath + "/xsd:extension"))
                     readExtension(xpath + "/xsd:extension", type);
             }
 
             void readComplexTypeElementConfiguration(const std::string& xpath, ComplexType& type) {
-                if (document.checkElement(xpath + "/xsd:all"))      type.content = readAll(xpath + "/xsd:all", stripTypeSuffix(type.name));
+                     if (document.checkElement(xpath + "/xsd:all"))      type.content = readAll(xpath + "/xsd:all", stripTypeSuffix(type.name));
                 else if (document.checkElement(xpath + "/xsd:sequence")) type.content = readSequence(xpath + "/xsd:sequence", stripTypeSuffix(type.name));
                 else if (document.checkElement(xpath + "/xsd:choice"))   type.content = readChoice(xpath + "/xsd:choice", stripTypeSuffix(type.name));
                 else if (document.checkElement(xpath + "/xsd:group"))    type.content = readGroup(xpath + "/xsd:group", stripTypeSuffix(type.name));
                 else if (document.checkElement(xpath + "/xsd:any"))      type.content = readAny(xpath + "/xsd:any", stripTypeSuffix(type.name));
 
-                if (document.checkElement(xpath + "/xsd:complexContent")) readComplexContent(xpath + "/xsd:complexContent", type);
+                     if (document.checkElement(xpath + "/xsd:complexContent")) readComplexContent(xpath + "/xsd:complexContent", type);
                 else if (document.checkElement(xpath + "/xsd:simpleContent"))  readSimpleContent(xpath + "/xsd:simpleContent", type);
             }
 
@@ -246,15 +246,15 @@ namespace tigl {
                 type.name = name;
 
                 if (document.checkAttribute(xpath, "id"))
-                    throw NotImplementedException("XSD complextype id is not implemented");
+                    throw NotImplementedException("XSD complextype id is not implemented. xpath: " + xpath);
                 if (document.checkAttribute(xpath, "abstract"))
-                    throw NotImplementedException("XSD complextype abstract is not implemented");
+                    throw NotImplementedException("XSD complextype abstract is not implemented. xpath: " + xpath);
                 if (document.checkAttribute(xpath, "mixed"))
-                    throw NotImplementedException("XSD complextype mixed is not implemented");
+                    throw NotImplementedException("XSD complextype mixed is not implemented. xpath: " + xpath);
                 if (document.checkAttribute(xpath, "block"))
-                    throw NotImplementedException("XSD complextype block is not implemented");
+                    throw NotImplementedException("XSD complextype block is not implemented. xpath: " + xpath);
                 if (document.checkAttribute(xpath, "final"))
-                    throw NotImplementedException("XSD complextype final is not implemented");
+                    throw NotImplementedException("XSD complextype final is not implemented. xpath: " + xpath);
 
                 // read element configuration
                 readComplexTypeElementConfiguration(xpath, type);
@@ -272,7 +272,7 @@ namespace tigl {
                             type.attributes.push_back(readAttribute(xpath, name));
                         });
                         if (document.checkElement(xpath + "/xsd:attributeGroup")) {
-                            throw NotImplementedException("XSD complexType attributeGroup is not implemented");
+                            throw NotImplementedException("XSD complexType attributeGroup is not implemented. xpath: " + xpath);
                         }
                     }
                 }
@@ -340,7 +340,7 @@ namespace tigl {
                     std::cerr << "XSD restriction " << element << " is not implemented. No restrictions will be checked by generated code" << std::endl;
                 };
 
-                if (document.checkElement(xpath + "/xsd:simpleType"    )) throw NotImplementedException("XSD restriction simpleType is not implemented");
+                if (document.checkElement(xpath + "/xsd:simpleType"    )) throw NotImplementedException("XSD restriction simpleType is not implemented. xpath: " + xpath);
                 if (document.checkElement(xpath + "/xsd:minExclusive"  )) writeError("minExclusive"  );
                 if (document.checkElement(xpath + "/xsd:minInclusive"  )) writeError("minInclusive"  );
                 if (document.checkElement(xpath + "/xsd:maxExclusive"  )) writeError("maxExclusive"  );
@@ -380,11 +380,11 @@ namespace tigl {
                 type.name = name;
 
                 if (document.checkAttribute(xpath, "id"))
-                    throw NotImplementedException("XSD complextype id is not implemented");
+                    throw NotImplementedException("XSD complextype id is not implemented. xpath: " + xpath);
 
                      if (document.checkElement(xpath + "/xsd:restriction")) readRestriction(xpath + "/xsd:restriction", type);
-                else if (document.checkElement(xpath + "/xsd:list"       )) throw NotImplementedException("XSD simpleType list is not implemented");
-                else if (document.checkElement(xpath + "/xsd:union"      )) throw NotImplementedException("XSD simpleType union is not implemented");
+                else if (document.checkElement(xpath + "/xsd:list"       )) throw NotImplementedException("XSD simpleType list is not implemented. xpath: " + xpath);
+                else if (document.checkElement(xpath + "/xsd:union"      )) throw NotImplementedException("XSD simpleType union is not implemented. xpath: " + xpath);
 
                 // add only simple types with restrictions (will become enums), otherwise just return underlying type
                 if (!type.restrictionValues.empty()) {

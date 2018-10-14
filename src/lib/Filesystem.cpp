@@ -67,10 +67,12 @@ namespace tigl {
 	}
 
 	void Filesystem::mergeFilesInto(boost::filesystem::path filename) {
-		auto& f = newFile(std::move(filename));
+		File f(std::move(filename));
 		for (auto& file : m_files) {
 			auto str = file.m_stream->str();
 			f.m_stream->write(str.c_str(), str.size());
 		}
+		m_files.clear();
+		m_files.push_back(std::move(f));
 	}
 }

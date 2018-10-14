@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TixiHelper.h"
+#include "runtime/TixiHelper.h"
 
 namespace tigl {
     namespace tixihelper {

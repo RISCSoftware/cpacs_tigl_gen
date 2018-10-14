@@ -23,28 +23,32 @@ mark_as_advanced(CLEAR Boost_USE_STATIC_LIBS)
 set(CMAKE_PREFIX_PATH "${TIXI_PATH};${CMAKE_PREFIX_PATH}")
 find_package(TIXI REQUIRED)
 
-# input files and exe
-file(GLOB ALL_INPUTS src/*.cpp *src/*.h *.md)
-add_executable(${PROJECT_NAME} ${ALL_INPUTS})
-source_group(" " FILES ${ALL_INPUTS})
+# lib
+file(GLOB LIB_INPUTS src/lib/*.cpp *src/lib/*.h)
+add_library(lib${PROJECT_NAME} ${LIB_INPUTS})
+source_group(" " FILES ${LIB_INPUTS})
 
-# compile definitions
-target_compile_definitions(${PROJECT_NAME} PRIVATE
+target_compile_definitions(lib${PROJECT_NAME} PUBLIC
 	-DCPACS_GEN
 )
 
-# includes
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(lib${PROJECT_NAME} PUBLIC
 	${Boost_INCLUDE_DIRS}
 	${TIXI_INCLUDE_DIRS}
 )
 
-# library dependencies
+# driver
+file(GLOB DRIVER_INPUTS src/driver/*.cpp *src/driver/*.h *.md)
+add_executable(${PROJECT_NAME} ${DRIVER_INPUTS})
+source_group(" " FILES ${DRIVER_INPUTS})
+
 target_link_libraries(${PROJECT_NAME}
+	lib${PROJECT_NAME}
 	${Boost_LIBRARIES}
 	${TIXI_LIBRARIES}
 )
 
+# generate target
 if(TIGL_PATH)
 	set(GENERATOR_INPUT_DIR  ${TIGL_PATH}/cpacs_gen_input CACHE PATH "Generator input files (Tigl cpacs_gen_input directory)")
 	set(GENERATOR_OUTPUT_DIR ${TIGL_PATH}/src/generated   CACHE PATH "Output directory for the generated CPACS classes (Tigl src/generated directory)")
@@ -52,18 +56,13 @@ if(TIGL_PATH)
 	# add custom target to generate files side by side to TIGL source
 	add_custom_target(
 		generate
-		COMMAND ${PROJECT_NAME} ${GENERATOR_INPUT_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src ${GENERATOR_OUTPUT_DIR}
+		COMMAND ${PROJECT_NAME} ${GENERATOR_INPUT_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/runtime ${GENERATOR_OUTPUT_DIR}
 		COMMENT Running CPACSGen
 		VERBATIM
 	)
 else()
 	message(WARNING "TIGL_PATH is not specified. Target generate will not be created")
 endif()
-
-# linker flags
-if (NOT WIN32)
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-endif (NOT WIN32)
 
 # copy shared library to ouput directory
 if (WIN32)

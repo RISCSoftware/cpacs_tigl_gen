@@ -53,8 +53,8 @@ For each subdirectory, CPACSGen runs an additional pass, putting the generated f
 The CPACSGen executable takes the following positional command line options:
 1. Input directory  
    The directory containing the CPACS schema and the table files
-2. CPACSGen src directory  
-   The src directory of the CPACSGen source code, the CPACSGen output runtime files are taken from here
+2. runtime src directory  
+   The directory of the runtime source code copied to the output directory, typically src/lib/runtime inside your working copy
 3. Output directory  
    The directory to which the CPACSGen output files are written
 4. (optional) output Graphviz file  

@@ -1,3 +1,5 @@
+Build-Status: [![Build Status](https://travis-ci.org/RISCSoftware/cpacs_tigl_gen.svg?branch=master)](https://travis-ci.org/RISCSoftware/cpacs_tigl_gen)
+
 # CPACSGen
 
 CPACSGen (short for CPACS generator) creates source code for classes and enums from the types defined in a CPACS XML schema file for the TiGL library.
@@ -26,7 +28,7 @@ Given an input directory, CPACSGen searches for the following input files:
 * TypeSubstitution.txt
 
 These files are typically part of the TiGL distribution and do not have to be created.
-Altering these files influences CPACSGen’s output and may require further adaption of the TiGL code depending on the generated code.
+Altering these files influences CPACSGenâ€™s output and may require further adaption of the TiGL code depending on the generated code.
 
 In addition to these files, three more files have existed with are now compiled into CPACSGen and inside Tables.cpp:
 * FundamentalTypes.txt

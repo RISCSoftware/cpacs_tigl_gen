@@ -1,0 +1,25 @@
+dist: trusty
+language: cpp
+sudo: required
+
+addons: 
+  apt: 
+    packages: libboost-all-dev
+    sources:
+      - sourceline: 'ppa:mhier/libboost-latest'
+    packages:
+      - boost1.67
+
+before_install:
+  - curl http://download.opensuse.org/repositories/science:/dlr/xUbuntu_14.04/Release.key | sudo apt-key add -
+  - echo "deb http://download.opensuse.org/repositories/science:/dlr/xUbuntu_14.04/ /" | sudo tee -a /etc/apt/sources.list
+  - sudo apt-get update -qq
+  - sudo apt-get install -y --force-yes libtixi3-dev
+
+script:
+  - mkdir build
+  - cd build
+  - cmake -DBoost_USE_STATIC_LIBS=OFF ..
+  - make -j4
+  - ./tests
+  

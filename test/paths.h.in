@@ -1,0 +1,3 @@
+#pragma once
+
+static constexpr auto c_dataDir = "@DATA_DIR@";

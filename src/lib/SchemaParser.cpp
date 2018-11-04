@@ -1,3 +1,5 @@
+#include <boost/algorithm/string.hpp>
+
 #include <iostream>
 #include <regex>
 
@@ -219,7 +221,7 @@ namespace tigl {
                 auto docXPath = xpath;
                 if (document.checkElement(docXPath += "/xsd:annotation"))
                     if (document.checkElement(docXPath += "/xsd:documentation"))
-                        att.documentation = document.textElement(docXPath);
+                        readSchemaDoc(document, att.documentation, docXPath);
 
                 return att;
             }
@@ -238,7 +240,9 @@ namespace tigl {
                     if (name == "#text") {
                         auto text = document.textElement(xpath);
                         static std::regex r("^\\s*");
-                        result += std::regex_replace(text, r, "") + "\n";
+                        text = std::regex_replace(text, r, "") + "\n"; // clear leading whitespace on each line
+                        boost::trim_right(text); // clear trailing whitespace after last line
+                        result += text;
                     } else {
                         const auto childXPath = xpath + "/ddue:" + name + "[" + std::to_string(++childIndex[name]) + "]";
 
@@ -493,7 +497,7 @@ namespace tigl {
                 auto docXPath = xpath;
                 if (document.checkElement(docXPath += "/xsd:annotation"))
                     if (document.checkElement(docXPath += "/xsd:documentation"))
-                        element.documentation = document.textElement(docXPath);
+                        readSchemaDoc(document, element.documentation, docXPath);
 
                 return element;
             }

@@ -162,7 +162,6 @@ namespace tigl {
 
         void writeDocumentation(IndentingStreamWrapper& hpp, const std::string& documentation) const {
             if (!documentation.empty()) {
-                hpp << EmptyLine;
                 std::vector<std::string> lines;
                 boost::algorithm::split(lines, documentation, boost::is_any_of("\n"));
                 for (const auto& line : lines)
@@ -180,12 +179,11 @@ namespace tigl {
                 //hpp << "// generated from " << f.originXPath;
                 writeDocumentation(hpp, f.documentation);
                 hpp << std::left << std::setw(length) << fieldType(f) << " " << f.fieldName() << ";";
+                hpp << EmptyLine;
 
                 //if (&f != &fields.back())
                 //    hpp << EmptyLine;
             }
-            if (!fields.empty())
-                hpp << EmptyLine;
         }
 
         void writeAccessorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) const {

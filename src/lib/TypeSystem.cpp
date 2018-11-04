@@ -187,6 +187,7 @@ namespace tigl {
                     void operator()(const xsd::ComplexType& type) {
                         Class c;
                         c.originXPath = type.xpath;
+                        c.documentation = type.documentation;
                         c.name = makeClassName(type.name);
                         std::tie(c.fields, c.choices) = buildFieldListAndChoiceExpression(types, type, tables);
 

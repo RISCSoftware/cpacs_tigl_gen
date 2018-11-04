@@ -110,6 +110,8 @@ namespace tigl {
         ChoiceElements choices;
         bool pruned = false;
 
+        std::string documentation;
+
         ClassDependencies deps;
     };
 

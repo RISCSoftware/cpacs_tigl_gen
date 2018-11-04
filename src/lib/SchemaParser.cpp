@@ -1,4 +1,5 @@
 #include <iostream>
+#include <regex>
 
 #include "NotImplementedException.h"
 #include "SchemaParser.h"
@@ -13,7 +14,7 @@ namespace tigl {
         public:
             SchemaParser(const std::string& cpacsLocation)
                 : document(tixihelper::TixiDocument::createFromFile(cpacsLocation)) {
-                document.registerNamespace("http://www.w3.org/2001/XMLSchema", "xsd");
+                document.registerNamespaces();
 
                 document.forEachChild("/xsd:schema/xsd:simpleType", [&](const std::string& xpath) {
                     readSimpleType(xpath);
@@ -217,6 +218,44 @@ namespace tigl {
                 return att;
             }
 
+            void readSchemaDoc(tixihelper::TixiDocument& document, std::string& result, const std::string& xpath) {
+                int count = 0;
+                tixiGetNumberOfChilds(document.handle(), xpath.c_str(), &count);
+
+                std::unordered_map<std::string, int> childIndex;
+
+                for (int i = 1; i <= count; i++) {
+                    char* namePtr = nullptr;
+                    tixiGetChildNodeName(document.handle(), xpath.c_str(), i, &namePtr);
+
+                    const auto name = std::string(namePtr);
+                    if (name == "#text") {
+                        auto text = document.textElement(xpath);
+                        static std::regex r("^\\s*");
+                        result += std::regex_replace(text, r, "") + "\n";
+                    } else {
+                        const auto childXPath = xpath + "/ddue:" + name + "[" + std::to_string(++childIndex[name]) + "]";
+
+                        int acount = 0;
+                        tixiGetNumberOfAttributes(document.handle(), childXPath.c_str(), &acount);
+
+                        result += "<" + name;
+                        for (int i = 1; i <= acount; i++) {
+                            char* aNamePtr = nullptr;
+                            tixiGetAttributeName(document.handle(), childXPath.c_str(), i, &aNamePtr);
+                            const auto colonPos = std::strchr(aNamePtr, ':'); // strip namespace
+                            const auto attName = std::string(colonPos ? colonPos + 1 : aNamePtr);
+
+                            const auto attValue = document.textAttribute(childXPath, attName);
+                            result += " " + attName + "=\"" + attValue + "\"";
+                        }
+                        result += ">\n";
+                        readSchemaDoc(document, result, childXPath);
+                        result += "</" + name + ">\n";
+                    }
+                }
+            }
+
             std::string readComplexType(const std::string& xpath, const std::string& nameHint = "") {
                 // <complexType
                 // id=ID
@@ -276,6 +315,13 @@ namespace tigl {
                         }
                     }
                 }
+
+                // read documentation
+                auto docXPath = xpath;
+                if (document.checkElement(docXPath += "/xsd:annotation"))
+                    if (document.checkElement(docXPath += "/xsd:appinfo"))
+                        if (document.checkElement(docXPath += "/sd:schemaDoc"))
+                            readSchemaDoc(document, type.documentation, docXPath);
 
                 // try to inline simple contents
                 if (type.attributes.empty() && type.base.empty() && type.content.is<SimpleContent>()) {

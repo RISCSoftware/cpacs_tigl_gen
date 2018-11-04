@@ -63,6 +63,7 @@ namespace tigl {
         struct ComplexType : Type {
             Variant<Group, All, Choice, Sequence, SimpleContent, Any> content;
             std::vector<Attribute> attributes;
+            std::string documentation;
         };
 
         struct SimpleType : Type {

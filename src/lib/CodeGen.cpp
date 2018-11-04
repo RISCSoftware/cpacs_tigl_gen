@@ -1303,6 +1303,16 @@ namespace tigl {
 
                     hpp << "// generated from " << c.originXPath << "";
 
+                    // documentation
+                    if (!c.documentation.empty()) {
+                        hpp << "";
+                        std::vector<std::string> lines;
+                        boost::algorithm::split(lines, c.documentation, boost::is_any_of("\n"));
+                        for(const auto& line : lines)
+                            if (!line.empty())
+                                hpp << "/// " << line;
+                    }
+
                     // class name and base class
                     hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + customReplacedType(c.base));
                     hpp << "{";

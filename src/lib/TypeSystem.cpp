@@ -59,6 +59,7 @@ namespace tigl {
                 m.minOccurs = a.optional ? 0 : 1;
                 m.maxOccurs = 1;
                 m.defaultValue = a.defaultValue;
+                m.documentation = a.documentation;
                 members.push_back(m);
             }
 
@@ -95,6 +96,7 @@ namespace tigl {
                     m.minOccurs = e.minOccurs;
                     m.maxOccurs = e.maxOccurs;
                     m.defaultValue = e.defaultValue;
+                    m.documentation = e.documentation;
                     emitField(std::move(m));
                 }
 

@@ -20,6 +20,7 @@ namespace tigl {
             std::string defaultValue;
             std::string fixed;
             bool optional;
+            std::string documentation;
         };
 
         struct Element : XSDElement {
@@ -28,6 +29,7 @@ namespace tigl {
             int minOccurs;
             int maxOccurs;
             std::string defaultValue;
+            std::string documentation;
         };
 
         struct Any : XSDElement {

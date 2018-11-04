@@ -160,6 +160,17 @@ namespace tigl {
             return getterSetterType(field);
         }
 
+        void writeDocumentation(IndentingStreamWrapper& hpp, const std::string& documentation) const {
+            if (!documentation.empty()) {
+                hpp << EmptyLine;
+                std::vector<std::string> lines;
+                boost::algorithm::split(lines, documentation, boost::is_any_of("\n"));
+                for (const auto& line : lines)
+                    if (!line.empty())
+                        hpp << "/// " << line;
+            }
+        }
+
         void writeFields(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) const {
             std::size_t length = 0;
             for (const auto& f : fields)
@@ -167,6 +178,7 @@ namespace tigl {
 
             for (const auto& f : fields) {
                 //hpp << "// generated from " << f.originXPath;
+                writeDocumentation(hpp, f.documentation);
                 hpp << std::left << std::setw(length) << fieldType(f) << " " << f.fieldName() << ";";
 
                 //if (&f != &fields.back())
@@ -1304,14 +1316,7 @@ namespace tigl {
                     hpp << "// generated from " << c.originXPath << "";
 
                     // documentation
-                    if (!c.documentation.empty()) {
-                        hpp << "";
-                        std::vector<std::string> lines;
-                        boost::algorithm::split(lines, c.documentation, boost::is_any_of("\n"));
-                        for(const auto& line : lines)
-                            if (!line.empty())
-                                hpp << "/// " << line;
-                    }
+                    writeDocumentation(hpp, c.documentation);
 
                     // class name and base class
                     hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + customReplacedType(c.base));

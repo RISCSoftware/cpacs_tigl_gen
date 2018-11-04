@@ -215,6 +215,12 @@ namespace tigl {
                 if (document.checkAttribute(xpath, "fixed"))
                     att.fixed = document.textAttribute(xpath, "fixed");
 
+                // documentation
+                auto docXPath = xpath;
+                if (document.checkElement(docXPath += "/xsd:annotation"))
+                    if (document.checkElement(docXPath += "/xsd:documentation"))
+                        att.documentation = document.textElement(docXPath);
+
                 return att;
             }
 
@@ -482,6 +488,12 @@ namespace tigl {
                 // default
                 if (document.checkAttribute(xpath, "default"))
                     element.defaultValue = document.textAttribute(xpath, "default");
+
+                // documentation
+                auto docXPath = xpath;
+                if (document.checkElement(docXPath += "/xsd:annotation"))
+                    if (document.checkElement(docXPath += "/xsd:documentation"))
+                        element.documentation = document.textElement(docXPath);
 
                 return element;
             }

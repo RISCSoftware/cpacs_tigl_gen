@@ -27,7 +27,7 @@ namespace generated
 {
     // This class is used in:
     // generated from /xsd:schema/xsd:complexType[1]
-    
+
     /// <summary>
     /// <para>
     /// Summary
@@ -57,6 +57,9 @@ namespace generated
         TIGL_EXPORT virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);
         TIGL_EXPORT virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;
 
+        TIGL_EXPORT virtual const int& GetC() const;
+        TIGL_EXPORT virtual void SetC(const int& value);
+
         TIGL_EXPORT virtual const int& GetA() const;
         TIGL_EXPORT virtual void SetA(const int& value);
 
@@ -64,6 +67,11 @@ namespace generated
         TIGL_EXPORT virtual void SetB(const int& value);
 
     protected:
+
+        /// attribute documentation
+        int m_c;
+
+        /// element documentation
         int m_a;
         int m_b;
 
@@ -115,7 +123,8 @@ namespace tigl
 namespace generated
 {
     CPACSRoot::CPACSRoot()
-        : m_a(0)
+        : m_c(0)
+        , m_a(0)
         , m_b(0)
     {
     }
@@ -126,6 +135,14 @@ namespace generated
 
     void CPACSRoot::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
     {
+        // read attribute c
+        if (tixi::TixiCheckAttribute(tixiHandle, xpath, "c")) {
+            m_c = tixi::TixiGetAttribute<int>(tixiHandle, xpath, "c");
+        }
+        else {
+            LOG(ERROR) << "Required attribute c is missing at xpath " << xpath;
+        }
+
         // read element a
         if (tixi::TixiCheckElement(tixiHandle, xpath + "/a")) {
             m_a = tixi::TixiGetElement<int>(tixiHandle, xpath + "/a");
@@ -146,6 +163,9 @@ namespace generated
 
     void CPACSRoot::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
     {
+        // write attribute c
+        tixi::TixiSaveAttribute(tixiHandle, xpath, "c", m_c);
+
         // write element a
         tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/a");
         tixi::TixiSaveElement(tixiHandle, xpath + "/a", m_a);
@@ -154,6 +174,16 @@ namespace generated
         tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/b");
         tixi::TixiSaveElement(tixiHandle, xpath + "/b", m_b);
 
+    }
+
+    const int& CPACSRoot::GetC() const
+    {
+        return m_c;
+    }
+
+    void CPACSRoot::SetC(const int& value)
+    {
+        m_c = value;
     }
 
     const int& CPACSRoot::GetA() const

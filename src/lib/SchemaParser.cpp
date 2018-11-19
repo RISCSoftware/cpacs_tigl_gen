@@ -240,29 +240,32 @@ namespace tigl {
                     if (name == "#text") {
                         auto text = document.textElement(xpath);
                         static std::regex r("^\\s*");
-                        text = std::regex_replace(text, r, "") + "\n"; // clear leading whitespace on each line
+                        text = std::regex_replace(text, r, ""); // clear leading whitespace on each line
                         boost::trim_right(text); // clear trailing whitespace after last line
+                        if (!result.empty() && result.back() != '\n')
+                            result += ' ';
                         result += text;
-                    } else {
-                        const auto childXPath = xpath + "/ddue:" + name + "[" + std::to_string(++childIndex[name]) + "]";
-
-                        int acount = 0;
-                        tixiGetNumberOfAttributes(document.handle(), childXPath.c_str(), &acount);
-
-                        result += "<" + name;
-                        for (int i = 1; i <= acount; i++) {
-                            char* aNamePtr = nullptr;
-                            tixiGetAttributeName(document.handle(), childXPath.c_str(), i, &aNamePtr);
-                            const auto colonPos = std::strchr(aNamePtr, ':'); // strip namespace
-                            const auto attName = std::string(colonPos ? colonPos + 1 : aNamePtr);
-
-                            const auto attValue = document.textAttribute(childXPath, attName);
-                            result += " " + attName + "=\"" + attValue + "\"";
-                        }
-                        result += ">\n";
-                        readSchemaDoc(document, result, childXPath);
-                        result += "</" + name + ">\n";
+                        continue;
                     }
+
+                    const auto childXPath = xpath + "/ddue:" + name + "[" + std::to_string(++childIndex[name]) + "]";
+
+                    if (name == "summary") {
+                        result += "@brief";
+                        readSchemaDoc(document, result, childXPath);
+                        result += '\n';
+                    } else if (name == "para" || name == "title") {
+                        readSchemaDoc(document, result, childXPath);
+                        result += "\n";
+                    } else if (name == "mediaLink") {
+                        const auto imageXPath = childXPath + "/ddue:image";
+                        if (document.checkElement(imageXPath) && document.checkAttribute(imageXPath, "href")) {
+                            const auto href = document.textAttribute(imageXPath, "href");
+                            result += "@see " + href + '\n';
+                        }
+                    } else
+                        readSchemaDoc(document, result, childXPath);
+
                 }
             }
 

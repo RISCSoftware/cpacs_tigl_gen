@@ -165,8 +165,7 @@ namespace tigl {
                 std::vector<std::string> lines;
                 boost::algorithm::split(lines, documentation, boost::is_any_of("\n"));
                 for (const auto& line : lines)
-                    if (!line.empty())
-                        hpp << "/// " << line;
+                    hpp << "/// " << line;
             }
         }
 

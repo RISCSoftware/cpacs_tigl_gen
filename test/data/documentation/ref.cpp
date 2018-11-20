@@ -27,27 +27,13 @@ namespace generated
 {
     // This class is used in:
     // generated from /xsd:schema/xsd:complexType[1]
-
-    /// <summary>
-    /// <para>
-    /// Summary
-    /// </para>
-    /// </summary>
-    /// <remarks>
-    /// <para>
+    /// @brief Summary
+    /// 
     /// Remarks1
-    /// </para>
-    /// <para>
     /// Remarks2
-    /// </para>
-    /// <para>
     /// Remarks3
-    /// </para>
-    /// </remarks>
-    /// <mediaLink>
-    /// <image href="http://link.com">
-    /// </image>
-    /// </mediaLink>
+    /// @see http://link.com
+    /// 
     class CPACSRoot
     {
     public:
@@ -67,12 +53,12 @@ namespace generated
         TIGL_EXPORT virtual void SetB(const int& value);
 
     protected:
-
         /// attribute documentation
         int m_c;
 
         /// element documentation
         int m_a;
+
         int m_b;
 
     private:

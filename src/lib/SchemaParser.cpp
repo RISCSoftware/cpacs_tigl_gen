@@ -265,7 +265,6 @@ namespace tigl {
                         }
                     } else
                         readSchemaDoc(document, result, childXPath);
-
                 }
             }
 

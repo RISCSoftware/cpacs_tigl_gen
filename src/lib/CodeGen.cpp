@@ -174,14 +174,16 @@ namespace tigl {
             for (const auto& f : fields)
                 length = std::max(length, fieldType(f).length());
 
+            const auto haveAnyDocumentation = std::any_of(begin(fields), end(fields), [](const Field& f) {
+                return !f.documentation.empty();
+            });
             for (const auto& f : fields) {
                 //hpp << "// generated from " << f.originXPath;
                 writeDocumentation(hpp, f.documentation);
                 hpp << std::left << std::setw(length) << fieldType(f) << " " << f.fieldName() << ";";
-                hpp << EmptyLine;
 
-                //if (&f != &fields.back())
-                //    hpp << EmptyLine;
+                if (haveAnyDocumentation || &f == &fields.back())
+                    hpp << EmptyLine;
             }
         }
 

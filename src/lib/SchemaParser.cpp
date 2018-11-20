@@ -1,3 +1,6 @@
+#include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
+
 #include <iostream>
 
 #include "NotImplementedException.h"
@@ -13,7 +16,7 @@ namespace tigl {
         public:
             SchemaParser(const std::string& cpacsLocation)
                 : document(tixihelper::TixiDocument::createFromFile(cpacsLocation)) {
-                document.registerNamespace("http://www.w3.org/2001/XMLSchema", "xsd");
+                document.registerNamespaces();
 
                 document.forEachChild("/xsd:schema/xsd:simpleType", [&](const std::string& xpath) {
                     readSimpleType(xpath);
@@ -214,7 +217,55 @@ namespace tigl {
                 if (document.checkAttribute(xpath, "fixed"))
                     att.fixed = document.textAttribute(xpath, "fixed");
 
+                // documentation
+                auto docXPath = xpath;
+                if (document.checkElement(docXPath += "/xsd:annotation"))
+                    if (document.checkElement(docXPath += "/xsd:documentation"))
+                        readSchemaDoc(document, att.documentation, docXPath);
+
                 return att;
+            }
+
+            void readSchemaDoc(tixihelper::TixiDocument& document, std::string& result, const std::string& xpath) {
+                int count = 0;
+                tixiGetNumberOfChilds(document.handle(), xpath.c_str(), &count);
+
+                std::unordered_map<std::string, int> childIndex;
+
+                for (int i = 1; i <= count; i++) {
+                    char* namePtr = nullptr;
+                    tixiGetChildNodeName(document.handle(), xpath.c_str(), i, &namePtr);
+
+                    const auto name = std::string(namePtr);
+                    if (name == "#text") {
+                        auto text = document.textElement(xpath);
+                        static boost::regex r("^\\s*");
+                        text = boost::regex_replace(text, r, ""); // clear leading whitespace on each line
+                        boost::trim_right(text); // clear trailing whitespace after last line
+                        if (!result.empty() && result.back() != '\n')
+                            result += ' ';
+                        result += text;
+                        continue;
+                    }
+
+                    const auto childXPath = xpath + "/ddue:" + name + "[" + std::to_string(++childIndex[name]) + "]";
+
+                    if (name == "summary") {
+                        result += "@brief";
+                        readSchemaDoc(document, result, childXPath);
+                        result += '\n';
+                    } else if (name == "para" || name == "title") {
+                        readSchemaDoc(document, result, childXPath);
+                        result += "\n";
+                    } else if (name == "mediaLink") {
+                        const auto imageXPath = childXPath + "/ddue:image";
+                        if (document.checkElement(imageXPath) && document.checkAttribute(imageXPath, "href")) {
+                            const auto href = document.textAttribute(imageXPath, "href");
+                            result += "@see " + href + '\n';
+                        }
+                    } else
+                        readSchemaDoc(document, result, childXPath);
+                }
             }
 
             std::string readComplexType(const std::string& xpath, const std::string& nameHint = "") {
@@ -276,6 +327,13 @@ namespace tigl {
                         }
                     }
                 }
+
+                // read documentation
+                auto docXPath = xpath;
+                if (document.checkElement(docXPath += "/xsd:annotation"))
+                    if (document.checkElement(docXPath += "/xsd:appinfo"))
+                        if (document.checkElement(docXPath += "/sd:schemaDoc"))
+                            readSchemaDoc(document, type.documentation, docXPath);
 
                 // try to inline simple contents
                 if (type.attributes.empty() && type.base.empty() && type.content.is<SimpleContent>()) {
@@ -436,6 +494,12 @@ namespace tigl {
                 // default
                 if (document.checkAttribute(xpath, "default"))
                     element.defaultValue = document.textAttribute(xpath, "default");
+
+                // documentation
+                auto docXPath = xpath;
+                if (document.checkElement(docXPath += "/xsd:annotation"))
+                    if (document.checkElement(docXPath += "/xsd:documentation"))
+                        readSchemaDoc(document, element.documentation, docXPath);
 
                 return element;
             }

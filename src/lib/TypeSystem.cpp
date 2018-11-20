@@ -59,6 +59,7 @@ namespace tigl {
                 m.minOccurs = a.optional ? 0 : 1;
                 m.maxOccurs = 1;
                 m.defaultValue = a.defaultValue;
+                m.documentation = a.documentation;
                 members.push_back(m);
             }
 
@@ -95,6 +96,7 @@ namespace tigl {
                     m.minOccurs = e.minOccurs;
                     m.maxOccurs = e.maxOccurs;
                     m.defaultValue = e.defaultValue;
+                    m.documentation = e.documentation;
                     emitField(std::move(m));
                 }
 
@@ -187,6 +189,7 @@ namespace tigl {
                     void operator()(const xsd::ComplexType& type) {
                         Class c;
                         c.originXPath = type.xpath;
+                        c.documentation = type.documentation;
                         c.name = makeClassName(type.name);
                         std::tie(c.fields, c.choices) = buildFieldListAndChoiceExpression(types, type, tables);
 

@@ -48,6 +48,7 @@ namespace tigl {
         unsigned int minOccurs = 0;
         unsigned int maxOccurs = 0;
         std::string defaultValue;
+        std::string documentation;
 
         std::string namePostfix;
 
@@ -109,6 +110,8 @@ namespace tigl {
         std::vector<Field> fields;
         ChoiceElements choices;
         bool pruned = false;
+
+        std::string documentation;
 
         ClassDependencies deps;
     };

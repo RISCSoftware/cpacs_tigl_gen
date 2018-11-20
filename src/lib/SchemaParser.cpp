@@ -1,7 +1,7 @@
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
 
 #include <iostream>
-#include <regex>
 
 #include "NotImplementedException.h"
 #include "SchemaParser.h"
@@ -239,8 +239,8 @@ namespace tigl {
                     const auto name = std::string(namePtr);
                     if (name == "#text") {
                         auto text = document.textElement(xpath);
-                        static std::regex r("^\\s*");
-                        text = std::regex_replace(text, r, ""); // clear leading whitespace on each line
+                        static boost::regex r("^\\s*");
+                        text = boost::regex_replace(text, r, ""); // clear leading whitespace on each line
                         boost::trim_right(text); // clear trailing whitespace after last line
                         if (!result.empty() && result.back() != '\n')
                             result += ' ';

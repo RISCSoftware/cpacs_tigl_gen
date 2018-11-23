@@ -22,7 +22,7 @@
 		<xsd:all>
 			<xsd:element name="a" type="xsd:integer">
 				<xsd:annotation>
-					<xsd:documentation>element documentation</xsd:documentation>
+					<xsd:documentation>element <ddue:bold>documentation</ddue:bold> with b<ddue:bold>o</ddue:bold>ld</xsd:documentation>
 				</xsd:annotation>
 			</xsd:element>
 			<xsd:element name="b" type="xsd:integer"/>

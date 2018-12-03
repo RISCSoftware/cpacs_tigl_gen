@@ -248,16 +248,16 @@ namespace tigl {
                         continue;
                     }
 
-                    const auto childXPath = xpath + "/ddue:" + name + "[" + std::to_string(++childIndex[name]) + "]";
+                    const auto childXPath = xpath + "/" + name + "[" + std::to_string(++childIndex[name]) + "]";
 
-                    if (name == "summary") {
+                    if (name == "ddue:summary") {
                         result += "@brief";
                         readSchemaDoc(document, result, childXPath);
                         result += '\n';
-                    } else if (name == "para" || name == "title") {
+                    } else if (name == "ddue:para" || name == "ddue:title") {
                         readSchemaDoc(document, result, childXPath);
                         result += "\n";
-                    } else if (name == "mediaLink") {
+                    } else if (name == "ddue:mediaLink") {
                         const auto imageXPath = childXPath + "/ddue:image";
                         if (document.checkElement(imageXPath) && document.checkAttribute(imageXPath, "href")) {
                             const auto href = document.textAttribute(imageXPath, "href");

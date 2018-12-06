@@ -21,11 +21,12 @@ mark_as_advanced(CLEAR Boost_USE_STATIC_LIBS)
 
 # find tixi
 set(CMAKE_PREFIX_PATH "${TIXI_PATH};${CMAKE_PREFIX_PATH}")
-find_package(TIXI REQUIRED)
+find_package(tixi3 3.0.3 REQUIRED)
 
 # lib
 file(GLOB LIB_INPUTS src/lib/*.cpp *src/lib/*.h)
 add_library(lib${PROJECT_NAME} ${LIB_INPUTS})
+target_link_libraries(lib${PROJECT_NAME} PUBLIC tixi3)
 source_group(" " FILES ${LIB_INPUTS})
 
 target_compile_definitions(lib${PROJECT_NAME} PUBLIC
@@ -34,7 +35,6 @@ target_compile_definitions(lib${PROJECT_NAME} PUBLIC
 
 target_include_directories(lib${PROJECT_NAME} PUBLIC
 	${Boost_INCLUDE_DIRS}
-	${TIXI_INCLUDE_DIRS}
 )
 
 # driver
@@ -45,7 +45,6 @@ source_group(" " FILES ${DRIVER_INPUTS})
 target_link_libraries(${PROJECT_NAME}
 	lib${PROJECT_NAME}
 	${Boost_LIBRARIES}
-	${TIXI_LIBRARIES}
 )
 
 # tests
@@ -70,7 +69,6 @@ target_include_directories(tests PUBLIC
 target_link_libraries(tests
 	lib${PROJECT_NAME}
 	${Boost_LIBRARIES}
-	${TIXI_LIBRARIES}
 )
 
 # generate target
@@ -91,6 +89,5 @@ endif()
 
 # copy shared library to ouput directory
 if (WIN32)
-	get_target_property(TIXI_SHARED_LIBRARY tixi3 LOCATION)
-	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${TIXI_SHARED_LIBRARY}" "${CMAKE_BINARY_DIR}/$<CONFIG>/")
+	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND "${CMAKE_COMMAND}" -E copy_if_different "$<TARGET_FILE:tixi3>" "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
 endif (WIN32)

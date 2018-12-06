@@ -56,7 +56,7 @@ namespace generated
         /// attribute documentation
         int m_c;
 
-        /// element documentation
+        /// element documentation with b o ld
         int m_a;
 
         int m_b;

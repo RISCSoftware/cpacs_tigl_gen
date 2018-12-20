@@ -63,11 +63,23 @@ namespace tigl {
                 return tixi::TixiGetAttributeNames(m_handle, xpath);
             }
 
+            std::vector<std::string> childElementPaths(const std::string& xpath) const {
+                return tixi::TixiGetChildElementPaths(m_handle, xpath);
+            }
+
             template <typename Func>
             void forEachChild(const std::string& xpath, Func func) const {
-                const auto count = namedChildCount(xpath);
+                const auto childPaths = childElementPaths(xpath);
+                for (const auto& childPath : childPaths)
+                    func(childXPath);
+            }
+
+            template <typename Func>
+            void forEachChild(const std::string& xpath, const std::string& childName, Func func) const {
+                const auto childXPath = xpath + "/" + childName;
+                const auto count = namedChildCount(childXPath);
                 for (int i = 1; i <= count; i++)
-                    func(xpath + "[" + std::to_string(i) + "]");
+                    func(childXPath + "[" + std::to_string(i) + "]");
             }
 
             std::string textAttribute(const std::string& xpath, const std::string& attribute) const {

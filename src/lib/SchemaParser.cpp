@@ -18,15 +18,15 @@ namespace tigl {
                 : document(tixihelper::TixiDocument::createFromFile(cpacsLocation)) {
                 document.registerNamespaces();
 
-                document.forEachChild("/xsd:schema/xsd:simpleType", [&](const std::string& xpath) {
+                document.forEachChild("/xsd:schema", "xsd:simpleType", [&](const std::string& xpath) {
                     readSimpleType(xpath);
                 });
 
-                document.forEachChild("/xsd:schema/xsd:complexType", [&](const std::string& xpath) {
+                document.forEachChild("/xsd:schema", "xsd:complexType", [&](const std::string& xpath) {
                     readComplexType(xpath);
                 });
 
-                document.forEachChild("/xsd:schema/xsd:element", [&](const std::string& xpath) {
+                document.forEachChild("/xsd:schema", "xsd:element", [&](const std::string& xpath) {
                     m_types.roots.push_back(readElement(xpath).type);
                 });
             }
@@ -47,7 +47,7 @@ namespace tigl {
                 // </all>
                 All all;
                 all.xpath = xpath;
-                document.forEachChild(xpath + "/xsd:element", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:element", [&](const std::string& xpath) {
                     all.elements.push_back(readElement(xpath, containingTypeName));
                 });
                 return all;
@@ -64,19 +64,19 @@ namespace tigl {
                 // </choice>
                 Choice ch;
                 ch.xpath = xpath;
-                document.forEachChild(xpath + "/xsd:element", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:element", [&](const std::string& xpath) {
                     ch.elements.push_back(readElement(xpath, containingTypeName));
                 });
-                document.forEachChild(xpath + "/xsd:group", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:group", [&](const std::string& xpath) {
                     ch.elements.push_back(readGroup(xpath, containingTypeName));
                 });
-                document.forEachChild(xpath + "/xsd:choice", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:choice", [&](const std::string& xpath) {
                     ch.elements.push_back(readChoice(xpath, containingTypeName));
                 });
-                document.forEachChild(xpath + "/xsd:sequence", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:sequence", [&](const std::string& xpath) {
                     ch.elements.push_back(readSequence(xpath, containingTypeName));
                 });
-                document.forEachChild(xpath + "/xsd:any", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:any", [&](const std::string& xpath) {
                     ch.elements.push_back(readAny(xpath, containingTypeName));
                 });
                 return ch;
@@ -93,19 +93,19 @@ namespace tigl {
                 // </sequence>
                 Sequence seq;
                 seq.xpath = xpath;
-                document.forEachChild(xpath + "/xsd:element", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:element", [&](const std::string& xpath) {
                     seq.elements.push_back(readElement(xpath, containingTypeName));
                 });
-                document.forEachChild(xpath + "/xsd:group", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:group", [&](const std::string& xpath) {
                     seq.elements.push_back(readGroup(xpath, containingTypeName));
                 });
-                document.forEachChild(xpath + "/xsd:choice", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:choice", [&](const std::string& xpath) {
                     seq.elements.push_back(readChoice(xpath, containingTypeName));
                 });
-                document.forEachChild(xpath + "/xsd:sequence", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:sequence", [&](const std::string& xpath) {
                     seq.elements.push_back(readSequence(xpath, containingTypeName));
                 });
-                document.forEachChild(xpath + "/xsd:any", [&](const std::string& xpath) {
+                document.forEachChild(xpath, "xsd:any", [&](const std::string& xpath) {
                     seq.elements.push_back(readAny(xpath, containingTypeName));
                 });
                 return seq;
@@ -319,7 +319,7 @@ namespace tigl {
                     xpath + "/xsd:simpleContent/xsd:extension",
                 }) {
                     if (document.checkElement(path)) {
-                        document.forEachChild(path + "/xsd:attribute", [&](const std::string& xpath) {
+                        document.forEachChild(path, "xsd:attribute", [&](const std::string& xpath) {
                             type.attributes.push_back(readAttribute(xpath, name));
                         });
                         if (document.checkElement(xpath + "/xsd:attributeGroup")) {
@@ -389,7 +389,7 @@ namespace tigl {
 
                 type.base = document.textAttribute(xpath, "base");
 
-                document.forEachChild(xpath + "/xsd:enumeration", [&](const std::string& expath) {
+                document.forEachChild(xpath, "xsd:enumeration", [&](const std::string& expath) {
                     const auto enumValue = document.textAttribute(expath, "value");
                     type.restrictionValues.push_back(enumValue);
                 });

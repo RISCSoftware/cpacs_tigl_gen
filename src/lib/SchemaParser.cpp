@@ -93,20 +93,22 @@ namespace tigl {
                 // </sequence>
                 Sequence seq;
                 seq.xpath = xpath;
-                document.forEachChild(xpath, "xsd:element", [&](const std::string& xpath) {
-                    seq.elements.push_back(readElement(xpath, containingTypeName));
-                });
-                document.forEachChild(xpath, "xsd:group", [&](const std::string& xpath) {
-                    seq.elements.push_back(readGroup(xpath, containingTypeName));
-                });
-                document.forEachChild(xpath, "xsd:choice", [&](const std::string& xpath) {
-                    seq.elements.push_back(readChoice(xpath, containingTypeName));
-                });
-                document.forEachChild(xpath, "xsd:sequence", [&](const std::string& xpath) {
-                    seq.elements.push_back(readSequence(xpath, containingTypeName));
-                });
-                document.forEachChild(xpath, "xsd:any", [&](const std::string& xpath) {
-                    seq.elements.push_back(readAny(xpath, containingTypeName));
+                document.forEachChild(xpath, [&](const std::string& xpath, const std::string& element) {
+                    if (element == "xsd:element") {
+                        seq.elements.push_back(readElement(xpath, containingTypeName));
+                    }
+                    else if (element == "xsd:group") {
+                        seq.elements.push_back(readGroup(xpath, containingTypeName));
+                    }
+                    else if (element == "xsd:choice") {
+                        seq.elements.push_back(readChoice(xpath, containingTypeName));
+                    }
+                    else if (element == "xsd:sequence") {
+                        seq.elements.push_back(readSequence(xpath, containingTypeName));
+                    }
+                    else if (element == "xsd:any") {
+                        seq.elements.push_back(readAny(xpath, containingTypeName));
+                    }
                 });
                 return seq;
             }

@@ -4,6 +4,13 @@
 
 namespace tigl {
     namespace tixihelper {
+        namespace {
+            std::string elementName(const std::string& xpath) {
+                const auto sp = tixi::internal::splitXPath(xpath);
+                return sp.element.substr(0, sp.element.find_last_of('['));
+            }
+        }
+
         class TixiDocument {
             static const TixiDocumentHandle invalidTixiHandle = -1;
         public:
@@ -71,15 +78,15 @@ namespace tigl {
             void forEachChild(const std::string& xpath, Func func) const {
                 const auto childPaths = childElementPaths(xpath);
                 for (const auto& childPath : childPaths)
-                    func(childXPath);
+                    func(childPath, elementName(childPath));
             }
 
             template <typename Func>
             void forEachChild(const std::string& xpath, const std::string& childName, Func func) const {
-                const auto childXPath = xpath + "/" + childName;
-                const auto count = namedChildCount(childXPath);
+                const auto childPath = xpath + "/" + childName;
+                const auto count = namedChildCount(childPath);
                 for (int i = 1; i <= count; i++)
-                    func(childXPath + "[" + std::to_string(i) + "]");
+                    func(childPath + "[" + std::to_string(i) + "]");
             }
 
             std::string textAttribute(const std::string& xpath, const std::string& attribute) const {

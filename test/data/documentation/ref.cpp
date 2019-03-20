@@ -62,25 +62,16 @@ namespace generated
         int m_b;
 
     private:
-#ifdef HAVE_CPP11
         CPACSRoot(const CPACSRoot&) = delete;
         CPACSRoot& operator=(const CPACSRoot&) = delete;
 
         CPACSRoot(CPACSRoot&&) = delete;
         CPACSRoot& operator=(CPACSRoot&&) = delete;
-#else
-        CPACSRoot(const CPACSRoot&);
-        CPACSRoot& operator=(const CPACSRoot&);
-#endif
     };
 } // namespace generated
 
 // Aliases in tigl namespace
-#ifdef HAVE_CPP11
 using CCPACSRoot = generated::CPACSRoot;
-#else
-typedef generated::CPACSRoot CCPACSRoot;
-#endif
 } // namespace tigl
 // Copyright (c) 2018 RISC Software GmbH
 //

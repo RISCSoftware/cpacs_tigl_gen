@@ -78,25 +78,16 @@ namespace generated
         std::vector<int>     m_is;
 
     private:
-#ifdef HAVE_CPP11
         CPACSRoot(const CPACSRoot&) = delete;
         CPACSRoot& operator=(const CPACSRoot&) = delete;
 
         CPACSRoot(CPACSRoot&&) = delete;
         CPACSRoot& operator=(CPACSRoot&&) = delete;
-#else
-        CPACSRoot(const CPACSRoot&);
-        CPACSRoot& operator=(const CPACSRoot&);
-#endif
     };
 } // namespace generated
 
 // Aliases in tigl namespace
-#ifdef HAVE_CPP11
 using CCPACSRoot = generated::CPACSRoot;
-#else
-typedef generated::CPACSRoot CCPACSRoot;
-#endif
 } // namespace tigl
 // Copyright (c) 2018 RISC Software GmbH
 //
@@ -169,7 +160,7 @@ namespace generated
 
         // read element e
         if (tixi::TixiCheckElement(tixiHandle, xpath + "/e")) {
-            tixi::TixiReadElements(tixiHandle, xpath + "/e", m_es);
+            tixi::TixiReadElements(tixiHandle, xpath + "/e", m_es, 1, 2147483647);
         }
 
         // read element f
@@ -179,7 +170,7 @@ namespace generated
 
         // read element g
         if (tixi::TixiCheckElement(tixiHandle, xpath + "/g")) {
-            tixi::TixiReadElements(tixiHandle, xpath + "/g", m_gs);
+            tixi::TixiReadElements(tixiHandle, xpath + "/g", m_gs, 0, 2147483647);
         }
 
         // read element h
@@ -192,7 +183,7 @@ namespace generated
 
         // read element i
         if (tixi::TixiCheckElement(tixiHandle, xpath + "/i")) {
-            tixi::TixiReadElements(tixiHandle, xpath + "/i", m_is);
+            tixi::TixiReadElements(tixiHandle, xpath + "/i", m_is, 1, 2147483647);
         }
 
     }

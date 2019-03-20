@@ -22,7 +22,6 @@ namespace tigl {
         const auto c_generateDefaultCtorsForParentPointerTypes = false;
         const auto c_generateCaseSensitiveStringToEnumConversion = false; // true would be more strict, but some test data has troubles with this
         const auto c_generateTryCatchAroundOptionalClassReads = true;
-        const auto c_generateCpp11ScopedEnums = false;
 
         const auto tixiHelperNamespace = "tixi";
         const auto c_uidMgrName = std::string("CTiglUIDManager");
@@ -147,7 +146,7 @@ namespace tigl {
                 case Cardinality::Vector:
                 {
                     if (m_types.classes.find(field.typeName) != std::end(m_types.classes))
-                        return "std::vector<unique_ptr<" + typeName + "> >";
+                        return "std::vector<std::unique_ptr<" + typeName + ">>";
                     else
                         return "std::vector<" + typeName + ">";
                 }
@@ -450,7 +449,7 @@ namespace tigl {
                         if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase)
                             throw std::runtime_error("Attributes, simpleContents and bases cannot be vectors");
                         assert(!isAtt);
-                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ");";
+                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", " << f.minOccurs << ", " << f.maxOccurs << ");";
                         break;
                 }
 
@@ -505,7 +504,7 @@ namespace tigl {
                         break;
                     case Cardinality::Vector:
                         const auto moreArgs = ctorArgumentList(itC->second, c);
-                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << (moreArgs.empty() ? "" : ", " + moreArgs) << ");";
+                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", " << f.minOccurs << ", " << f.maxOccurs << (moreArgs.empty() ? "" : ", " + moreArgs) << ");";
                         break;
                 }
                 return;
@@ -946,7 +945,6 @@ namespace tigl {
                             cpp << "{";
                             {
                                 Scope s(cpp);
-                                // TODO: replace by find_if and lambda when C++11 is available
                                 cpp << "for (std::size_t i = 0; i < " << f.fieldName() << ".size(); i++) {";
                                 {
                                     Scope s(cpp);
@@ -1360,16 +1358,12 @@ namespace tigl {
                         Scope s(hpp);
 
                         // copy ctor and assign, move ctor and assign
-                        hpp.noIndent() << "#ifdef HAVE_CPP11";
                         hpp << c.name << "(const " << c.name << "&) = delete;";
                         hpp << "" << c.name << "& operator=(const " << c.name << "&) = delete;";
                         hpp << EmptyLine;
                         hpp << c.name << "(" << c.name << "&&) = delete;";
                         hpp << c.name << "& operator=(" << c.name << "&&) = delete;";
-                        hpp.noIndent() << "#else";
-                        hpp << c.name << "(const " << c.name << "&);";
-                        hpp << c.name << "& operator=(const " << c.name << "&);";
-                        hpp.noIndent() << "#endif";
+
                     }
                     hpp << "};";
 
@@ -1407,13 +1401,8 @@ namespace tigl {
                         ops = boost::in_place(std::ref(hpp));
                     }
 
-                    hpp.noIndent() << "#ifdef HAVE_CPP11";
                     for (const auto& name : exportedTypes)
                         hpp << "using C" << name << " = " << generatedNs << "::" << name << ";";
-                    hpp.noIndent() << "#else";
-                    for (const auto& name : exportedTypes)
-                        hpp << "typedef " << generatedNs << "::" << name << " C" << name << ";";
-                    hpp.noIndent() << "#endif";
 
                     if (!m_namespace.empty()) {
                         ops = boost::none;
@@ -1551,7 +1540,7 @@ namespace tigl {
                     hpp << "// generated from " << e.originXPath;
 
                     // enum name
-                    hpp << "enum " << (c_generateCpp11ScopedEnums ? "class " : "") << e.name;
+                    hpp << "enum class " << e.name;
                     hpp << "{";
                     {
                         Scope s(hpp);
@@ -1565,7 +1554,6 @@ namespace tigl {
 
 
                     // enum to string function
-                    const auto& prefix = c_generateCpp11ScopedEnums ? e.name + "::" : "";
                     hpp << "inline std::string " << enumToStringFunc(e, m_tables) << "(const " << e.name << "& value)";
                     hpp << "{";
                     {
@@ -1574,7 +1562,7 @@ namespace tigl {
                         {
                             //Scope s(hpp);
                             for (const auto& v : e.values)
-                                hpp << "case " << prefix << enumCppName(v.name(), m_tables) << ": return \"" << v.cpacsName << "\";";
+                                hpp << "case " << e.name << "::" << enumCppName(v.name(), m_tables) << ": return \"" << v.cpacsName << "\";";
                             hpp << "default: throw CTiglError(\"Invalid enum value \\\"\" + std_to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
                         }
                         hpp << "}";
@@ -1588,15 +1576,12 @@ namespace tigl {
                         Scope s(hpp);
                         if (c_generateCaseSensitiveStringToEnumConversion) {
                             for (const auto& v : e.values)
-                                hpp << "if (value == \"" << v.cpacsName << "\") return " << prefix << enumCppName(v.name(), m_tables) << ";";
+                                hpp << "if (value == \"" << v.cpacsName << "\") return " << e.name << "::" << enumCppName(v.name(), m_tables) << ";";
                         } else {
-                            if (c_generateCpp11ScopedEnums)
-                                hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
-                            else
-                                hpp << "struct ToLower { std::string operator()(std::string str) { for (std::size_t i = 0; i < str.length(); i++) { str[i] = std::tolower(str[i]); } return str; } } toLower;";
+                            hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
                             auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
                             for (const auto& v : e.values)
-                                hpp << "if (toLower(value) == \"" << toLower(v.cpacsName) << "\") { return " << prefix << enumCppName(v.name(), m_tables) << "; }";
+                                hpp << "if (toLower(value) == \"" << toLower(v.cpacsName) << "\") { return " << e.name << "::" << enumCppName(v.name(), m_tables) << "; }";
                         }
 
                         hpp << "throw CTiglError(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";
@@ -1627,18 +1612,7 @@ namespace tigl {
                         hpp << "{";
                         ops = boost::in_place(std::ref(hpp));
                     }
-
-                    if (!c_generateCpp11ScopedEnums)
-                        hpp.noIndent() << "#ifdef HAVE_CPP11";
                     hpp << "using E" << e.name << " = " << generatedNs << "::" << e.name << ";";
-                    if (!c_generateCpp11ScopedEnums) {
-                        hpp.noIndent() << "#else";
-                        hpp << "typedef " << generatedNs << "::" << e.name << " E" << e.name << ";";
-                        hpp.noIndent() << "#endif";
-                        for (const auto& v : e.values)
-                            hpp << "using " << generatedNs << "::" << enumCppName(v.name(), m_tables) << ";";
-                    }
-
                     if (!m_namespace.empty()) {
                         ops = boost::none;
                         hpp << "}";

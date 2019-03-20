@@ -58,22 +58,25 @@ namespace tixi
         // validate number of child nodes
         if (minOccurs >= 0) {
             if (childCount < minOccurs) {
-                // TODO: replace by exception/warning
-                std::cerr
+#ifndef CPACS_GEN
+                LOG(ERROR)
                     << "Not enough child nodes for element\n"
                     << "xpath: " << xpath << "\n"
                     << "minimum: " << minOccurs << "\n"
                     << "actual: " << childCount;
+#endif
             }
         }
         if (maxOccurs >= 0) {
             if (childCount > maxOccurs) {
                 // TODO: replace by exception/warning
-                std::cerr
+#ifndef CPACS_GEN
+                LOG(ERROR)
                     << "Too many child nodes for element\n"
                     << "xpath: " << xpath << "\n"
                     << "maximum: " << maxOccurs << "\n"
                     << "actual: " << childCount;
+#endif
             }
         }
 

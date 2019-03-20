@@ -56,28 +56,25 @@ namespace tixi
         const int childCount = TixiGetNamedChildrenCount(tixiHandle, xpath);
 
         // validate number of child nodes
-        if (minOccurs >= 0) {
-            if (childCount < minOccurs) {
+        if (childCount < minOccurs) {
 #ifndef CPACS_GEN
-                LOG(ERROR)
-                    << "Not enough child nodes for element\n"
-                    << "xpath: " << xpath << "\n"
-                    << "minimum: " << minOccurs << "\n"
-                    << "actual: " << childCount;
+            LOG(ERROR)
+                << "Not enough child nodes for element\n"
+                << "xpath: " << xpath << "\n"
+                << "minimum: " << minOccurs << "\n"
+                << "actual: " << childCount;
 #endif
-            }
         }
-        if (maxOccurs >= 0) {
-            if (childCount > maxOccurs) {
-                // TODO: replace by exception/warning
+
+        if (childCount > maxOccurs) {
+            // TODO: replace by exception/warning
 #ifndef CPACS_GEN
-                LOG(ERROR)
-                    << "Too many child nodes for element\n"
-                    << "xpath: " << xpath << "\n"
-                    << "maximum: " << maxOccurs << "\n"
-                    << "actual: " << childCount;
+            LOG(ERROR)
+                << "Too many child nodes for element\n"
+                << "xpath: " << xpath << "\n"
+                << "maximum: " << maxOccurs << "\n"
+                << "actual: " << childCount;
 #endif
-            }
         }
 
         // read child nodes

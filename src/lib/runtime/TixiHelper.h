@@ -23,6 +23,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <ctime>
+#include <string>
 
 #include "UniquePtr.h"
 #ifndef CPACS_GEN
@@ -79,7 +80,7 @@ namespace tixi
 
         // read child nodes
         for (int i = 0; i < childCount; i++) {
-            const std::string childXPath = xpath + "[" + internal::to_string(i + 1) + "]";
+            const std::string childXPath = xpath + "[" + std::to_string(i + 1) + "]";
             try {
                 children.push_back(readChild(childXPath, std::forward<ChildCtorArgs>(args)...));
             } catch (const std::exception& e) {
@@ -133,7 +134,7 @@ namespace tixi
             // iteratore over all child nodes
             for (std::size_t i = 0; i < children.size(); i++) {
                 // if child node does not exist, create it
-                const std::string& childPath = xpath + "[" + internal::to_string(i + 1) + "]";
+                const std::string& childPath = xpath + "[" + std::to_string(i + 1) + "]";
                 if (!TixiCheckElement(tixiHandle, childPath)) {
                     TixiCreateElement(tixiHandle, xpath);
                 }
@@ -145,7 +146,7 @@ namespace tixi
             
         // delete old children which where not overwritten
         for (std::size_t i = children.size() + 1; i <= static_cast<std::size_t>(childCount); i++) {
-            TixiRemoveElement(tixiHandle, xpath + "[" + internal::to_string(children.size() + 1) + "]");
+            TixiRemoveElement(tixiHandle, xpath + "[" + std::to_string(children.size() + 1) + "]");
         }
     }
 
@@ -159,9 +160,9 @@ namespace tixi
     }
 
     template<typename T>
-    void TixiSaveElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::vector<tigl::unique_ptr<T>>& children)
+    void TixiSaveElements(const TixiDocumentHandle& tixiHandle, const std::string& xpath, const std::vector<std::unique_ptr<T>>& children)
     {
-        auto writer = [&](const std::string& childXPath, const tigl::unique_ptr<T>& child) {
+        auto writer = [&](const std::string& childXPath, const std::unique_ptr<T>& child) {
             child->WriteCPACS(tixiHandle, childXPath);
         };
         TixiSaveElementsInternal(tixiHandle, xpath, children, writer);

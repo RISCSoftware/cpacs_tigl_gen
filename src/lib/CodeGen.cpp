@@ -25,7 +25,7 @@ namespace tigl {
 
         const auto tixiHelperNamespace = "tixi";
         const auto c_uidMgrName = std::string("CTiglUIDManager");
-        const auto c_unboundedConstantName = "xsdUnbounded";
+        const auto c_unboundedConstantName = "tixi::xsdUnbounded";
     }
 
     namespace {

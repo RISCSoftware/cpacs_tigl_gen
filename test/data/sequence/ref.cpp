@@ -160,7 +160,7 @@ namespace generated
 
         // read element e
         if (tixi::TixiCheckElement(tixiHandle, xpath + "/e")) {
-            tixi::TixiReadElements(tixiHandle, xpath + "/e", m_es, 1, xsdUnbounded);
+            tixi::TixiReadElements(tixiHandle, xpath + "/e", m_es, 1, tixi::xsdUnbounded);
         }
 
         // read element f
@@ -170,7 +170,7 @@ namespace generated
 
         // read element g
         if (tixi::TixiCheckElement(tixiHandle, xpath + "/g")) {
-            tixi::TixiReadElements(tixiHandle, xpath + "/g", m_gs, 0, xsdUnbounded);
+            tixi::TixiReadElements(tixiHandle, xpath + "/g", m_gs, 0, tixi::xsdUnbounded);
         }
 
         // read element h
@@ -183,7 +183,7 @@ namespace generated
 
         // read element i
         if (tixi::TixiCheckElement(tixiHandle, xpath + "/i")) {
-            tixi::TixiReadElements(tixiHandle, xpath + "/i", m_is, 1, xsdUnbounded);
+            tixi::TixiReadElements(tixiHandle, xpath + "/i", m_is, 1, tixi::xsdUnbounded);
         }
 
     }

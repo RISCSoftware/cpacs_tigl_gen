@@ -24,7 +24,7 @@ set(CMAKE_PREFIX_PATH "${TIXI_PATH};${CMAKE_PREFIX_PATH}")
 find_package(tixi3 3.0.3 REQUIRED)
 
 # lib
-file(GLOB LIB_INPUTS src/lib/*.cpp *src/lib/*.h)
+file(GLOB LIB_INPUTS src/lib/*.cpp *src/lib/*.h *src/lib/runtime/*.h)
 add_library(lib${PROJECT_NAME} ${LIB_INPUTS})
 target_link_libraries(lib${PROJECT_NAME} PUBLIC tixi3)
 source_group(" " FILES ${LIB_INPUTS})

@@ -25,6 +25,7 @@ namespace tigl {
 
         const auto tixiHelperNamespace = "tixi";
         const auto c_uidMgrName = std::string("CTiglUIDManager");
+        const auto c_unboundedConstantName = "xsdUnbounded";
     }
 
     namespace {
@@ -76,6 +77,12 @@ namespace tigl {
 
         auto requiresUidManager(const Class& c) {
             return selfOrAnyChildHasUidField(c);
+        }
+
+        auto formatMaxOccurs(unsigned int maxOccurs) -> std::string {
+            if (maxOccurs == tigl::xsd::unbounded)
+                return c_unboundedConstantName;
+            return std::to_string(maxOccurs);
         }
     }
 
@@ -449,7 +456,7 @@ namespace tigl {
                         if (f.xmlType == XMLConstruct::Attribute || f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase)
                             throw std::runtime_error("Attributes, simpleContents and bases cannot be vectors");
                         assert(!isAtt);
-                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", " << f.minOccurs << ", " << f.maxOccurs << ");";
+                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", " << f.minOccurs << ", " << formatMaxOccurs(f.maxOccurs) << ");";
                         break;
                 }
 
@@ -504,7 +511,7 @@ namespace tigl {
                         break;
                     case Cardinality::Vector:
                         const auto moreArgs = ctorArgumentList(itC->second, c);
-                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", " << f.minOccurs << ", " << f.maxOccurs << (moreArgs.empty() ? "" : ", " + moreArgs) << ");";
+                        cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", " << f.minOccurs << ", " << formatMaxOccurs(f.maxOccurs) << (moreArgs.empty() ? "" : ", " + moreArgs) << ");";
                         break;
                 }
                 return;

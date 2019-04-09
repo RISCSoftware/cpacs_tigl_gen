@@ -470,7 +470,10 @@ namespace tigl {
                     element.minOccurs = 1;
                 else {
                     const auto minOccurs = document.textAttribute(xpath, "minOccurs");
-                    element.minOccurs = std::stoi(minOccurs);
+                    const auto minOccursInt = std::stoi(minOccurs);
+                    if (minOccursInt < 0)
+                        throw std::runtime_error("minOccurs is negative: " + xpath);
+                    element.minOccurs = minOccursInt;
                 }
 
                 // maxOccurs
@@ -479,9 +482,13 @@ namespace tigl {
                 else {
                     const auto maxOccurs = document.textAttribute(xpath, "maxOccurs");
                     if (maxOccurs == "unbounded")
-                        element.maxOccurs = std::numeric_limits<decltype(element.maxOccurs)>::max();
-                    else
-                        element.maxOccurs = std::stoi(maxOccurs);
+                        element.maxOccurs = unbounded;
+                    else {
+                        const auto maxOccursInt = std::stoi(maxOccurs);
+                        if (maxOccursInt < 0)
+                            throw std::runtime_error("maxOccurs is negative: " + xpath);
+                        element.maxOccurs = maxOccursInt;
+                    }
                 }
 
                 // type

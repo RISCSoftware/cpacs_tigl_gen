@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <limits>
 #include <unordered_map>
 
 #include "TixiDocument.h"
@@ -10,6 +11,8 @@
 
 namespace tigl {
     namespace xsd {
+        constexpr int unbounded = std::numeric_limits<unsigned int>::max();
+
         struct XSDElement {
             std::string xpath;
         };
@@ -26,8 +29,8 @@ namespace tigl {
         struct Element : XSDElement {
             std::string name;
             std::string type;
-            int minOccurs;
-            int maxOccurs;
+            unsigned int minOccurs;
+            unsigned int maxOccurs;
             std::string defaultValue;
             std::string documentation;
         };

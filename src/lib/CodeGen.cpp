@@ -22,6 +22,7 @@ namespace tigl {
         const auto c_generateDefaultCtorsForParentPointerTypes = false;
         const auto c_generateCaseSensitiveStringToEnumConversion = false; // true would be more strict, but some test data has troubles with this
         const auto c_generateTryCatchAroundOptionalClassReads = true;
+        const auto c_generateCpp11ScopedEnums = false;
 
         const auto tixiHelperNamespace = "tixi";
         const auto c_uidMgrName = std::string("CTiglUIDManager");
@@ -1547,7 +1548,7 @@ namespace tigl {
                     hpp << "// generated from " << e.originXPath;
 
                     // enum name
-                    hpp << "enum class " << e.name;
+                    hpp << "enum " << (c_generateCpp11ScopedEnums ? "class " : "") << e.name;
                     hpp << "{";
                     {
                         Scope s(hpp);
@@ -1561,6 +1562,7 @@ namespace tigl {
 
 
                     // enum to string function
+                    const auto& prefix = c_generateCpp11ScopedEnums ? e.name + "::" : "";
                     hpp << "inline std::string " << enumToStringFunc(e, m_tables) << "(const " << e.name << "& value)";
                     hpp << "{";
                     {
@@ -1569,7 +1571,7 @@ namespace tigl {
                         {
                             //Scope s(hpp);
                             for (const auto& v : e.values)
-                                hpp << "case " << e.name << "::" << enumCppName(v.name(), m_tables) << ": return \"" << v.cpacsName << "\";";
+                                hpp << "case " << prefix << enumCppName(v.name(), m_tables) << ": return \"" << v.cpacsName << "\";";
                             hpp << "default: throw CTiglError(\"Invalid enum value \\\"\" + std_to_string(static_cast<int>(value)) + \"\\\" for enum type " << e.name << "\");";
                         }
                         hpp << "}";
@@ -1583,12 +1585,12 @@ namespace tigl {
                         Scope s(hpp);
                         if (c_generateCaseSensitiveStringToEnumConversion) {
                             for (const auto& v : e.values)
-                                hpp << "if (value == \"" << v.cpacsName << "\") return " << e.name << "::" << enumCppName(v.name(), m_tables) << ";";
+                                hpp << "if (value == \"" << v.cpacsName << "\") return " << prefix << enumCppName(v.name(), m_tables) << ";";
                         } else {
                             hpp << "auto toLower = [](std::string str) { for (char& c : str) { c = std::tolower(c); } return str; };";
                             auto toLower = [](std::string str) { for (char& c : str) c = std::tolower(c); return str; };
                             for (const auto& v : e.values)
-                                hpp << "if (toLower(value) == \"" << toLower(v.cpacsName) << "\") { return " << e.name << "::" << enumCppName(v.name(), m_tables) << "; }";
+                                hpp << "if (toLower(value) == \"" << toLower(v.cpacsName) << "\") { return " << prefix << enumCppName(v.name(), m_tables) << "; }";
                         }
 
                         hpp << "throw CTiglError(\"Invalid string value \\\"\" + value + \"\\\" for enum type " << e.name << "\");";

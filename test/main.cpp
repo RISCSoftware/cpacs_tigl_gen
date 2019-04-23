@@ -48,3 +48,8 @@ BOOST_AUTO_TEST_CASE(choice) {
 BOOST_AUTO_TEST_CASE(documentation) {
     runTest();
 }
+
+BOOST_AUTO_TEST_CASE(uidinbasetype) {
+    runTest();
+}
+

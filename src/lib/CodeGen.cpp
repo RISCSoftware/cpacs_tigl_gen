@@ -66,18 +66,31 @@ namespace tigl {
             return false;
         }
 
+        auto hasInheritedUidField(const Class& c) -> bool {
+            for (const auto& cc : c.deps.bases)
+                if (hasUidField(*cc) || hasInheritedUidField(*cc))
+                    return true;
+            return false;
+        }
+
         // TODO: this call recurses down the tree, if this gets too slow, we can traverse the tree once and mark all classes
-        auto selfOrAnyChildHasUidField(const Class& c) {
+        auto selfOrBaseOrAnyChildHasUidField(const Class& c) {
             if (hasUidField(c))
                 return true;
+            if (hasInheritedUidField(c))
+                return true;
             for (const auto& cc : c.deps.children)
-                if (selfOrAnyChildHasUidField(*cc))
+                if (selfOrBaseOrAnyChildHasUidField(*cc))
                     return true;
             return false;
         }
 
         auto requiresUidManager(const Class& c) {
-            return selfOrAnyChildHasUidField(c);
+            return selfOrBaseOrAnyChildHasUidField(c);
+        }
+
+        auto requiresUidManagerField(const Class& c) {
+            return requiresUidManager(c) && !hasInheritedUidField(c);
         }
 
         auto formatMaxOccurs(unsigned int maxOccurs) -> std::string {
@@ -324,7 +337,7 @@ namespace tigl {
                 }
             }
 
-            if (requiresUidManager(c)) {
+            if (requiresUidManagerField(c)) {
                 hpp << "TIGL_EXPORT " << c_uidMgrName << "& GetUIDManager();";
                 hpp << "TIGL_EXPORT const " << c_uidMgrName << "& GetUIDManager() const;";
                 hpp << EmptyLine;
@@ -350,7 +363,7 @@ namespace tigl {
                 }
             }
 
-            if (requiresUidManager(c)) {
+            if (requiresUidManagerField(c)) {
                 cpp << "" << c_uidMgrName << "& " << c.name << "::GetUIDManager()";
                 cpp << "{";
                 {
@@ -1154,7 +1167,7 @@ namespace tigl {
                 }
                 hpp << EmptyLine;
             }
-            if (requiresUidManager(c)) {
+            if (requiresUidManagerField(c)) {
                 hpp << c_uidMgrName << "* m_uidMgr;";
                 hpp << EmptyLine;
             }
@@ -1169,21 +1182,27 @@ namespace tigl {
         }
 
         void writeCtorImplementations(IndentingStreamWrapper& cpp, const Class& c) const {
-            const auto hasUid = requiresUidManager(c);
+            const auto hasUidArgument = requiresUidManager(c);
+            const auto hasUidMgrField = requiresUidManagerField(c);
 
             auto writeInitializationList = [&] {
                 Scope s(cpp);
                 bool first = true;
-                auto writeMember = [&](const std::string& memberName, const std::string& value) {
+                auto writeBaseOrMember = [&](const std::string& baseOrMemberName, const std::string& value) {
                     if (first) {
                         cpp << ": ";
                         first = false;
                     } else
                         cpp << ", ";
-                    cpp.contLine() << memberName << "(" << value << ")";
+                    cpp.contLine() << baseOrMemberName << "(" << value << ")";
                 };
-                if (hasUid)
-                    writeMember("m_uidMgr", "uidMgr");
+                for (const auto& bc : c.deps.bases) {
+                    if (requiresUidManager(*bc)) {
+                        writeBaseOrMember(bc->name, "uidMgr");
+                    }
+                }
+                if (hasUidMgrField)
+                    writeBaseOrMember("m_uidMgr", "uidMgr");
                 for (const auto& f : c.fields) {
                     if (f.cardinality() == Cardinality::Mandatory) {
                         if (m_tables.m_fundamentalTypes.contains(f.typeName)) {
@@ -1193,13 +1212,13 @@ namespace tigl {
                             else if (args.empty() && f.typeName != "std::string")
                                 args = "0"; // if the field has no default value and is a fundamental data type, but not string, provide zero initializer
                             if (!args.empty())
-                                writeMember(f.fieldName(), args);
+                                writeBaseOrMember(f.fieldName(), args);
                         } else {
                             const auto fci = m_types.classes.find(f.typeName);
                             if (fci != std::end(m_types.classes)) {
                                 const auto args = ctorArgumentList(fci->second, c);
                                 if (!args.empty())
-                                    writeMember(f.fieldName(), args);
+                                    writeBaseOrMember(f.fieldName(), args);
                             }
                         }
                     }
@@ -1209,7 +1228,7 @@ namespace tigl {
             // if this class holds parent pointers, we have to provide corresponding ctor overloads
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c_generateDefaultCtorsForParentPointerTypes) {
-                    cpp << c.name << "::" << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ")";
+                    cpp << c.name << "::" << c.name << "(" << (hasUidArgument ? c_uidMgrName + "* uidMgr" : "") << ")";
                     writeInitializationList();
                     cpp << "{";
                     {
@@ -1223,7 +1242,7 @@ namespace tigl {
                 }
                 for (const auto& dep : c.deps.parents) {
                     const auto rn = customReplacedType(dep->name);
-                    cpp << c.name << "::" << c.name << "(" << rn << "* parent" << (hasUid ? ", " + c_uidMgrName + "* uidMgr" : "") << ")";
+                    cpp << c.name << "::" << c.name << "(" << rn << "* parent" << (hasUidArgument ? ", " + c_uidMgrName + "* uidMgr" : "") << ")";
                     writeInitializationList();
                     cpp << "{";
                     {
@@ -1237,7 +1256,7 @@ namespace tigl {
                     cpp << EmptyLine;
                 }
             } else {
-                cpp << c.name << "::" << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ")";
+                cpp << c.name << "::" << c.name << "(" << (hasUidArgument ? c_uidMgrName + "* uidMgr" : "") << ")";
                 writeInitializationList();
                 cpp << "{";
                 cpp << "}";

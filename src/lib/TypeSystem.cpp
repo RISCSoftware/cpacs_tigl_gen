@@ -139,7 +139,7 @@ namespace tigl {
                 }
 
                 void operator()(const xsd::Any& a) const {
-                    throw NotImplementedException("Generating fields for any is not implemented");
+                    // nothing to do here
                 }
 
                 void operator()(const xsd::Group& g) const {

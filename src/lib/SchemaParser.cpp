@@ -124,7 +124,6 @@ namespace tigl {
                 // >
                 // (annotation?)
                 // </any>
-                throw NotImplementedException("XSD any is not implemented. xpath: " + xpath);
                 return Any();
             }
 

@@ -185,7 +185,7 @@ namespace tigl {
 
         auto checkForSequence(const xsd::ComplexType& type) -> bool
         {
-            bool isSequence;
+            bool isSequence = false;
             type.content.visit(CheckSequenceVisitor(isSequence));
             return isSequence;
         }

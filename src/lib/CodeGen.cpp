@@ -98,6 +98,14 @@ namespace tigl {
                 return c_unboundedConstantName;
             return std::to_string(maxOccurs);
         }
+
+        auto elementNames(const Class& c) {
+            std::vector<std::string> elemNames;
+            for (const auto& f : c.fields)
+                if (f.xmlType != XMLConstruct::Attribute)
+                    elemNames.push_back(f.cpacsName);
+            return elemNames;
+        }
     }
 
     class CodeGen {
@@ -534,13 +542,16 @@ namespace tigl {
             throw std::logic_error("No read function provided for type " + f.typeName);
         }
 
-        void writeWriteAttributeOrElementImplementation(IndentingStreamWrapper& cpp, const Field& f) const {
+        void writeWriteAttributeOrElementImplementation(IndentingStreamWrapper& cpp, const Field& f, bool inSequence) const {
             const auto isAtt = isAttribute(f.xmlType);
             const auto empty = f.xmlType == XMLConstruct::SimpleContent || f.xmlType == XMLConstruct::FundamentalTypeBase;
 
             auto createElement = [&] {
                 if (!empty && !isAtt)
-                    cpp << tixiHelperNamespace << "::TixiCreateElementIfNotExists(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
+                    if (inSequence)
+                        cpp << tixiHelperNamespace << "::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + \"/" + f.cpacsName + "\", childElemOrder);";
+                    else
+                        cpp << tixiHelperNamespace << "::TixiCreateElementIfNotExists(tixiHandle, xpath + \"/" + f.cpacsName + "\");";
             };
 
             auto writeOptionalAttributeOrElement = [&](std::function<void()> writeReadFunc) { // make parameter auto when C++14 available
@@ -755,7 +766,9 @@ namespace tigl {
                 for (const auto& f : fields) {
                     const auto construct = xmlConstructToString(f.xmlType);
                     cpp << "// write " << construct << " " << f.cpacsName;
-                    writeWriteAttributeOrElementImplementation(cpp, f);
+                    // NOTE: only handling sequences when no choice is contained, since determination of order
+                    //       would get more complex otherwise
+                    writeWriteAttributeOrElementImplementation(cpp, f, c.containsSequence && c.choices.empty());
                     cpp << EmptyLine;
                 }
             }
@@ -1441,6 +1454,26 @@ namespace tigl {
             hpp << EmptyLine;
         }
 
+        void writeChildElemOrder(IndentingStreamWrapper& cpp, const Class& c) const {
+            const auto elemNames = elementNames(c);
+            cpp << "namespace";
+            cpp << "{";
+            {
+                Scope s(cpp);
+                cpp << "const std::vector<std::string> childElemOrder = { " << [&] {
+                    std::stringstream ss;
+                    for (const auto& e : elemNames) {
+                        if (!ss.str().empty())
+                            ss << ", ";
+                        ss << "\"" << e << "\"";
+                    }
+                    return ss.str();
+                }() << " };";
+            }
+            cpp << "}";
+            cpp << EmptyLine;
+        }
+
         void writeSource(IndentingStreamWrapper& cpp, const Class& c, const Includes& includes) const {
             // file header
             writeLicenseHeader(cpp);
@@ -1459,6 +1492,11 @@ namespace tigl {
                 cpp << "{";
                 {
                     Scope s(cpp);
+                    // NOTE: only handling sequences when no choice is contained, since determination of order
+                    //       would get more complex otherwise
+                    if (c.containsSequence && c.choices.empty()) {
+                        writeChildElemOrder(cpp, c);
+                    }
 
                     boost::optional<Scope> ops;
                     if (!m_namespace.empty()) {

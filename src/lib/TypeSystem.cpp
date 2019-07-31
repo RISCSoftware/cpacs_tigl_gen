@@ -171,6 +171,24 @@ namespace tigl {
 
             return std::make_tuple(members, choiceItems);
         }
+
+        struct CheckSequenceVisitor {
+            CheckSequenceVisitor(bool& isSequence) : isSequence(isSequence) {}
+
+            template<typename T>
+            void operator()(const T& obj)           { isSequence = false;                 }
+            void operator()(const xsd::Sequence& s) { isSequence = s.elements.size() > 1; }
+
+        private:
+            bool& isSequence;
+        };
+
+        auto checkForSequence(const xsd::ComplexType& type) -> bool
+        {
+            bool isSequence;
+            type.content.visit(CheckSequenceVisitor(isSequence));
+            return isSequence;
+        }
     }
 
     class TypeSystemBuilder {
@@ -191,6 +209,7 @@ namespace tigl {
                         c.originXPath = type.xpath;
                         c.documentation = type.documentation;
                         c.name = makeClassName(type.name);
+                        c.containsSequence = checkForSequence(type);
                         std::tie(c.fields, c.choices) = buildFieldListAndChoiceExpression(types, type, tables);
 
                         if (!type.base.empty()) {

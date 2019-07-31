@@ -109,6 +109,7 @@ namespace tigl {
         std::string base;
         std::vector<Field> fields;
         ChoiceElements choices;
+        bool containsSequence;
         bool pruned = false;
 
         std::string documentation;

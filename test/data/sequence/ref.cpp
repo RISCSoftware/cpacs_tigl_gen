@@ -115,6 +115,11 @@ namespace tigl
 {
 namespace generated
 {
+    namespace
+    {
+        const std::vector<std::string> childElemOrder = { "a", "b", "c", "d", "e", "f", "g", "h", "i" };
+    }
+
     CPACSRoot::CPACSRoot()
         : m_a(0)
         , m_c(0)
@@ -191,12 +196,12 @@ namespace generated
     void CPACSRoot::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
     {
         // write element a
-        tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/a");
+        tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/a", childElemOrder);
         tixi::TixiSaveElement(tixiHandle, xpath + "/a", m_a);
 
         // write element b
         if (m_b) {
-            tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/b");
+            tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/b", childElemOrder);
             tixi::TixiSaveElement(tixiHandle, xpath + "/b", *m_b);
         }
         else {
@@ -206,11 +211,11 @@ namespace generated
         }
 
         // write element c
-        tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/c");
+        tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/c", childElemOrder);
         tixi::TixiSaveElement(tixiHandle, xpath + "/c", m_c);
 
         // write element d
-        tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/d");
+        tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/d", childElemOrder);
         tixi::TixiSaveElement(tixiHandle, xpath + "/d", m_d);
 
         // write element e
@@ -218,7 +223,7 @@ namespace generated
 
         // write element f
         if (m_f) {
-            tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/f");
+            tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/f", childElemOrder);
             tixi::TixiSaveElement(tixiHandle, xpath + "/f", *m_f);
         }
         else {
@@ -231,7 +236,7 @@ namespace generated
         tixi::TixiSaveElements(tixiHandle, xpath + "/g", m_gs);
 
         // write element h
-        tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/h");
+        tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/h", childElemOrder);
         tixi::TixiSaveElement(tixiHandle, xpath + "/h", m_h);
 
         // write element i

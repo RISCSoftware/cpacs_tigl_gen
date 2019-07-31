@@ -115,11 +115,6 @@ namespace tigl
 {
 namespace generated
 {
-    namespace
-    {
-        const std::vector<std::string> childElemOrder = { "a", "b", "c", "d", "e", "f", "g", "h", "i" };
-    }
-
     CPACSRoot::CPACSRoot()
         : m_a(0)
         , m_c(0)
@@ -195,6 +190,8 @@ namespace generated
 
     void CPACSRoot::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
     {
+        const std::vector<std::string> childElemOrder = { "a", "b", "c", "d", "e", "f", "g", "h", "i" };
+
         // write element a
         tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/a", childElemOrder);
         tixi::TixiSaveElement(tixiHandle, xpath + "/a", m_a);

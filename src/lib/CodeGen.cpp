@@ -755,6 +755,13 @@ namespace tigl {
             {
                 Scope s(cpp);
 
+                // NOTE: only handling sequences when no choice is contained, since determination of order
+                //       would get more complex otherwise
+                const bool handleSequence = c.containsSequence && c.choices.empty();
+                if (handleSequence) {
+                    writeChildElemOrder(cpp, c);
+                }
+
                 // base class
                 if (!c.base.empty()) {
                     cpp << "// write base";
@@ -768,7 +775,7 @@ namespace tigl {
                     cpp << "// write " << construct << " " << f.cpacsName;
                     // NOTE: only handling sequences when no choice is contained, since determination of order
                     //       would get more complex otherwise
-                    writeWriteAttributeOrElementImplementation(cpp, f, c.containsSequence && c.choices.empty());
+                    writeWriteAttributeOrElementImplementation(cpp, f, handleSequence);
                     cpp << EmptyLine;
                 }
             }
@@ -1456,21 +1463,15 @@ namespace tigl {
 
         void writeChildElemOrder(IndentingStreamWrapper& cpp, const Class& c) const {
             const auto elemNames = elementNames(c);
-            cpp << "namespace";
-            cpp << "{";
-            {
-                Scope s(cpp);
-                cpp << "const std::vector<std::string> childElemOrder = { " << [&] {
-                    std::stringstream ss;
-                    for (const auto& e : elemNames) {
-                        if (!ss.str().empty())
-                            ss << ", ";
-                        ss << "\"" << e << "\"";
-                    }
-                    return ss.str();
-                }() << " };";
-            }
-            cpp << "}";
+            cpp << "const std::vector<std::string> childElemOrder = { " << [&] {
+                std::stringstream ss;
+                for (const auto& e : elemNames) {
+                    if (!ss.str().empty())
+                        ss << ", ";
+                    ss << "\"" << e << "\"";
+                }
+                return ss.str();
+            }() << " };";
             cpp << EmptyLine;
         }
 
@@ -1492,11 +1493,6 @@ namespace tigl {
                 cpp << "{";
                 {
                     Scope s(cpp);
-                    // NOTE: only handling sequences when no choice is contained, since determination of order
-                    //       would get more complex otherwise
-                    if (c.containsSequence && c.choices.empty()) {
-                        writeChildElemOrder(cpp, c);
-                    }
 
                     boost::optional<Scope> ops;
                     if (!m_namespace.empty()) {

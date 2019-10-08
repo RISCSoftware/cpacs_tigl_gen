@@ -2,6 +2,7 @@
 #include <boost/utility/in_place_factory.hpp>
 
 #include <utility>
+#include <set>
 #include <vector>
 #include <cctype>
 #include <algorithm>
@@ -105,6 +106,12 @@ namespace tigl {
                 if (f.xmlType != XMLConstruct::Attribute)
                     elemNames.push_back(f.cpacsName);
             return elemNames;
+        }
+
+        bool uniqueChildElements(const Class& c) {
+            const auto elemNames = elementNames(c);
+            const std::set<std::string> uniqueElemNames(elemNames.begin(), elemNames.end());
+            return uniqueElemNames.size() == elemNames.size();
         }
     }
 
@@ -755,9 +762,9 @@ namespace tigl {
             {
                 Scope s(cpp);
 
-                // NOTE: only handling sequences when no choice is contained, since determination of order
-                //       would get more complex otherwise
-                const bool handleSequence = c.containsSequence && c.choices.empty();
+                // NOTE: only handling sequences when no choice is contained, or when all elements in choices are
+                //       unique (same elements don't appear in multiple choices)
+                const bool handleSequence = c.containsSequence && (c.choices.empty() || uniqueChildElements(c));
                 if (handleSequence) {
                     writeChildElemOrder(cpp, c);
                 }

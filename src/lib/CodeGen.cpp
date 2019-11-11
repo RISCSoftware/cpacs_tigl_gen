@@ -75,19 +75,20 @@ namespace tigl {
         }
 
         // TODO: this call recurses down the tree, if this gets too slow, we can traverse the tree once and mark all classes
-        auto selfOrBaseOrAnyChildHasUidField(const Class& c) {
+        auto selfOrBaseOrAnyChildOfSelfOrBaseHasUidField(const Class& c) {
             if (hasUidField(c))
                 return true;
-            if (hasInheritedUidField(c))
-                return true;
+            for (const auto& cc : c.deps.bases)
+                if (selfOrBaseOrAnyChildOfSelfOrBaseHasUidField(*cc))
+                    return true;
             for (const auto& cc : c.deps.children)
-                if (selfOrBaseOrAnyChildHasUidField(*cc))
+                if (selfOrBaseOrAnyChildOfSelfOrBaseHasUidField(*cc))
                     return true;
             return false;
         }
 
         auto requiresUidManager(const Class& c) {
-            return selfOrBaseOrAnyChildHasUidField(c);
+            return selfOrBaseOrAnyChildOfSelfOrBaseHasUidField(c);
         }
 
         auto requiresUidManagerField(const Class& c) {

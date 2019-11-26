@@ -114,7 +114,9 @@ namespace tigl {
             { "xsd:date"          , "std::time_t" },
             { "xsd:dateTime"      , "std::time_t" },
             { "xsd:time"          , "std::time_t" },
-            { "xsd:string"        , "std::string" }
+            { "xsd:string"        , "std::string" },
+            { "xsd:ID"            , "std::string" },
+            { "xsd:IDREF"         , "std::string" }
         }),
 
         m_pruneList        (inputDirectory + "/PruneList.txt"       ),

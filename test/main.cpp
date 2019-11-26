@@ -53,3 +53,7 @@ BOOST_AUTO_TEST_CASE(uidinbasetype) {
     runTest();
 }
 
+BOOST_AUTO_TEST_CASE(custombasetype) {
+    runTest();
+}
+

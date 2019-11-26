@@ -262,7 +262,7 @@ namespace generated
     void CPACSDerived::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
     {
         // write base
-        CPACSBase::WriteCPACS(tixiHandle, xpath);
+        CustomCPACSBase::WriteCPACS(tixiHandle, xpath);
 
         // write element name
         if (m_name) {

@@ -670,7 +670,7 @@ namespace tigl {
             // classes
             const auto itC = m_types.classes.find(type);
             if (itC != std::end(m_types.classes)) {
-                cpp << type << "::ReadCPACS(tixiHandle, xpath);";
+                cpp << customReplacedType(type) << "::ReadCPACS(tixiHandle, xpath);";
                 return;
             }
 
@@ -687,7 +687,7 @@ namespace tigl {
             // classes
             const auto itC = m_types.classes.find(type);
             if (itC != std::end(m_types.classes)) {
-                cpp << type << "::WriteCPACS(tixiHandle, xpath);";
+                cpp << customReplacedType(type) << "::WriteCPACS(tixiHandle, xpath);";
                 return;
             }
 

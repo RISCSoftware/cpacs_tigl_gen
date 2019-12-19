@@ -28,6 +28,7 @@ namespace tigl {
         const auto tixiHelperNamespace = "tixi";
         const auto c_uidMgrName = std::string("CTiglUIDManager");
         const auto c_unboundedConstantName = "tixi::xsdUnbounded";
+        const auto c_uidRefType = std::string("stringUIDBaseType");
     }
 
     namespace {
@@ -53,11 +54,23 @@ namespace tigl {
             return "stringTo" + capitalizeFirstLetter(customReplacedType(e.name, tables));
         }
 
+        auto uidReferenceFields(const Class& c) {
+            std::vector<Field> uidRefFields;
+            for (const auto& f : c.fields)
+                if (f.xmlTypeName == c_uidRefType)
+                    uidRefFields.push_back(f);
+            return uidRefFields;
+        }
+
         auto hasUidField(const Class& c) {
             for (const auto& f : c.fields)
                 if (f.name() == "uID")
                     return true;
             return false;
+        }
+
+        auto hasUidRefField(const Class& c) {
+            return !uidReferenceFields(c).empty();
         }
 
         auto hasMandatoryUidField(const Class& c) {
@@ -75,20 +88,21 @@ namespace tigl {
         }
 
         // TODO: this call recurses down the tree, if this gets too slow, we can traverse the tree once and mark all classes
-        auto selfOrBaseOrAnyChildOfSelfOrBaseHasUidField(const Class& c) {
-            if (hasUidField(c))
+        auto selfOrBaseOrAnyChildOfSelfRequiresUidMgr(const Class& c) {
+            // UidMgr required in case class has a uid field or uid reference field
+            if (hasUidField(c) || hasUidRefField(c))
                 return true;
             for (const auto& cc : c.deps.bases)
-                if (selfOrBaseOrAnyChildOfSelfOrBaseHasUidField(*cc))
+                if (selfOrBaseOrAnyChildOfSelfRequiresUidMgr(*cc))
                     return true;
             for (const auto& cc : c.deps.children)
-                if (selfOrBaseOrAnyChildOfSelfOrBaseHasUidField(*cc))
+                if (selfOrBaseOrAnyChildOfSelfRequiresUidMgr(*cc))
                     return true;
             return false;
         }
 
         auto requiresUidManager(const Class& c) {
-            return selfOrBaseOrAnyChildOfSelfOrBaseHasUidField(c);
+            return selfOrBaseOrAnyChildOfSelfRequiresUidMgr(c);
         }
 
         auto requiresUidManagerField(const Class& c) {
@@ -269,6 +283,24 @@ namespace tigl {
                             cpp << "}";
                         }
                     };
+                    auto writeUidReferenceRegistration = [&](bool memberOp, bool argOp) {
+                        if (f.xmlTypeName == c_uidRefType) {
+                            cpp << "if (m_uidMgr) {";
+                            {
+                                Scope s(cpp);
+                                if (memberOp)
+                                    cpp << "if (" << f.fieldName() << " && !" << f.fieldName() << "->empty()) m_uidMgr->TryUnregisterReference(*" << f.fieldName() << ", *this);";
+                                else
+                                    cpp << "if (!" << f.fieldName() << ".empty()) m_uidMgr->TryUnregisterReference(" << f.fieldName() << ", *this);";
+
+                                if (argOp)
+                                    cpp << "if (value && !value->empty()) m_uidMgr->RegisterReference(*value, *this);";
+                                else
+                                    cpp << "if (!value.empty()) m_uidMgr->RegisterReference(value, *this);";
+                            }
+                            cpp << "}";
+                        }
+                    };
 
                     cpp << "void " << className << "::Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value)";
                     cpp << "{";
@@ -276,6 +308,7 @@ namespace tigl {
                         Scope s(cpp);
                         const auto isOptional = f.cardinality() == Cardinality::Optional;
                         writeUidRegistration(isOptional, isOptional);
+                        writeUidReferenceRegistration(isOptional, isOptional);
                         cpp << f.fieldName() << " = value;";
                     }
                     cpp << "}";
@@ -484,6 +517,16 @@ namespace tigl {
                             }
                             cpp << "}";
                         }
+
+                        // register uid references
+                        if (f.xmlTypeName == c_uidRefType) {
+                            if (f.cardinality() == Cardinality::Optional) {
+                                cpp << "if (m_uidMgr && !" << f.fieldName() << "->empty()) m_uidMgr->RegisterReference(*" << f.fieldName() << ", *this);";
+                            }
+                            else {
+                                cpp << "if (m_uidMgr && !" << f.fieldName() << ".empty()) m_uidMgr->RegisterReference(" << f.fieldName() << ", *this);";
+                            }
+                        }
                         
                         break;
                     case Cardinality::Vector:
@@ -491,6 +534,20 @@ namespace tigl {
                             throw std::runtime_error("Attributes, simpleContents and bases cannot be vectors");
                         assert(!isAtt);
                         cpp << tixiHelperNamespace << "::TixiReadElements(tixiHandle, xpath + \"/" << f.cpacsName << "\", " << f.fieldName() << ", " << f.minOccurs << ", " << formatMaxOccurs(f.maxOccurs) << ");";
+                        // register uid references
+                        if (f.xmlTypeName == c_uidRefType) {
+                            cpp << "if (m_uidMgr) {";
+                            {
+                                Scope s(cpp);
+                                cpp << "for (std::vector<" << f.typeName << ">::iterator it = " << f.fieldName() << ".begin(); it != " << f.fieldName() << ".end(); ++it) {";
+                                {
+                                    Scope s(cpp);
+                                    cpp << "if (!it->empty()) m_uidMgr->RegisterReference(*it, *this);";
+                                }
+                                cpp << "}";
+                            }
+                            cpp << "}";
+                        }
                         break;
                 }
 
@@ -1310,22 +1367,44 @@ namespace tigl {
         }
 
         void writeDtorImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
-            if (hasUidField(c)) {
-                cpp << c.name << "::~" << c.name << "()";
-                cpp << "{";
-                {
-                    Scope s(cpp);
+            auto writeUidRefUnregistration = [&] {
+                const auto fields = uidReferenceFields(c);
+                if (!fields.empty()) {
+                    cpp << "if (m_uidMgr) {";
+                    {
+                        Scope s(cpp);
+                        for (const auto& f : fields) {
+                            if (f.cardinality() == Cardinality::Optional)
+                                cpp << "if (" << f.fieldName() << " && !" << f.fieldName() << "->empty()) m_uidMgr->TryUnregisterReference(*" << f.fieldName() << ", *this);";
+                            else if (f.cardinality() == Cardinality::Vector) {
+                                cpp << "for (std::vector<" << f.typeName << ">::iterator it = " << f.fieldName() << ".begin(); it != " << f.fieldName() << ".end(); ++it) {";
+                                {
+                                    Scope s(cpp);
+                                    cpp << "if (!it->empty()) m_uidMgr->TryUnregisterReference(*it, *this);";
+                                }
+                                cpp << "}";
+                            }
+                            else
+                                cpp << "if (!" << f.fieldName() << ".empty()) m_uidMgr->TryUnregisterReference(" << f.fieldName() << ", *this);";
+                        }
+                    }
+                    cpp << "}";
+                }
+            };
+
+            cpp << c.name << "::~" << c.name << "()";
+            cpp << "{";
+            {
+                Scope s(cpp);
+                if (hasUidField(c)) {
                     if (hasMandatoryUidField(c))
                         cpp << "if (m_uidMgr) m_uidMgr->TryUnregisterObject(m_uID);";
                     else
                         cpp << "if (m_uidMgr && m_uID) m_uidMgr->TryUnregisterObject(*m_uID);";
                 }
-                cpp << "}";
-            } else {
-                cpp << c.name << "::~" << c.name << "()";
-                cpp << "{";
-                cpp << "}";
+                writeUidRefUnregistration();
             }
+            cpp << "}";
             cpp << EmptyLine;
         }
 

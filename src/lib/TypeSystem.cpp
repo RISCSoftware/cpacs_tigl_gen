@@ -63,6 +63,7 @@ namespace tigl {
                 Field m;
                 m.originXPath = a.xpath;
                 m.cpacsName = a.name;
+                m.xmlTypeName = a.type;
                 m.typeName = resolveType(types, a.type, tables);
                 m.xmlType = XMLConstruct::Attribute;
                 m.minOccurs = a.optional ? 0 : 1;
@@ -100,6 +101,7 @@ namespace tigl {
                     Field m;
                     m.originXPath = e.xpath;
                     m.cpacsName = e.name;
+                    m.xmlTypeName = e.type;
                     m.typeName = resolveType(types, e.type, tables);
                     m.xmlType = XMLConstruct::Element;
                     m.minOccurs = e.minOccurs;
@@ -162,6 +164,7 @@ namespace tigl {
                     m.namePostfix = "simpleContent";
                     m.minOccurs = 1;
                     m.maxOccurs = 1;
+                    m.xmlTypeName = g.type;
                     m.typeName = resolveType(types, g.type, tables);
                     m.xmlType = XMLConstruct::SimpleContent;
                     emitField(std::move(m));
@@ -235,6 +238,7 @@ namespace tigl {
                                     f.namePostfix = "base";
                                     f.minOccurs = 1;
                                     f.maxOccurs = 1;
+                                    f.xmlTypeName = "";
                                     f.typeName = c.base;
                                     f.xmlType = XMLConstruct::FundamentalTypeBase;
 

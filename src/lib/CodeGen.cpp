@@ -187,6 +187,11 @@ namespace tigl {
             return customReplacedType(field.typeName);
         }
 
+        auto requiresParentPointer(const Class& c) const {
+            //return m_tables.m_parentPointers.contains(c.name) || hasUidField(c) || hasUidRefField(c);
+            return !c.deps.parents.empty();
+        }
+
         auto getterSetterType(const Field& field) const -> std::string {
             const auto typeName = customReplacedType(field);
             switch (field.cardinality()) {
@@ -326,7 +331,7 @@ namespace tigl {
         }
 
         void writeParentPointerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
-            if (m_tables.m_parentPointers.contains(c.name)) {
+            if (requiresParentPointer(c)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "template<typename P>";
                     hpp << "bool IsParent() const";
@@ -388,6 +393,9 @@ namespace tigl {
         }
 
         void writeUidManagerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
+            hpp << "TIGL_EXPORT CTiglUIDObject* GetNextUIDParent();";
+            hpp << "TIGL_EXPORT const CTiglUIDObject* GetNextUIDParent() const;";
+            hpp << EmptyLine;
             if (requiresUidManagerField(c)) {
                 hpp << "TIGL_EXPORT " << c_uidMgrName << "& GetUIDManager();";
                 hpp << "TIGL_EXPORT const " << c_uidMgrName << "& GetUIDManager() const;";
@@ -396,13 +404,13 @@ namespace tigl {
         }
 
         void writeParentPointerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
-            if (m_tables.m_parentPointers.contains(c.name)) {
+            if (requiresParentPointer(c)) {
                 if (c.deps.parents.size() == 1) {
-                    for (auto isConst : { false, true }) {
+                    for (auto isConst : { true, false }) {
                         if (isConst)
-                            cpp << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent()";
-                        else
                             cpp << "const " << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent() const";
+                        else
+                            cpp << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent()";
                         cpp << "{";
                         {
                             Scope s(cpp);
@@ -413,9 +421,79 @@ namespace tigl {
                     }
                 }
             }
+
         }
 
         void writeUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
+            for (auto isConst : { true, false }) {
+                if (isConst)
+                    cpp << "const CTiglUIDObject* " << c.name << "::GetNextUIDParent() const";
+                else
+                    cpp << "CTiglUIDObject* " << c.name << "::GetNextUIDParent()";
+                cpp << "{";
+                {
+                    Scope s(cpp);
+                    if (c.deps.parents.size() == 0)
+                        cpp << "return nullptr;";
+                    else if (c.deps.parents.size() == 1) {
+                        if (hasMandatoryUidField(*c.deps.parents[0]))
+                            cpp << "return m_parent;";
+                        else {
+                            cpp << "if (m_parent) {";
+                            {
+                                Scope s(cpp);
+                                if (hasUidField(*c.deps.parents[0])) {
+                                    cpp << "if (m_parent->GetUID())";
+                                    {
+                                        Scope s(cpp);
+                                        cpp << "return m_parent;";
+                                    }
+                                    cpp << "else";
+                                    {
+                                        Scope s(cpp);
+                                        cpp << "return m_parent->GetNextUIDParent();";
+                                    }
+                                }
+                                else {
+                                    cpp << "return m_parent->GetNextUIDParent();";
+                                }
+                            }
+                            cpp << "}";
+                            cpp << "return nullptr;";
+                        }
+                    }
+                    else {
+                        for (const auto& parentType : c.deps.parents) {
+                            cpp << "if (IsParent<" << customReplacedType(parentType->name) << ">()) {";
+                            {
+                                Scope s(cpp);
+                                if (hasMandatoryUidField(*parentType))
+                                    cpp << "return GetParent<" << customReplacedType(parentType->name) << ">();";
+                                else if (hasUidField(*parentType)) {
+                                    cpp << "if (GetParent<" << customReplacedType(parentType->name) << ">()->GetUID())";
+                                    {
+                                        Scope s(cpp);
+                                        cpp << "return GetParent<" << customReplacedType(parentType->name) << ">();";
+                                    }
+                                    cpp << "else";
+                                    {
+                                        Scope s(cpp);
+                                        cpp << "return GetParent<" << customReplacedType(parentType->name) << ">()->GetNextUIDParent();";
+                                    }
+                                }
+                                else {
+                                    cpp << "return GetParent<" << customReplacedType(parentType->name) << ">()->GetNextUIDParent();";
+                                }
+                            }
+                            cpp << "}";
+                        }
+                        cpp << "return nullptr;";
+                    }
+                }
+                cpp << "}";
+                cpp << EmptyLine;
+            }
+
             if (requiresUidManagerField(c)) {
                 cpp << "" << c_uidMgrName << "& " << c.name << "::GetUIDManager()";
                 cpp << "{";
@@ -475,8 +553,7 @@ namespace tigl {
 
         auto ctorArgumentList(const Class& c, const Class& parentClass) const -> std::string {
             std::vector<std::string> arguments;
-            const auto requiresParentPointer = m_tables.m_parentPointers.contains(c.name);
-            if (requiresParentPointer)
+            if (requiresParentPointer(c))
                 arguments.push_back(parentPointerThis(parentClass));
             if (requiresUidManager(c))
                 arguments.push_back("m_uidMgr");
@@ -1078,7 +1155,7 @@ namespace tigl {
         }
 
         void writeLicenseHeader(IndentingStreamWrapper& f) const {
-            f << "// Copyright (c) 2018 RISC Software GmbH";
+            f << "// Copyright (c) 2020 RISC Software GmbH";
             f << "//";
             f << "// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).";
             f << "// Do not edit, all changes are lost when files are re-generated.";
@@ -1150,6 +1227,13 @@ namespace tigl {
                 deps.hppCustomForwards.push_back(c_uidMgrName);
                 deps.cppIncludes.push_back("\"" + c_uidMgrName + ".h\"");
             }
+            if (hasUidField(c)) {
+                deps.hppIncludes.push_back("\"CTiglUIDObject.h\"");
+            }
+            else {
+                deps.hppCustomForwards.push_back("CTiglUIDObject");
+                deps.cppIncludes.push_back("\"CTiglUIDObject.h\"");
+            }
 
             // base class
             if (!c.base.empty() && m_types.classes.find(c.base) != std::end(m_types.classes)) {
@@ -1191,7 +1275,7 @@ namespace tigl {
             }
 
             // parent pointers
-            if (m_tables.m_parentPointers.contains(c.name)) {
+            if (requiresParentPointer(c)) {
                 deps.cppIncludes.push_back("<cassert>");
                 for (const auto& dep : c.deps.parents) {
                     const auto p = m_tables.m_customTypes.find(dep->name);
@@ -1232,7 +1316,7 @@ namespace tigl {
 
         void writeCtors(IndentingStreamWrapper& hpp, const Class& c) const {
             const auto hasUid = requiresUidManager(c);
-            if (m_tables.m_parentPointers.contains(c.name)) {
+            if (requiresParentPointer(c)) {
                 if (c_generateDefaultCtorsForParentPointerTypes)
                     hpp << "TIGL_EXPORT " << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ");";
                 for (const auto& dep : c.deps.parents)
@@ -1244,7 +1328,7 @@ namespace tigl {
         }
 
         void writeParentPointerFields(IndentingStreamWrapper& hpp, const Class& c) const {
-            if (m_tables.m_parentPointers.contains(c.name)) {
+            if (requiresParentPointer(c)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "void* m_parent;";
                     hpp << "const std::type_info* m_parentType;";
@@ -1323,7 +1407,7 @@ namespace tigl {
             };
 
             // if this class holds parent pointers, we have to provide corresponding ctor overloads
-            if (m_tables.m_parentPointers.contains(c.name)) {
+            if (requiresParentPointer(c)) {
                 if (c_generateDefaultCtorsForParentPointerTypes) {
                     cpp << c.name << "::" << c.name << "(" << (hasUidArgument ? c_uidMgrName + "* uidMgr" : "") << ")";
                     writeInitializationList();
@@ -1462,7 +1546,12 @@ namespace tigl {
                     writeDocumentation(hpp, c.documentation);
 
                     // class name and base class
-                    hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + c.base);
+                    if (c.base.empty() && !hasUidField(c))
+                        hpp << "class " << c.name;
+                    else if (hasUidField(c))
+                        hpp << "class " << c.name << " : public " << (hasMandatoryUidField(c) ? "CTiglReqUIDObject" : "CTiglOptUIDObject") << (c.base.empty() ? "" : ", public " + c.base);
+                    else 
+                        hpp << "class " << c.name << " : public " + c.base;
                     hpp << "{";
                     hpp << "public:";
                     {

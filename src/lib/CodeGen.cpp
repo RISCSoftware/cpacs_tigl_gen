@@ -393,8 +393,8 @@ namespace tigl {
         }
 
         void writeUidManagerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
-            hpp << "TIGL_EXPORT CTiglUIDObject* GetNextUIDParent();";
-            hpp << "TIGL_EXPORT const CTiglUIDObject* GetNextUIDParent() const;";
+            hpp << "TIGL_EXPORT virtual CTiglUIDObject* GetNextUIDParent();";
+            hpp << "TIGL_EXPORT virtual const CTiglUIDObject* GetNextUIDParent() const;";
             hpp << EmptyLine;
             if (requiresUidManagerField(c)) {
                 hpp << "TIGL_EXPORT " << c_uidMgrName << "& GetUIDManager();";

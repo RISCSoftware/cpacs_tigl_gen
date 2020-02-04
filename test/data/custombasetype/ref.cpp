@@ -167,9 +167,9 @@ namespace generated
 
 #include <boost/optional.hpp>
 #include <boost/utility/in_place_factory.hpp>
-#include <CustomCPACSBase.h>
 #include <string>
 #include <tixi.h>
+#include "CPACSBase.h"
 #include "tigl_internal.h"
 
 namespace tigl
@@ -182,7 +182,7 @@ namespace generated
     // CPACSRoot
 
     // generated from /xsd:schema/xsd:complexType[2]
-    class CPACSDerived : public CustomCPACSBase
+    class CPACSDerived : public CPACSBase
     {
     public:
         TIGL_EXPORT CPACSDerived(CTiglUIDManager* uidMgr);
@@ -247,7 +247,7 @@ namespace generated
     void CPACSDerived::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
     {
         // read base
-        CustomCPACSBase::ReadCPACS(tixiHandle, xpath);
+        CPACSBase::ReadCPACS(tixiHandle, xpath);
 
         // read element name
         if (tixi::TixiCheckElement(tixiHandle, xpath + "/name")) {
@@ -262,7 +262,7 @@ namespace generated
     void CPACSDerived::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
     {
         // write base
-        CustomCPACSBase::WriteCPACS(tixiHandle, xpath);
+        CPACSBase::WriteCPACS(tixiHandle, xpath);
 
         // write element name
         if (m_name) {

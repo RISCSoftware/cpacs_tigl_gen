@@ -670,7 +670,7 @@ namespace tigl {
             // classes
             const auto itC = m_types.classes.find(type);
             if (itC != std::end(m_types.classes)) {
-                cpp << customReplacedType(type) << "::ReadCPACS(tixiHandle, xpath);";
+                cpp << type << "::ReadCPACS(tixiHandle, xpath);";
                 return;
             }
 
@@ -687,7 +687,7 @@ namespace tigl {
             // classes
             const auto itC = m_types.classes.find(type);
             if (itC != std::end(m_types.classes)) {
-                cpp << customReplacedType(type) << "::WriteCPACS(tixiHandle, xpath);";
+                cpp << type << "::WriteCPACS(tixiHandle, xpath);";
                 return;
             }
 
@@ -1092,10 +1092,7 @@ namespace tigl {
 
             // base class
             if (!c.base.empty() && m_types.classes.find(c.base) != std::end(m_types.classes)) {
-                if (auto p = m_tables.m_customTypes.find(c.base))
-                    deps.hppIncludes.push_back("<" + *p + ".h>");
-                else
-                    deps.hppIncludes.push_back("\"" + c.base + ".h\"");
+                deps.hppIncludes.push_back("\"" + c.base + ".h\"");
             }
 
             // fields
@@ -1371,7 +1368,7 @@ namespace tigl {
                     writeDocumentation(hpp, c.documentation);
 
                     // class name and base class
-                    hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + customReplacedType(c.base));
+                    hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + c.base);
                     hpp << "{";
                     hpp << "public:";
                     {

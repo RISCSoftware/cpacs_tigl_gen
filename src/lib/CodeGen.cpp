@@ -292,7 +292,7 @@ namespace tigl {
             }
         }
 
-        void writeParentPointerAndUidManagerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
+        void writeParentPointerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "template<typename P>";
@@ -352,7 +352,9 @@ namespace tigl {
                     hpp << EmptyLine;
                 }
             }
+        }
 
+        void writeUidManagerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
             if (requiresUidManagerField(c)) {
                 hpp << "TIGL_EXPORT " << c_uidMgrName << "& GetUIDManager();";
                 hpp << "TIGL_EXPORT const " << c_uidMgrName << "& GetUIDManager() const;";
@@ -360,12 +362,12 @@ namespace tigl {
             }
         }
 
-        void writeParentPointerAndUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
+        void writeParentPointerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() == 1) {
                     for (auto isConst : { false, true }) {
                         if (isConst)
-                            cpp<< customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent()";
+                            cpp << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent()";
                         else
                             cpp << "const " << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent() const";
                         cpp << "{";
@@ -378,7 +380,9 @@ namespace tigl {
                     }
                 }
             }
+        }
 
+        void writeUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             if (requiresUidManagerField(c)) {
                 cpp << "" << c_uidMgrName << "& " << c.name << "::GetUIDManager()";
                 cpp << "{";
@@ -1182,7 +1186,7 @@ namespace tigl {
             }
         }
 
-        void writeParentPointerAndUidManagerFields(IndentingStreamWrapper& hpp, const Class& c) const {
+        void writeParentPointerFields(IndentingStreamWrapper& hpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "void* m_parent;";
@@ -1192,10 +1196,21 @@ namespace tigl {
                 }
                 hpp << EmptyLine;
             }
+        }
+
+        void writeUidManagerFields(IndentingStreamWrapper& hpp, const Class& c) const {
             if (requiresUidManagerField(c)) {
                 hpp << c_uidMgrName << "* m_uidMgr;";
                 hpp << EmptyLine;
             }
+        }
+
+        void writeDeletedCTorAndAssign(IndentingStreamWrapper& hpp, const Class& c) const {
+            hpp << c.name << "(const " << c.name << "&) = delete;";
+            hpp << "" << c.name << "& operator=(const " << c.name << "&) = delete;";
+            hpp << EmptyLine;
+            hpp << c.name << "(" << c.name << "&&) = delete;";
+            hpp << c.name << "& operator=(" << c.name << "&&) = delete;";
         }
 
         auto parentPointerThis(const Class& c) const -> std::string {
@@ -1381,8 +1396,10 @@ namespace tigl {
                         writeDtor(hpp, c);
 
                         // parent pointers
-                        writeParentPointerAndUidManagerGetters(hpp, c);
+                        writeParentPointerGetters(hpp, c);
 
+                        // uid manager
+                        writeUidManagerGetters(hpp, c);
                         // io
                         writeIODeclarations(hpp);
 
@@ -1399,8 +1416,11 @@ namespace tigl {
                     {
                         Scope s(hpp);
 
-                        // parent pointers and uid manager
-                        writeParentPointerAndUidManagerFields(hpp, c);
+                        // parent pointers
+                        writeParentPointerFields(hpp, c);
+
+                        // uid manager
+                        writeUidManagerFields(hpp, c);
 
                         // fields
                         writeFields(hpp, c.fields);
@@ -1410,12 +1430,7 @@ namespace tigl {
                         Scope s(hpp);
 
                         // copy ctor and assign, move ctor and assign
-                        hpp << c.name << "(const " << c.name << "&) = delete;";
-                        hpp << "" << c.name << "& operator=(const " << c.name << "&) = delete;";
-                        hpp << EmptyLine;
-                        hpp << c.name << "(" << c.name << "&&) = delete;";
-                        hpp << c.name << "& operator=(" << c.name << "&&) = delete;";
-
+                            writeDeletedCTorAndAssign(hpp, c);
                     }
                     hpp << "};";
 
@@ -1513,7 +1528,10 @@ namespace tigl {
                     writeDtorImplementation(cpp, c);
 
                     // parent pointers
-                    writeParentPointerAndUidManagerGetterImplementation(cpp, c);
+                    writeParentPointerGetterImplementation(cpp, c);
+
+                    // uid manager
+                    writeUidManagerGetterImplementation(cpp, c);
 
                     // io
                     writeReadImplementation(cpp, c, c.fields);

@@ -1,0 +1,4 @@
+// specifies classes for which to generate ctors accepting the pointer to their parent class
+
+CPACSBase
+CPACSDerived

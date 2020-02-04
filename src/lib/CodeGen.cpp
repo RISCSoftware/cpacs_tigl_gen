@@ -114,6 +114,26 @@ namespace tigl {
             const std::set<std::string> uniqueElemNames(elemNames.begin(), elemNames.end());
             return uniqueElemNames.size() == elemNames.size();
         }
+
+        auto customBaseClassName(const std::string& className) -> std::string {
+            return className + "Base";
+        }
+
+        void splitClassInBaseAndDerived(const Class& c, Class& cBase, Class& cDerived) {
+            cBase.name = customBaseClassName(c.name);
+            cBase.fields = c.fields;
+            cBase.choices = c.choices;
+            cBase.containsSequence = c.containsSequence;
+            cBase.deps.bases = c.deps.bases;
+            
+            cDerived.originXPath = c.originXPath;
+            cDerived.name = c.name;
+            cDerived.base = cBase.name;
+            cDerived.containsSequence = false;
+            cDerived.deps.bases = c.deps.bases;
+            cDerived.deps.bases.push_back(&cBase);
+            cDerived.deps.parents = c.deps.parents;
+        }
     }
 
     class CodeGen {
@@ -194,6 +214,18 @@ namespace tigl {
 
         auto fieldType(const Field& field) const -> std::string {
             return getterSetterType(field);
+        }
+
+        auto requiresCustomBaseClassWithoutParentPointer(const Class& c) const -> bool {
+            const auto requiresParentPointer = m_tables.m_parentPointers.contains(c.name);
+            return requiresParentPointer && !c.deps.deriveds.empty();
+        }
+
+        auto requiresCustomBaseClassWithoutParentPointer(const std::string& className) const -> bool {
+            auto itC = m_types.classes.find(className);
+            if (itC == m_types.classes.end())
+                throw std::runtime_error("Base class not found in type system");
+            return requiresCustomBaseClassWithoutParentPointer(itC->second);
         }
 
         void writeDocumentation(IndentingStreamWrapper& hpp, const std::string& documentation) const {
@@ -292,7 +324,7 @@ namespace tigl {
             }
         }
 
-        void writeParentPointerAndUidManagerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
+        void writeParentPointerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "template<typename P>";
@@ -352,7 +384,9 @@ namespace tigl {
                     hpp << EmptyLine;
                 }
             }
+        }
 
+        void writeUidManagerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
             if (requiresUidManagerField(c)) {
                 hpp << "TIGL_EXPORT " << c_uidMgrName << "& GetUIDManager();";
                 hpp << "TIGL_EXPORT const " << c_uidMgrName << "& GetUIDManager() const;";
@@ -360,12 +394,12 @@ namespace tigl {
             }
         }
 
-        void writeParentPointerAndUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
+        void writeParentPointerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() == 1) {
                     for (auto isConst : { false, true }) {
                         if (isConst)
-                            cpp<< customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent()";
+                            cpp << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent()";
                         else
                             cpp << "const " << customReplacedType(c.deps.parents[0]->name) << "* " << c.name << "::GetParent() const";
                         cpp << "{";
@@ -378,7 +412,9 @@ namespace tigl {
                     }
                 }
             }
+        }
 
+        void writeUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             if (requiresUidManagerField(c)) {
                 cpp << "" << c_uidMgrName << "& " << c.name << "::GetUIDManager()";
                 cpp << "{";
@@ -668,13 +704,7 @@ namespace tigl {
                 throw std::logic_error("fundamental types cannot be base classes"); // this should be prevented by TypeSystemBuilder
 
             // classes
-            const auto itC = m_types.classes.find(type);
-            if (itC != std::end(m_types.classes)) {
-                cpp << customReplacedType(type) << "::ReadCPACS(tixiHandle, xpath);";
-                return;
-            }
-
-            throw std::logic_error("No read function provided for type " + type);
+            cpp << type << "::ReadCPACS(tixiHandle, xpath);";
         }
 
         void writeWriteBaseImplementation(IndentingStreamWrapper& cpp, const std::string& type) const {
@@ -685,13 +715,7 @@ namespace tigl {
             }
 
             // classes
-            const auto itC = m_types.classes.find(type);
-            if (itC != std::end(m_types.classes)) {
-                cpp << customReplacedType(type) << "::WriteCPACS(tixiHandle, xpath);";
-                return;
-            }
-
-            throw std::logic_error("No write function provided for type " + type);
+            cpp << type << "::WriteCPACS(tixiHandle, xpath);";
         }
 
         void writeReadImplementation(IndentingStreamWrapper& cpp, const Class& c, const std::vector<Field>& fields) const {
@@ -1092,10 +1116,7 @@ namespace tigl {
 
             // base class
             if (!c.base.empty() && m_types.classes.find(c.base) != std::end(m_types.classes)) {
-                if (auto p = m_tables.m_customTypes.find(c.base))
-                    deps.hppIncludes.push_back("<" + *p + ".h>");
-                else
-                    deps.hppIncludes.push_back("\"" + c.base + ".h\"");
+                deps.hppIncludes.push_back("\"" + c.base + ".h\"");
             }
 
             // fields
@@ -1185,7 +1206,7 @@ namespace tigl {
             }
         }
 
-        void writeParentPointerAndUidManagerFields(IndentingStreamWrapper& hpp, const Class& c) const {
+        void writeParentPointerFields(IndentingStreamWrapper& hpp, const Class& c) const {
             if (m_tables.m_parentPointers.contains(c.name)) {
                 if (c.deps.parents.size() > 1) {
                     hpp << "void* m_parent;";
@@ -1195,10 +1216,21 @@ namespace tigl {
                 }
                 hpp << EmptyLine;
             }
+        }
+
+        void writeUidManagerFields(IndentingStreamWrapper& hpp, const Class& c) const {
             if (requiresUidManagerField(c)) {
                 hpp << c_uidMgrName << "* m_uidMgr;";
                 hpp << EmptyLine;
             }
+        }
+
+        void writeDeletedCTorAndAssign(IndentingStreamWrapper& hpp, const Class& c) const {
+            hpp << c.name << "(const " << c.name << "&) = delete;";
+            hpp << "" << c.name << "& operator=(const " << c.name << "&) = delete;";
+            hpp << EmptyLine;
+            hpp << c.name << "(" << c.name << "&&) = delete;";
+            hpp << c.name << "& operator=(" << c.name << "&&) = delete;";
         }
 
         auto parentPointerThis(const Class& c) const -> std::string {
@@ -1225,8 +1257,9 @@ namespace tigl {
                     cpp.contLine() << baseOrMemberName << "(" << value << ")";
                 };
                 for (const auto& bc : c.deps.bases) {
+                    const auto bcName = (requiresCustomBaseClassWithoutParentPointer(*bc) ? customBaseClassName(bc->name) : bc->name);
                     if (requiresUidManager(*bc)) {
-                        writeBaseOrMember(bc->name, "uidMgr");
+                        writeBaseOrMember(bcName, "uidMgr");
                     }
                 }
                 if (hasUidMgrField)
@@ -1370,57 +1403,76 @@ namespace tigl {
                     // documentation
                     writeDocumentation(hpp, c.documentation);
 
-                    // class name and base class
-                    hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + customReplacedType(c.base));
-                    hpp << "{";
-                    hpp << "public:";
-                    {
-                        Scope s(hpp);
+                    auto writeClassDeclaration = [&](const Class& c) {
+                        // class name and base class
+                        hpp << "class " << c.name << (c.base.empty() ? "" : " : public " + c.base);
+                        hpp << "{";
+                        hpp << "public:";
+                        {
+                            Scope s(hpp);
 
-                        // ctor
-                        writeCtors(hpp, c);
+                            // ctor
+                            writeCtors(hpp, c);
 
-                        // dtor
-                        writeDtor(hpp, c);
+                            // dtor
+                            writeDtor(hpp, c);
 
-                        // parent pointers
-                        writeParentPointerAndUidManagerGetters(hpp, c);
+                            // parent pointers
+                            writeParentPointerGetters(hpp, c);
 
-                        // io
-                        writeIODeclarations(hpp);
+                            // uid manager
+                            writeUidManagerGetters(hpp, c);
 
-                        // choice validator
-                        writeChoiceValidatorDeclaration(hpp, c);
+                            // io
+                            writeIODeclarations(hpp);
 
-                        // accessors
-                        writeAccessorDeclarations(hpp, c.fields);
+                            // choice validator
+                            writeChoiceValidatorDeclaration(hpp, c);
 
-                        // tree manipulators
-                        writeTreeManipulatorDeclarations(hpp, c.fields);
-                    }
-                    hpp << "protected:";
-                    {
-                        Scope s(hpp);
+                            // accessors
+                            writeAccessorDeclarations(hpp, c.fields);
 
-                        // parent pointers and uid manager
-                        writeParentPointerAndUidManagerFields(hpp, c);
+                            // tree manipulators
+                            writeTreeManipulatorDeclarations(hpp, c.fields);
+                        }
+                        hpp << "protected:";
+                        {
+                            Scope s(hpp);
 
-                        // fields
-                        writeFields(hpp, c.fields);
-                    }
-                    hpp << "private:";
-                    {
-                        Scope s(hpp);
+                            // parent pointers
+                            writeParentPointerFields(hpp, c);
 
-                        // copy ctor and assign, move ctor and assign
-                        hpp << c.name << "(const " << c.name << "&) = delete;";
-                        hpp << "" << c.name << "& operator=(const " << c.name << "&) = delete;";
+                            // uid manager
+                            writeUidManagerFields(hpp, c);
+
+                            // fields
+                            writeFields(hpp, c.fields);
+                        }
+                        hpp << "private:";
+                        {
+                            Scope s(hpp);
+
+                            // copy ctor and assign, move ctor and assign
+                            writeDeletedCTorAndAssign(hpp, c);
+                        }
+                        hpp << "};";
+                    };
+
+                    const auto buildSeparateBaseClass = requiresCustomBaseClassWithoutParentPointer(c);
+                    if (buildSeparateBaseClass) {
+                        Class cBase, cDerived;
+                        splitClassInBaseAndDerived(c, cBase, cDerived);
+                        writeClassDeclaration(cBase);
                         hpp << EmptyLine;
-                        hpp << c.name << "(" << c.name << "&&) = delete;";
-                        hpp << c.name << "& operator=(" << c.name << "&&) = delete;";
-
+                        writeClassDeclaration(cDerived);
                     }
-                    hpp << "};";
+                    else if (!c.base.empty() && requiresCustomBaseClassWithoutParentPointer(c.base)) {
+                        Class cCustomBase = c;
+                        cCustomBase.base = customBaseClassName(c.base);
+                        writeClassDeclaration(cCustomBase);
+                    }
+                    else
+                        writeClassDeclaration(c);
 
                     if (!m_namespace.empty()) {
                         ops = boost::none;
@@ -1509,27 +1561,48 @@ namespace tigl {
                         ops = boost::in_place(std::ref(cpp));
                     }
 
-                    // ctor
-                    writeCtorImplementations(cpp, c);
+                    auto writeDefinitions = [&](const Class& c) {
+                        // ctor
+                        writeCtorImplementations(cpp, c);
 
-                    // dtor
-                    writeDtorImplementation(cpp, c);
+                        // dtor
+                        writeDtorImplementation(cpp, c);
 
-                    // parent pointers
-                    writeParentPointerAndUidManagerGetterImplementation(cpp, c);
+                        // parent pointers
+                        writeParentPointerGetterImplementation(cpp, c);
 
-                    // io
-                    writeReadImplementation(cpp, c, c.fields);
-                    writeWriteImplementation(cpp, c, c.fields);
+                        // uid manager
+                        writeUidManagerGetterImplementation(cpp, c);
 
-                    // choice validator
-                    writeChoiceValidatorImplementation(cpp, c);
+                        // io
+                        writeReadImplementation(cpp, c, c.fields);
+                        writeWriteImplementation(cpp, c, c.fields);
 
-                    // accessors
-                    writeAccessorImplementations(cpp, c.name, c.fields);
+                        // choice validator
+                        writeChoiceValidatorImplementation(cpp, c);
 
-                    // tree manipulators
-                    writeTreeManipulatorImplementations(cpp, c);
+                        // accessors
+                        writeAccessorImplementations(cpp, c.name, c.fields);
+
+                        // tree manipulators
+                        writeTreeManipulatorImplementations(cpp, c);
+                    };
+
+                    const auto buildSeparateBaseClass = requiresCustomBaseClassWithoutParentPointer(c);
+                    if (buildSeparateBaseClass) {
+                        Class cBase, cDerived;
+                        splitClassInBaseAndDerived(c, cBase, cDerived);
+                        writeDefinitions(cBase);
+                        cpp << EmptyLine;
+                        writeDefinitions(cDerived);
+                    }
+                    else if (!c.base.empty() && requiresCustomBaseClassWithoutParentPointer(c.base)) {
+                        Class cCustomBase = c;
+                        cCustomBase.base = customBaseClassName(c.base);
+                        writeDefinitions(cCustomBase);
+                    }
+                    else
+                        writeDefinitions(c);
 
                     if (!m_namespace.empty()) {
                         ops = boost::none;

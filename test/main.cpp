@@ -57,3 +57,7 @@ BOOST_AUTO_TEST_CASE(custombasetype) {
     runTest();
 }
 
+BOOST_AUTO_TEST_CASE(basetypewithparent) {
+    runTest();
+}
+

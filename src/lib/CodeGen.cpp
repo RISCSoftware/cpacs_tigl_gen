@@ -188,8 +188,7 @@ namespace tigl {
         }
 
         auto requiresParentPointer(const Class& c) const {
-            //return m_tables.m_parentPointers.contains(c.name) || hasUidField(c) || hasUidRefField(c);
-            return !c.deps.parents.empty();
+            return !c.deps.parents.empty() && (m_tables.m_parentPointers.contains(c.name) || c_allTypesGetParentPointer);
         }
 
         auto getterSetterType(const Field& field) const -> std::string {

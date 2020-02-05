@@ -13,6 +13,8 @@
 #include "SchemaParser.h"
 
 namespace tigl {
+    const auto c_allTypesGetParentPointer = true;
+
     class Tables;
 
     enum class Cardinality {

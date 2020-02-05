@@ -45,6 +45,15 @@ namespace tigl {
             throw std::runtime_error("Unknown type: " + name);
         }
 
+        auto resolveComplexType(const xsd::SchemaTypes& types, const std::string& name, const Tables& tables) -> const xsd::ComplexType& {
+            // search simple and complex types
+            const auto cit = types.types.find(name);
+            if (cit != std::end(types.types)) {
+                return cit->second.as<xsd::ComplexType>();
+            }
+            throw std::runtime_error("Unknown type: " + name);
+        }
+
         auto buildFieldListAndChoiceExpression(const xsd::SchemaTypes& types, const xsd::ComplexType& type, const Tables& tables) -> std::tuple<std::vector<Field>, ChoiceElements> {
             std::vector<Field> members;
             ChoiceElements choiceItems;
@@ -228,6 +237,16 @@ namespace tigl {
                                 f.xmlType = XMLConstruct::FundamentalTypeBase;
 
                                 c.fields.insert(std::begin(c.fields), f);
+                                c.base.clear();
+                            }
+                            // build separate class in case base class contains a parent pointer
+                            else if (tables.m_parentPointers.contains(c.base)) {
+                                const auto& baseType = resolveComplexType(types, type.base, tables);
+                                std::vector<Field> baseFields;
+                                ChoiceElements baseChoices;
+                                std::tie(baseFields, baseChoices) = buildFieldListAndChoiceExpression(types, baseType, tables);
+                                c.fields.insert(std::begin(c.fields), std::begin(baseFields), std::end(baseFields));
+                                c.choices.insert(std::begin(c.choices), std::begin(baseChoices), std::end(baseChoices));
                                 c.base.clear();
                             }
                         }

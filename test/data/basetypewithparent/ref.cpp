@@ -33,11 +33,16 @@ namespace generated
     // CPACSTypeA
 
     // generated from /xsd:schema/xsd:complexType[1]
-    class CPACSBaseBase
+    class CPACSBase
     {
     public:
-        TIGL_EXPORT CPACSBaseBase(CTiglUIDManager* uidMgr);
-        TIGL_EXPORT virtual ~CPACSBaseBase();
+        TIGL_EXPORT CPACSBase(CPACSTypeA* parent, CTiglUIDManager* uidMgr);
+
+        TIGL_EXPORT virtual ~CPACSBase();
+
+        TIGL_EXPORT CPACSTypeA* GetParent();
+
+        TIGL_EXPORT const CPACSTypeA* GetParent() const;
 
         TIGL_EXPORT CTiglUIDManager& GetUIDManager();
         TIGL_EXPORT const CTiglUIDManager& GetUIDManager() const;
@@ -49,34 +54,11 @@ namespace generated
         TIGL_EXPORT virtual void SetUID(const std::string& value);
 
     protected:
+        CPACSTypeA* m_parent;
+
         CTiglUIDManager* m_uidMgr;
 
         std::string m_uID;
-
-    private:
-        CPACSBaseBase(const CPACSBaseBase&) = delete;
-        CPACSBaseBase& operator=(const CPACSBaseBase&) = delete;
-
-        CPACSBaseBase(CPACSBaseBase&&) = delete;
-        CPACSBaseBase& operator=(CPACSBaseBase&&) = delete;
-    };
-
-    class CPACSBase : public CPACSBaseBase
-    {
-    public:
-        TIGL_EXPORT CPACSBase(CPACSTypeA* parent, CTiglUIDManager* uidMgr);
-
-        TIGL_EXPORT virtual ~CPACSBase();
-
-        TIGL_EXPORT CPACSTypeA* GetParent();
-
-        TIGL_EXPORT const CPACSTypeA* GetParent() const;
-
-        TIGL_EXPORT virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);
-        TIGL_EXPORT virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;
-
-    protected:
-        CPACSTypeA* m_parent;
 
     private:
         CPACSBase(const CPACSBase&) = delete;
@@ -120,27 +102,39 @@ namespace tigl
 {
 namespace generated
 {
-    CPACSBaseBase::CPACSBaseBase(CTiglUIDManager* uidMgr)
+    CPACSBase::CPACSBase(CPACSTypeA* parent, CTiglUIDManager* uidMgr)
         : m_uidMgr(uidMgr)
     {
+        //assert(parent != NULL);
+        m_parent = parent;
     }
 
-    CPACSBaseBase::~CPACSBaseBase()
+    CPACSBase::~CPACSBase()
     {
         if (m_uidMgr) m_uidMgr->TryUnregisterObject(m_uID);
     }
 
-    CTiglUIDManager& CPACSBaseBase::GetUIDManager()
+    const CPACSTypeA* CPACSBase::GetParent() const
+    {
+        return m_parent;
+    }
+
+    CPACSTypeA* CPACSBase::GetParent()
+    {
+        return m_parent;
+    }
+
+    CTiglUIDManager& CPACSBase::GetUIDManager()
     {
         return *m_uidMgr;
     }
 
-    const CTiglUIDManager& CPACSBaseBase::GetUIDManager() const
+    const CTiglUIDManager& CPACSBase::GetUIDManager() const
     {
         return *m_uidMgr;
     }
 
-    void CPACSBaseBase::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
+    void CPACSBase::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
     {
         // read attribute uID
         if (tixi::TixiCheckAttribute(tixiHandle, xpath, "uID")) {
@@ -156,61 +150,25 @@ namespace generated
         if (m_uidMgr && !m_uID.empty()) m_uidMgr->RegisterObject(m_uID, *this);
     }
 
-    void CPACSBaseBase::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
+    void CPACSBase::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
     {
         // write attribute uID
         tixi::TixiSaveAttribute(tixiHandle, xpath, "uID", m_uID);
 
     }
 
-    const std::string& CPACSBaseBase::GetUID() const
+    const std::string& CPACSBase::GetUID() const
     {
         return m_uID;
     }
 
-    void CPACSBaseBase::SetUID(const std::string& value)
+    void CPACSBase::SetUID(const std::string& value)
     {
         if (m_uidMgr) {
             m_uidMgr->TryUnregisterObject(m_uID);
             m_uidMgr->RegisterObject(value, *this);
         }
         m_uID = value;
-    }
-
-
-    CPACSBase::CPACSBase(CPACSTypeA* parent, CTiglUIDManager* uidMgr)
-        : CPACSBaseBase(uidMgr)
-    {
-        //assert(parent != NULL);
-        m_parent = parent;
-    }
-
-    CPACSBase::~CPACSBase()
-    {
-    }
-
-    const CPACSTypeA* CPACSBase::GetParent() const
-    {
-        return m_parent;
-    }
-
-    CPACSTypeA* CPACSBase::GetParent()
-    {
-        return m_parent;
-    }
-
-    void CPACSBase::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
-    {
-        // read base
-        CPACSBaseBase::ReadCPACS(tixiHandle, xpath);
-
-    }
-
-    void CPACSBase::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
-    {
-        // write base
-        CPACSBaseBase::WriteCPACS(tixiHandle, xpath);
-
     }
 
 } // namespace generated
@@ -238,7 +196,6 @@ namespace generated
 #include <boost/utility/in_place_factory.hpp>
 #include <string>
 #include <tixi.h>
-#include "CPACSBase.h"
 #include "tigl_internal.h"
 
 namespace tigl
@@ -253,7 +210,7 @@ namespace generated
     // CPACSTypeB
 
     // generated from /xsd:schema/xsd:complexType[2]
-    class CPACSDerived : public CPACSBaseBase
+    class CPACSDerived
     {
     public:
         TIGL_EXPORT CPACSDerived(CPACSTypeB* parent, CTiglUIDManager* uidMgr);
@@ -264,8 +221,14 @@ namespace generated
 
         TIGL_EXPORT const CPACSTypeB* GetParent() const;
 
+        TIGL_EXPORT CTiglUIDManager& GetUIDManager();
+        TIGL_EXPORT const CTiglUIDManager& GetUIDManager() const;
+
         TIGL_EXPORT virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);
         TIGL_EXPORT virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;
+
+        TIGL_EXPORT virtual const std::string& GetUID() const;
+        TIGL_EXPORT virtual void SetUID(const std::string& value);
 
         TIGL_EXPORT virtual const boost::optional<std::string>& GetName() const;
         TIGL_EXPORT virtual void SetName(const boost::optional<std::string>& value);
@@ -273,6 +236,9 @@ namespace generated
     protected:
         CPACSTypeB* m_parent;
 
+        CTiglUIDManager* m_uidMgr;
+
+        std::string                  m_uID;
         boost::optional<std::string> m_name;
 
     private:
@@ -318,7 +284,7 @@ namespace tigl
 namespace generated
 {
     CPACSDerived::CPACSDerived(CPACSTypeB* parent, CTiglUIDManager* uidMgr)
-        : CPACSBaseBase(uidMgr)
+        : m_uidMgr(uidMgr)
     {
         //assert(parent != NULL);
         m_parent = parent;
@@ -326,6 +292,7 @@ namespace generated
 
     CPACSDerived::~CPACSDerived()
     {
+        if (m_uidMgr) m_uidMgr->TryUnregisterObject(m_uID);
     }
 
     const CPACSTypeB* CPACSDerived::GetParent() const
@@ -338,10 +305,28 @@ namespace generated
         return m_parent;
     }
 
+    CTiglUIDManager& CPACSDerived::GetUIDManager()
+    {
+        return *m_uidMgr;
+    }
+
+    const CTiglUIDManager& CPACSDerived::GetUIDManager() const
+    {
+        return *m_uidMgr;
+    }
+
     void CPACSDerived::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
     {
-        // read base
-        CPACSBaseBase::ReadCPACS(tixiHandle, xpath);
+        // read attribute uID
+        if (tixi::TixiCheckAttribute(tixiHandle, xpath, "uID")) {
+            m_uID = tixi::TixiGetAttribute<std::string>(tixiHandle, xpath, "uID");
+            if (m_uID.empty()) {
+                LOG(WARNING) << "Required attribute uID is empty at xpath " << xpath;
+            }
+        }
+        else {
+            LOG(ERROR) << "Required attribute uID is missing at xpath " << xpath;
+        }
 
         // read element name
         if (tixi::TixiCheckElement(tixiHandle, xpath + "/name")) {
@@ -351,12 +336,13 @@ namespace generated
             }
         }
 
+        if (m_uidMgr && !m_uID.empty()) m_uidMgr->RegisterObject(m_uID, *this);
     }
 
     void CPACSDerived::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
     {
-        // write base
-        CPACSBaseBase::WriteCPACS(tixiHandle, xpath);
+        // write attribute uID
+        tixi::TixiSaveAttribute(tixiHandle, xpath, "uID", m_uID);
 
         // write element name
         if (m_name) {
@@ -369,6 +355,20 @@ namespace generated
             }
         }
 
+    }
+
+    const std::string& CPACSDerived::GetUID() const
+    {
+        return m_uID;
+    }
+
+    void CPACSDerived::SetUID(const std::string& value)
+    {
+        if (m_uidMgr) {
+            m_uidMgr->TryUnregisterObject(m_uID);
+            m_uidMgr->RegisterObject(value, *this);
+        }
+        m_uID = value;
     }
 
     const boost::optional<std::string>& CPACSDerived::GetName() const

@@ -445,7 +445,6 @@ namespace tigl {
                     }
                 }
             }
-
         }
 
         void writeUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
@@ -487,30 +486,35 @@ namespace tigl {
                         }
                     }
                     else {
-                        for (const auto& parentType : c.deps.parents) {
-                            cpp << "if (IsParent<" << customReplacedType(parentType->name) << ">()) {";
-                            {
-                                Scope s(cpp);
-                                if (hasMandatoryUidField(*parentType))
-                                    cpp << "return GetParent<" << customReplacedType(parentType->name) << ">();";
-                                else if (hasUidField(*parentType)) {
-                                    cpp << "if (GetParent<" << customReplacedType(parentType->name) << ">()->GetUID())";
-                                    {
-                                        Scope s(cpp);
+                        cpp << "if (m_parent) {";
+                        {
+                            Scope s(cpp);
+                            for (const auto& parentType : c.deps.parents) {
+                                cpp << "if (IsParent<" << customReplacedType(parentType->name) << ">()) {";
+                                {
+                                    Scope s(cpp);
+                                    if (hasMandatoryUidField(*parentType))
                                         cpp << "return GetParent<" << customReplacedType(parentType->name) << ">();";
+                                    else if (hasUidField(*parentType)) {
+                                        cpp << "if (GetParent<" << customReplacedType(parentType->name) << ">()->GetUID())";
+                                        {
+                                            Scope s(cpp);
+                                            cpp << "return GetParent<" << customReplacedType(parentType->name) << ">();";
+                                        }
+                                        cpp << "else";
+                                        {
+                                            Scope s(cpp);
+                                            cpp << "return GetParent<" << customReplacedType(parentType->name) << ">()->GetNextUIDParent();";
+                                        }
                                     }
-                                    cpp << "else";
-                                    {
-                                        Scope s(cpp);
+                                    else {
                                         cpp << "return GetParent<" << customReplacedType(parentType->name) << ">()->GetNextUIDParent();";
                                     }
                                 }
-                                else {
-                                    cpp << "return GetParent<" << customReplacedType(parentType->name) << ">()->GetNextUIDParent();";
-                                }
+                                cpp << "}";
                             }
-                            cpp << "}";
                         }
+                        cpp << "}";
                         cpp << "return nullptr;";
                     }
                 }

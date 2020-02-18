@@ -224,30 +224,33 @@ namespace tigl {
                         if (!type.base.empty()) {
                             c.base = resolveType(types, type.base, tables);
 
-                            // make base a field if fundamental type
-                            if (tables.m_fundamentalTypes.contains(c.base)) {
-                                std::cout << "\tWarning: Type " << type.name << " has base class " << c.base << " which is a fundamental type. Generated field 'base' instead" << std::endl;
+                            // special case when type is excluded by substitution
+                            if (!c.base.empty()) {
+                                // make base a field if fundamental type
+                                if (tables.m_fundamentalTypes.contains(c.base)) {
+                                    std::cout << "\tWarning: Type " << type.name << " has base class " << c.base << " which is a fundamental type. Generated field 'base' instead" << std::endl;
 
-                                Field f;
-                                f.cpacsName = "";
-                                f.namePostfix = "base";
-                                f.minOccurs = 1;
-                                f.maxOccurs = 1;
-                                f.typeName = c.base;
-                                f.xmlType = XMLConstruct::FundamentalTypeBase;
+                                    Field f;
+                                    f.cpacsName = "";
+                                    f.namePostfix = "base";
+                                    f.minOccurs = 1;
+                                    f.maxOccurs = 1;
+                                    f.typeName = c.base;
+                                    f.xmlType = XMLConstruct::FundamentalTypeBase;
 
-                                c.fields.insert(std::begin(c.fields), f);
-                                c.base.clear();
-                            }
-                            // build separate class in case base class contains a parent pointer
-                            else if (tables.m_parentPointers.contains(c.base)) {
-                                const auto& baseType = resolveComplexType(types, type.base, tables);
-                                std::vector<Field> baseFields;
-                                ChoiceElements baseChoices;
-                                std::tie(baseFields, baseChoices) = buildFieldListAndChoiceExpression(types, baseType, tables);
-                                c.fields.insert(std::begin(c.fields), std::begin(baseFields), std::end(baseFields));
-                                c.choices.insert(std::begin(c.choices), std::begin(baseChoices), std::end(baseChoices));
-                                c.base.clear();
+                                    c.fields.insert(std::begin(c.fields), f);
+                                    c.base.clear();
+                                }
+                                // build separate class (not inherited from base) in case base class contains a parent pointer
+                                else if (tables.m_parentPointers.contains(c.base)) {
+                                    const auto& baseType = resolveComplexType(types, type.base, tables);
+                                    std::vector<Field> baseFields;
+                                    ChoiceElements baseChoices;
+                                    std::tie(baseFields, baseChoices) = buildFieldListAndChoiceExpression(types, baseType, tables);
+                                    c.fields.insert(std::begin(c.fields), std::begin(baseFields), std::end(baseFields));
+                                    c.choices.insert(std::begin(c.choices), std::begin(baseChoices), std::end(baseChoices));
+                                    c.base.clear();
+                                }
                             }
                         }
 

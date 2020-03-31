@@ -32,7 +32,6 @@ namespace generated
     // This class is used in:
     // CPACSTypeA
 
-    // generated from /xsd:schema/xsd:complexType[1]
     class CPACSBase
     {
     public:
@@ -209,7 +208,6 @@ namespace generated
     // This class is used in:
     // CPACSTypeB
 
-    // generated from /xsd:schema/xsd:complexType[2]
     class CPACSDerived
     {
     public:
@@ -416,7 +414,6 @@ namespace generated
     // This class is used in:
     // CPACSRoot
 
-    // generated from /xsd:schema/xsd:complexType[3]
     class CPACSTypeA
     {
     public:
@@ -561,7 +558,6 @@ namespace generated
     // This class is used in:
     // CPACSRoot
 
-    // generated from /xsd:schema/xsd:complexType[4]
     class CPACSTypeB
     {
     public:
@@ -705,7 +701,6 @@ class CTiglUIDManager;
 namespace generated
 {
     // This class is used in:
-    // generated from /xsd:schema/xsd:complexType[5]
     class CPACSRoot
     {
     public:

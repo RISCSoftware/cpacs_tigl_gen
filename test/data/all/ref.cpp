@@ -28,7 +28,6 @@ namespace tigl
 namespace generated
 {
     // This class is used in:
-    // generated from /xsd:schema/xsd:complexType[1]
     class CPACSRoot
     {
     public:

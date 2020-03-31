@@ -28,7 +28,6 @@ class CTiglUIDManager;
 namespace generated
 {
     // This class is used in:
-    // generated from /xsd:schema/xsd:complexType[1]
     class CPACSBase
     {
     public:
@@ -181,7 +180,6 @@ namespace generated
     // This class is used in:
     // CPACSRoot
 
-    // generated from /xsd:schema/xsd:complexType[2]
     class CPACSDerived : public CPACSBase
     {
     public:
@@ -320,7 +318,6 @@ class CTiglUIDManager;
 namespace generated
 {
     // This class is used in:
-    // generated from /xsd:schema/xsd:complexType[3]
     class CPACSRoot
     {
     public:

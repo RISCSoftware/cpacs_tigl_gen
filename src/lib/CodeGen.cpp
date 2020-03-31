@@ -1183,8 +1183,8 @@ namespace tigl {
         }
 
         void writeUidRefObjectFunctionDeclaractions(IndentingStreamWrapper& hpp) const {
-            hpp << "const CTiglUIDObject* GetNextUIDObject() const final;";
-            hpp << "void NotifyUIDChange(const std::string& oldUid, const std::string& newUid) final;";
+            hpp << "TIGL_EXPORT const CTiglUIDObject* GetNextUIDObject() const final;";
+            hpp << "TIGL_EXPORT void NotifyUIDChange(const std::string& oldUid, const std::string& newUid) final;";
             hpp << EmptyLine;
         }
 

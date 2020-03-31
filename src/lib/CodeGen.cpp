@@ -214,7 +214,6 @@ namespace tigl {
                 return !f.documentation.empty();
             });
             for (const auto& f : fields) {
-                //hpp << "// generated from " << f.originXPath;
                 writeDocumentation(hpp, f.documentation);
                 hpp << std::left << std::setw(length) << fieldType(f) << " " << f.fieldName() << ";";
 
@@ -1377,8 +1376,6 @@ namespace tigl {
                     if (c.deps.parents.size() > 0)
                         hpp << EmptyLine;
 
-                    hpp << "// generated from " << c.originXPath << "";
-
                     // documentation
                     writeDocumentation(hpp, c.documentation);
 
@@ -1622,7 +1619,6 @@ namespace tigl {
                         hpp << "// " << c->name << "";
                     }
                     hpp << EmptyLine;
-                    hpp << "// generated from " << e.originXPath;
 
                     // enum name
                     hpp << "enum " << (c_generateCpp11ScopedEnums ? "class " : "") << e.name;

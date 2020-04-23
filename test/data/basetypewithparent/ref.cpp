@@ -834,7 +834,7 @@ namespace generated
 
 namespace tigl
 {
-class CTiglUIDManager;S
+class CTiglUIDManager;
 class CTiglUIDObject;
 
 namespace generated

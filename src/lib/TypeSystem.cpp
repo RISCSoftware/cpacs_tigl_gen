@@ -54,129 +54,136 @@ namespace tigl {
             throw std::runtime_error("Unknown type: " + name);
         }
 
-        auto buildFieldListAndChoiceExpression(const xsd::SchemaTypes& types, const xsd::ComplexType& type, const Tables& tables) -> std::tuple<std::vector<Field>, ChoiceElements> {
+        auto buildFieldListAndChoiceExpression(const xsd::SchemaTypes& types, const std::vector<std::reference_wrapper<const xsd::ComplexType>>& typeList, const Tables& tables) -> std::tuple<std::vector<Field>, ChoiceElements> {
             std::vector<Field> members;
             ChoiceElements choiceItems;
 
-            // attributes
-            for (const auto& a : type.attributes) {
-                Field m;
-                m.originXPath = a.xpath;
-                m.cpacsName = a.name;
-                m.typeName = resolveType(types, a.type, tables);
-                m.xmlType = XMLConstruct::Attribute;
-                m.minOccurs = a.optional ? 0 : 1;
-                m.maxOccurs = 1;
-                m.defaultValue = a.defaultValue;
-                m.documentation = a.documentation;
-                members.push_back(m);
-            }
+            for (const auto& entry : typeList) {
+                const auto& type = entry.get();
 
-            // elements
-            struct ContentVisitor : public boost::static_visitor<> {
-                ContentVisitor(const xsd::SchemaTypes& types, std::vector<Field>& members, ChoiceElements& choiceItems, std::size_t attributeCount, const Tables& tables, std::vector<std::size_t> choiceIndices = {})
-                    : types(types), members(members), choiceItems(choiceItems), attributeCount(attributeCount), tables(tables), choiceIndices(choiceIndices) {}
-
-                void emitField(Field f) const {
-                    if (!choiceIndices.empty()) {
-                        // make optional
-                        const auto minBefore = f.minOccurs;
-                        f.minOccurs = 0;
-
-                        // give custom name
-                        f.namePostfix = "_choice" + boost::join(choiceIndices | boost::adaptors::transformed([](std::size_t i) { return std::to_string(i); }), "_");
-
-                        choiceItems.push_back(ChoiceElement{ members.size(), minBefore == 0 });
-                    }
-                    members.push_back(std::move(f));
-                }
-
-                void operator()(const xsd::Element& e) const {
-                    if (e.minOccurs == 0 && e.maxOccurs == 0) {
-                        std::cerr << "Warning: Element " + e.name + " with type " + e.type + " was omitted as minOccurs and maxOccurs are both zero" << std::endl;
-                        return; // skip this type
-                    }
-
+                // attributes
+                for (const auto& a : type.attributes) {
                     Field m;
-                    m.originXPath = e.xpath;
-                    m.cpacsName = e.name;
-                    m.typeName = resolveType(types, e.type, tables);
-                    m.xmlType = XMLConstruct::Element;
-                    m.minOccurs = e.minOccurs;
-                    m.maxOccurs = e.maxOccurs;
-                    m.defaultValue = e.defaultValue;
-                    m.documentation = e.documentation;
-                    emitField(std::move(m));
+                    m.originXPath = a.xpath;
+                    m.cpacsName = a.name;
+                    m.xmlTypeName = a.type;
+                    m.typeName = resolveType(types, a.type, tables);
+                    m.xmlType = XMLConstruct::Attribute;
+                    m.minOccurs = a.optional ? 0 : 1;
+                    m.maxOccurs = 1;
+                    m.defaultValue = a.defaultValue;
+                    m.documentation = a.documentation;
+                    members.push_back(m);
                 }
 
-                void operator()(const xsd::Choice& c) const {
-                    const auto countBefore = members.size();
+                // elements
+                struct ContentVisitor : public boost::static_visitor<> {
+                    ContentVisitor(const xsd::SchemaTypes& types, std::vector<Field>& members, ChoiceElements& choiceItems, std::size_t attributeCount, const Tables& tables, std::vector<std::size_t> choiceIndices = {})
+                        : types(types), members(members), choiceItems(choiceItems), attributeCount(attributeCount), tables(tables), choiceIndices(choiceIndices) {}
 
-                    Choice choice;
-                    for (const auto& v : c.elements | boost::adaptors::indexed(1)) {
-                        // collect members of one choice
-                        auto indices = choiceIndices;
-                        indices.push_back(v.index());
-                        ChoiceElements subChoiceItems;
-                        v.value().visit(ContentVisitor(types, members, subChoiceItems, attributeCount, tables, indices));
-                        choice.options.push_back(std::move(subChoiceItems));
+                    void emitField(Field f) const {
+                        if (!choiceIndices.empty()) {
+                            // make optional
+                            const auto minBefore = f.minOccurs;
+                            f.minOccurs = 0;
+
+                            // give custom name
+                            f.namePostfix = "_choice" + boost::join(choiceIndices | boost::adaptors::transformed([](std::size_t i) { return std::to_string(i); }), "_");
+
+                            choiceItems.push_back(ChoiceElement{ members.size(), minBefore == 0 });
+                        }
+                        members.push_back(std::move(f));
                     }
-                    choiceItems.push_back(std::move(choice));
 
-                    // consistency check, two types with the same name but different types or cardinality are problematic
-                    for (std::size_t i = countBefore; i < members.size(); i++) {
-                        const auto& f1 = members[i];
-                        for (std::size_t j = i + 1; j < members.size(); j++) {
-                            const auto& f2 = members[j];
-                            if (f1.cpacsName == f2.cpacsName && (f1.cardinality() != f2.cardinality() || f1.typeName != f2.typeName)) {
-                                std::cerr << "Elements with same name but different cardinality or type inside choice" << std::endl;
-                                for (const auto& f : { f1, f2 })
-                                    std::cerr << f.cpacsName << " " << toString(f.cardinality()) << " " << f.typeName << std::endl;
+                    void operator()(const xsd::Element& e) const {
+                        if (e.minOccurs == 0 && e.maxOccurs == 0) {
+                            std::cerr << "Warning: Element " + e.name + " with type " + e.type + " was omitted as minOccurs and maxOccurs are both zero" << std::endl;
+                            return; // skip this type
+                        }
+
+                        Field m;
+                        m.originXPath = e.xpath;
+                        m.cpacsName = e.name;
+                        m.xmlTypeName = e.type;
+                        m.typeName = resolveType(types, e.type, tables);
+                        m.xmlType = XMLConstruct::Element;
+                        m.minOccurs = e.minOccurs;
+                        m.maxOccurs = e.maxOccurs;
+                        m.defaultValue = e.defaultValue;
+                        m.documentation = e.documentation;
+                        emitField(std::move(m));
+                    }
+
+                    void operator()(const xsd::Choice& c) const {
+                        const auto countBefore = members.size();
+
+                        Choice choice;
+                        for (const auto& v : c.elements | boost::adaptors::indexed(1)) {
+                            // collect members of one choice
+                            auto indices = choiceIndices;
+                            indices.push_back(v.index());
+                            ChoiceElements subChoiceItems;
+                            v.value().visit(ContentVisitor(types, members, subChoiceItems, attributeCount, tables, indices));
+                            choice.options.push_back(std::move(subChoiceItems));
+                        }
+                        choiceItems.push_back(std::move(choice));
+
+                        // consistency check, two types with the same name but different types or cardinality are problematic
+                        for (std::size_t i = countBefore; i < members.size(); i++) {
+                            const auto& f1 = members[i];
+                            for (std::size_t j = i + 1; j < members.size(); j++) {
+                                const auto& f2 = members[j];
+                                if (f1.cpacsName == f2.cpacsName && (f1.cardinality() != f2.cardinality() || f1.typeName != f2.typeName)) {
+                                    std::cerr << "Elements with same name but different cardinality or type inside choice" << std::endl;
+                                    for (const auto& f : { f1, f2 })
+                                        std::cerr << f.cpacsName << " " << toString(f.cardinality()) << " " << f.typeName << std::endl;
+                                }
                             }
                         }
                     }
-                }
 
-                void operator()(const xsd::Sequence& s) const {
-                    for (const auto& v : s.elements)
-                        v.visit(*this);
-                }
+                    void operator()(const xsd::Sequence& s) const {
+                        for (const auto& v : s.elements)
+                            v.visit(*this);
+                    }
 
-                void operator()(const xsd::All& a) const {
-                    for (const auto& e : a.elements)
-                        operator()(e);
-                }
+                    void operator()(const xsd::All& a) const {
+                        for (const auto& e : a.elements)
+                            operator()(e);
+                    }
 
-                void operator()(const xsd::Any& a) const {
-                    // nothing to do here
-                }
+                    void operator()(const xsd::Any& a) const {
+                        // nothing to do here
+                    }
 
-                void operator()(const xsd::Group& g) const {
-                    throw NotImplementedException("Generating fields for group is not implemented");
-                }
+                    void operator()(const xsd::Group& g) const {
+                        throw NotImplementedException("Generating fields for group is not implemented");
+                    }
 
-                void operator()(const xsd::SimpleContent& g) const {
-                    Field m;
-                    m.originXPath = g.xpath;
-                    m.cpacsName = "";
-                    m.namePostfix = "simpleContent";
-                    m.minOccurs = 1;
-                    m.maxOccurs = 1;
-                    m.typeName = resolveType(types, g.type, tables);
-                    m.xmlType = XMLConstruct::SimpleContent;
-                    emitField(std::move(m));
-                }
+                    void operator()(const xsd::SimpleContent& g) const {
+                        Field m;
+                        m.originXPath = g.xpath;
+                        m.cpacsName = "";
+                        m.namePostfix = "simpleContent";
+                        m.minOccurs = 1;
+                        m.maxOccurs = 1;
+                        m.xmlTypeName = g.type;
+                        m.typeName = resolveType(types, g.type, tables);
+                        m.xmlType = XMLConstruct::SimpleContent;
+                        emitField(std::move(m));
+                    }
 
-            private:
-                const xsd::SchemaTypes& types;
-                std::vector<Field>& members;
-                ChoiceElements& choiceItems;
-                const std::size_t attributeCount;
-                const Tables& tables;
-                const std::vector<std::size_t> choiceIndices; // not empty when inside a choice
-            };
+                private:
+                    const xsd::SchemaTypes& types;
+                    std::vector<Field>& members;
+                    ChoiceElements& choiceItems;
+                    const std::size_t attributeCount;
+                    const Tables& tables;
+                    const std::vector<std::size_t> choiceIndices; // not empty when inside a choice
+                };
 
-            type.content.visit(ContentVisitor(types, members, choiceItems, members.size(), tables));
+                type.content.visit(ContentVisitor(types, members, choiceItems, members.size(), tables));
+            }
 
             return std::make_tuple(members, choiceItems);
         }
@@ -219,7 +226,8 @@ namespace tigl {
                         c.documentation = type.documentation;
                         c.name = makeClassName(type.name);
                         c.containsSequence = checkForSequence(type);
-                        std::tie(c.fields, c.choices) = buildFieldListAndChoiceExpression(types, type, tables);
+
+                        std::tie(c.fields, c.choices) = buildFieldListAndChoiceExpression(types, { type }, tables);
 
                         if (!type.base.empty()) {
                             c.base = resolveType(types, type.base, tables);
@@ -235,20 +243,18 @@ namespace tigl {
                                     f.namePostfix = "base";
                                     f.minOccurs = 1;
                                     f.maxOccurs = 1;
+                                    f.xmlTypeName = "";
                                     f.typeName = c.base;
                                     f.xmlType = XMLConstruct::FundamentalTypeBase;
 
-                                    c.fields.insert(std::begin(c.fields), f);
+                                    c.fields.push_back(f);
                                     c.base.clear();
                                 }
                                 // build separate class (not inherited from base) in case base class contains a parent pointer
-                                else if (tables.m_parentPointers.contains(c.base)) {
+                                else if (!c.base.empty() && (tables.m_parentPointers.contains(c.base) || c_allTypesGetParentPointer)) {
+                                    // replace fields and choices by data combined of base type and current type
                                     const auto& baseType = resolveComplexType(types, type.base, tables);
-                                    std::vector<Field> baseFields;
-                                    ChoiceElements baseChoices;
-                                    std::tie(baseFields, baseChoices) = buildFieldListAndChoiceExpression(types, baseType, tables);
-                                    c.fields.insert(std::begin(c.fields), std::begin(baseFields), std::end(baseFields));
-                                    c.choices.insert(std::begin(c.choices), std::begin(baseChoices), std::end(baseChoices));
+                                    std::tie(c.fields, c.choices) = buildFieldListAndChoiceExpression(types, { baseType, type }, tables);
                                     c.base.clear();
                                 }
                             }

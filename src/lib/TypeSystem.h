@@ -13,6 +13,8 @@
 #include "SchemaParser.h"
 
 namespace tigl {
+    const auto c_allTypesGetParentPointer = true;
+
     class Tables;
 
     enum class Cardinality {
@@ -43,6 +45,7 @@ namespace tigl {
     struct Field {
         std::string originXPath;
         std::string cpacsName;
+        std::string xmlTypeName;
         std::string typeName;
         XMLConstruct xmlType;
         unsigned int minOccurs = 0;

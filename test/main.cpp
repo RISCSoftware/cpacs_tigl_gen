@@ -61,3 +61,6 @@ BOOST_AUTO_TEST_CASE(basetypewithparent) {
     runTest();
 }
 
+BOOST_AUTO_TEST_CASE(uidreferencevector) {
+    runTest();
+}

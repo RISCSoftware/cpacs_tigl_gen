@@ -214,6 +214,12 @@ namespace tigl {
             return getterSetterType(field);
         }
 
+        auto vectorInnerType(const Field& field) const -> std::string {
+            if (field.cardinality() != Cardinality::Vector)
+                throw std::logic_error("Requested vector inner type for non-vector type");
+            return customReplacedType(field);
+        }
+
         void writeDocumentation(IndentingStreamWrapper& hpp, const std::string& documentation) const {
             if (!documentation.empty()) {
                 std::vector<std::string> lines;
@@ -248,7 +254,12 @@ namespace tigl {
                 const bool isClassType = m_types.classes.find(f.typeName) != std::end(m_types.classes);
                 if (!isClassType && f.cardinality() != Cardinality::Vector) {
                     hpp << "TIGL_EXPORT virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
-                } else
+                } // generate special accessors for uid reference vectors
+                else if (f.cardinality() == Cardinality::Vector && f.xmlTypeName == c_uidRefType) {
+                    hpp << "TIGL_EXPORT virtual void AddTo" << capitalizeFirstLetter(f.name()) << "(const " << vectorInnerType(f) << "& value);";
+                    hpp << "TIGL_EXPORT virtual bool RemoveFrom" << capitalizeFirstLetter(f.name()) << "(const " << vectorInnerType(f) << "& value);";
+                }
+                else
                     hpp << "TIGL_EXPORT virtual " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "();";
                 hpp << EmptyLine;
             }
@@ -340,7 +351,45 @@ namespace tigl {
                         cpp << f.fieldName() << " = value;";
                     }
                     cpp << "}";
-                } else {
+                } // generate special accessors for uid reference vectors
+                else if (f.cardinality() == Cardinality::Vector && f.xmlTypeName == c_uidRefType) {
+                    cpp << "void " << className << "::AddTo" << capitalizeFirstLetter(f.name()) << "(const " << vectorInnerType(f) << "& value)";
+                    cpp << "{";
+                    {
+                        Scope s(cpp);
+                        cpp << "if (m_uidMgr) {";
+                        {
+                            Scope s(cpp);
+                            cpp << "if (!value.empty()) m_uidMgr->RegisterReference(value, *this);";
+                        }
+                        cpp << "}";
+                        cpp << f.fieldName() << ".push_back(value);";
+                    }
+                    cpp << "}";
+                    cpp << EmptyLine;
+                    cpp << "bool " << className << "::RemoveFrom" << capitalizeFirstLetter(f.name()) << "(const " << vectorInnerType(f) << "& value)";
+                    cpp << "{";
+                    {
+                        Scope s(cpp);
+                        cpp << "const auto it = std::find(" << f.fieldName() << ".begin(), " << f.fieldName() << ".end(), value);";
+                        cpp << "if (it != " << f.fieldName() << ".end()) {";
+                        {
+                            Scope s(cpp);
+                            cpp << "if (m_uidMgr && !it->empty()) {";
+                            {
+                                Scope s(cpp);
+                                cpp << "m_uidMgr->TryUnregisterReference(*it, *this);";
+                            }
+                            cpp << "}";
+                            cpp << f.fieldName() << ".erase(it);";
+                            cpp << "return true;";
+                        }
+                        cpp << "}";
+                        cpp << "return false;";
+                    }
+                    cpp << "}";
+                }
+                else {
                     cpp << getterSetterType(f) << "& " << className << "::Get" << capitalizeFirstLetter(f.name()) << "()";
                     cpp << "{";
                     {

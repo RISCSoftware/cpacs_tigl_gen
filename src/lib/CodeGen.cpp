@@ -426,7 +426,6 @@ namespace tigl {
                         hpp << "{";
                         {
                             Scope s(hpp);
-                            hpp.noIndent() << "#ifdef HAVE_STDIS_SAME";
                             hpp << "static_assert(";
                             for (const auto& dep : c.deps.parents) {
                                 if (&dep != &c.deps.parents[0])
@@ -434,7 +433,6 @@ namespace tigl {
                                 hpp.contLine() << "std::is_same<P, " << customReplacedType(dep->name) << ">::value";
                             }
                             hpp.contLine() << ", \"template argument for P is not a parent class of " << c.name << "\");";
-                            hpp.noIndent() << "#endif";
                             if (c_generateDefaultCtorsForParentPointerTypes) {
                                 hpp << "if (m_parent == NULL) {";
                                 {

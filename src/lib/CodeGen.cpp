@@ -575,6 +575,12 @@ namespace tigl {
                 cpp << "{";
                 {
                     Scope s(cpp);
+                    cpp << "if (!m_uidMgr) {";
+                    {
+                        Scope s(cpp);
+                        cpp << "throw CTiglError(\"UIDManager is null\");";
+                    }
+                    cpp << "}";
                     cpp << "return *m_uidMgr;";
                 }
                 cpp << "}";
@@ -584,6 +590,12 @@ namespace tigl {
                 cpp << "{";
                 {
                     Scope s(cpp);
+                    cpp << "if (!m_uidMgr) {";
+                    {
+                        Scope s(cpp);
+                        cpp << "throw CTiglError(\"UIDManager is null\");";
+                    }
+                    cpp << "}";
                     cpp << "return *m_uidMgr;";
                 }
                 cpp << "}";

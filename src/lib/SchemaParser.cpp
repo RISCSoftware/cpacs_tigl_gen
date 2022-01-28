@@ -238,8 +238,10 @@ namespace tigl {
                     tixiGetChildNodeName(document.handle(), xpath.c_str(), i, &namePtr);
 
                     const auto name = std::string(namePtr);
-                    if (name == "#text") {
-                        auto text = document.textElement(xpath + "/text()[" + std::to_string(++childIndex[name]) + "]");
+                    if (name == "#text" || name == "#cdata-section") {
+                        const auto childXPath = (name == "#text") ? xpath + "/text()[" + std::to_string(++childIndex[name]) + "]"
+                                                                  : xpath;
+                        auto text = document.textElement(childXPath);
                         static boost::regex r("^\\s*");
                         text = boost::regex_replace(text, r, ""); // clear leading whitespace on each line
                         boost::trim_right(text); // clear trailing whitespace after last line
@@ -256,6 +258,10 @@ namespace tigl {
                         readSchemaDoc(document, result, childXPath);
                         result += '\n';
                     } else if (name == "ddue:para" || name == "ddue:title") {
+                        readSchemaDoc(document, result, childXPath);
+                        result += "\n";
+                    } else if (name == "ddue:code") {
+                        result += "\n";
                         readSchemaDoc(document, result, childXPath);
                         result += "\n";
                     } else if (name == "ddue:mediaLink") {

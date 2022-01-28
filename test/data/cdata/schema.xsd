@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:sd="http://schemas.xsddoc.codeplex.com/schemaDoc/2009/3" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5">
+	<xsd:element name="root" type="RootType"/>
+	<xsd:complexType name="RootType">
+		<xsd:annotation>
+			<xsd:appinfo>
+				<sd:schemaDoc>
+					<ddue:summary>
+						<ddue:para>Summary</ddue:para>
+					</ddue:summary>
+					<ddue:remarks>
+						<ddue:content>
+							<ddue:para>The <ddue:legacyBold>C</ddue:legacyBold>ommon <ddue:legacyBold>P</ddue:legacyBold>arametric <ddue:legacyBold>A</ddue:legacyBold>ircraft <ddue:legacyBold>C</ddue:legacyBold>onfiguration <ddue:legacyBold>S</ddue:legacyBold>cheme <ddue:legacyItalic>(CPACS)</ddue:legacyItalic> is an XML-based data format for describing aircraft configurations and their corresponding data.</ddue:para>
+							<ddue:para>This XML-Schema document (<ddue:legacyBold>XSD</ddue:legacyBold>) serves two purposes: (1) it defines the <ddue:legacyItalic>CPACS</ddue:legacyItalic>
+							data structure used in the <ddue:legacyBold>XML</ddue:legacyBold> file (e.g., aircraft.xml) and
+							(2) it provides the corresponding documentation (see picture below). An XML processor (e.g., <ddue:externalLink><ddue:linkText>TiXI</ddue:linkText><ddue:linkUri>https://github.com/DLR-SC/tixi</ddue:linkUri></ddue:externalLink> or
+							XML tools in Eclipse) parses the XSD and XML files and validates whether the data set defined by the user (or tool) conforms to the given structure defined by the schema.</ddue:para>
+							<ddue:mediaLink>
+								<ddue:image xlink:href="basicPrinciple"/>
+							</ddue:mediaLink>
+							<ddue:para>This documentation explains the <ddue:legacyBold>elements</ddue:legacyBold> defined in <ddue:legacyItalic>CPACS</ddue:legacyItalic> and its corresponding <ddue:legacyBold>data types</ddue:legacyBold>.
+							Data types can either be <ddue:legacyBold>simple types</ddue:legacyBold> (string, double, boolean, etc.) or
+								<ddue:legacyBold>complex types</ddue:legacyBold> (definition of attributes and sub-elements to build a hierarchical
+							structure). In addition, the sequence of the elements and their occurrence is documented.</ddue:para>
+							<ddue:para>To link the XML file to the XSD file, the header of the XML file should specify the path of the schema file.
+							An example could look like this:
+								<ddue:code language="XML" title="CPACS header">
+                                            <![CDATA[
+<cpacs xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="pathToSchemaFile/cpacs_schema.xsd">                                            
+                                            ]]>
+								</ddue:code>
+							</ddue:para>
+							<ddue:para>CPACS is an open source project published by the <ddue:externalLink><ddue:linkText>German Aerospace Center (DLR e.V.)</ddue:linkText><ddue:linkUri>https://www.dlr.de/</ddue:linkUri></ddue:externalLink>. For further information please visit <ddue:externalLink><ddue:linkText>www.cpacs.de</ddue:linkText><ddue:linkUri>https://www.cpacs.de</ddue:linkUri></ddue:externalLink>.
+							</ddue:para>
+						</ddue:content>
+					</ddue:remarks>
+				</sd:schemaDoc>
+			</xsd:appinfo>
+		</xsd:annotation>
+		<xsd:all>
+			<xsd:element name="a" type="xsd:integer">
+				<xsd:annotation>
+					<xsd:documentation>element <ddue:bold>documentation</ddue:bold> with b<ddue:bold>o</ddue:bold>ld</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="b" type="xsd:integer"/>
+		</xsd:all>
+		<xsd:attribute name="c" use="required" type="xsd:integer">
+			<xsd:annotation>
+				<xsd:documentation>attribute documentation</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+	</xsd:complexType>
+</xsd:schema>

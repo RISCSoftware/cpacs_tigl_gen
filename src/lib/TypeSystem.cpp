@@ -28,15 +28,14 @@ namespace tigl {
         }
 
         auto resolveType(const xsd::SchemaTypes& types, const std::string& name, const Tables& tables) -> std::string {
+            // apply type substitution
+            if (const auto p = tables.m_typeSubstitutions.find(name))
+                return *p;
+
             // search simple and complex types
             const auto cit = types.types.find(name);
-            if (cit != std::end(types.types)) {
-                // apply type substitution
-                if (const auto p = tables.m_typeSubstitutions.find(name))
-                    return *p;
-                else
-                    return makeClassName(name);
-            }
+            if (cit != std::end(types.types))
+                return makeClassName(name);
 
             // search predefined xml schema types and replace them
             if (const auto p = tables.m_xsdTypes.find(name))

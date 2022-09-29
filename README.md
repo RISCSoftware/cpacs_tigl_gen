@@ -1,4 +1,4 @@
-Build-Status: [![Build Status](https://travis-ci.org/RISCSoftware/cpacs_tigl_gen.svg?branch=master)](https://travis-ci.org/RISCSoftware/cpacs_tigl_gen)
+![Build Status]([https://github.com/RISCSoftware/cpacs_tigl_gen/.github/workflows/cmake.yml/badge.svg])
 
 # CPACSGen
 

@@ -1,4 +1,4 @@
-![Build Status]([https://github.com/RISCSoftware/cpacs_tigl_gen/.github/workflows/cmake.yml/badge.svg])
+![Build Status](https://github.com/RISCSoftware/cpacs_tigl_gen/actions/workflows/cmake.yml/badge.svg)
 
 # CPACSGen
 

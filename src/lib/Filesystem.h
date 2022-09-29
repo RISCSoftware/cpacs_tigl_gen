@@ -20,6 +20,7 @@ namespace tigl {
         File(File&&) = default;
         File& operator=(File&&) = default;
 
+        auto path() const -> const boost::filesystem::path&;
         auto stream() -> std::ostream&;
 
     private:
@@ -46,6 +47,8 @@ namespace tigl {
         std::size_t deleted = 0;
 
     private:
+        void sortFiles();
+
         std::deque<File> m_files;
     };
 }

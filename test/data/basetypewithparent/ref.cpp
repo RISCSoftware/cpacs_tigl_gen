@@ -19,31 +19,30 @@
 
 #include <string>
 #include <tixi.h>
-#include "CPACSDerived.h"
+#include "CTiglUIDObject.h"
 #include "tigl_internal.h"
 
 namespace tigl
 {
 class CTiglUIDManager;
-class CTiglUIDObject;
 
 namespace generated
 {
-    class CPACSRoot;
+    class CPACSTypeA;
 
     // This class is used in:
-    // CPACSRoot
+    // CPACSTypeA
 
-    class CPACSTypeB
+    class CPACSBase : public CTiglReqUIDObject
     {
     public:
-        TIGL_EXPORT CPACSTypeB(CPACSRoot* parent, CTiglUIDManager* uidMgr);
+        TIGL_EXPORT CPACSBase(CPACSTypeA* parent, CTiglUIDManager* uidMgr);
 
-        TIGL_EXPORT virtual ~CPACSTypeB();
+        TIGL_EXPORT virtual ~CPACSBase();
 
-        TIGL_EXPORT CPACSRoot* GetParent();
+        TIGL_EXPORT CPACSTypeA* GetParent();
 
-        TIGL_EXPORT const CPACSRoot* GetParent() const;
+        TIGL_EXPORT const CPACSTypeA* GetParent() const;
 
         TIGL_EXPORT virtual CTiglUIDObject* GetNextUIDParent();
         TIGL_EXPORT virtual const CTiglUIDObject* GetNextUIDParent() const;
@@ -54,28 +53,28 @@ namespace generated
         TIGL_EXPORT virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);
         TIGL_EXPORT virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;
 
-        TIGL_EXPORT virtual const CPACSDerived& GetData() const;
-        TIGL_EXPORT virtual CPACSDerived& GetData();
+        TIGL_EXPORT virtual const std::string& GetUID() const;
+        TIGL_EXPORT virtual void SetUID(const std::string& value);
 
     protected:
-        CPACSRoot* m_parent;
+        CPACSTypeA* m_parent;
 
         CTiglUIDManager* m_uidMgr;
 
-        CPACSDerived m_data;
+        std::string m_uID;
 
     private:
-        CPACSTypeB(const CPACSTypeB&) = delete;
-        CPACSTypeB& operator=(const CPACSTypeB&) = delete;
+        CPACSBase(const CPACSBase&) = delete;
+        CPACSBase& operator=(const CPACSBase&) = delete;
 
-        CPACSTypeB(CPACSTypeB&&) = delete;
-        CPACSTypeB& operator=(CPACSTypeB&&) = delete;
+        CPACSBase(CPACSBase&&) = delete;
+        CPACSBase& operator=(CPACSBase&&) = delete;
     };
 } // namespace generated
 
 // Aliases in tigl namespace
-using CCPACSTypeB = generated::CPACSTypeB;
-using CCPACSRoot = generated::CPACSRoot;
+using CCPACSBase = generated::CPACSBase;
+using CCPACSTypeA = generated::CPACSTypeA;
 } // namespace tigl
 // Copyright (c) 2020 RISC Software GmbH
 //
@@ -94,104 +93,72 @@ using CCPACSRoot = generated::CPACSRoot;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cassert>
-#include "CPACSRoot.h"
-#include "CPACSTypeB.h"
-#include "CTiglError.h"
-#include "CTiglLogging.h"
-#include "CTiglUIDManager.h"
+#pragma once
+
+#include <boost/optional.hpp>
+#include <boost/utility/in_place_factory.hpp>
+#include <string>
+#include <tixi.h>
 #include "CTiglUIDObject.h"
-#include "TixiHelper.h"
+#include "tigl_internal.h"
 
 namespace tigl
 {
+class CTiglUIDManager;
+
 namespace generated
 {
-    CPACSTypeB::CPACSTypeB(CPACSRoot* parent, CTiglUIDManager* uidMgr)
-        : m_uidMgr(uidMgr)
-        , m_data(this, m_uidMgr)
+    class CPACSTypeB;
+
+    // This class is used in:
+    // CPACSTypeB
+
+    class CPACSDerived : public CTiglReqUIDObject
     {
-        //assert(parent != NULL);
-        m_parent = parent;
-    }
+    public:
+        TIGL_EXPORT CPACSDerived(CPACSTypeB* parent, CTiglUIDManager* uidMgr);
 
-    CPACSTypeB::~CPACSTypeB()
-    {
-    }
+        TIGL_EXPORT virtual ~CPACSDerived();
 
-    const CPACSRoot* CPACSTypeB::GetParent() const
-    {
-        return m_parent;
-    }
+        TIGL_EXPORT CPACSTypeB* GetParent();
 
-    CPACSRoot* CPACSTypeB::GetParent()
-    {
-        return m_parent;
-    }
+        TIGL_EXPORT const CPACSTypeB* GetParent() const;
 
-    const CTiglUIDObject* CPACSTypeB::GetNextUIDParent() const
-    {
-        if (m_parent) {
-            return m_parent->GetNextUIDParent();
-        }
-        return nullptr;
-    }
+        TIGL_EXPORT virtual CTiglUIDObject* GetNextUIDParent();
+        TIGL_EXPORT virtual const CTiglUIDObject* GetNextUIDParent() const;
 
-    CTiglUIDObject* CPACSTypeB::GetNextUIDParent()
-    {
-        if (m_parent) {
-            return m_parent->GetNextUIDParent();
-        }
-        return nullptr;
-    }
+        TIGL_EXPORT CTiglUIDManager& GetUIDManager();
+        TIGL_EXPORT const CTiglUIDManager& GetUIDManager() const;
 
-    CTiglUIDManager& CPACSTypeB::GetUIDManager()
-    {
-        if (!m_uidMgr) {
-            throw CTiglError("UIDManager is null");
-        }
-        return *m_uidMgr;
-    }
+        TIGL_EXPORT virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);
+        TIGL_EXPORT virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;
 
-    const CTiglUIDManager& CPACSTypeB::GetUIDManager() const
-    {
-        if (!m_uidMgr) {
-            throw CTiglError("UIDManager is null");
-        }
-        return *m_uidMgr;
-    }
+        TIGL_EXPORT virtual const std::string& GetUID() const;
+        TIGL_EXPORT virtual void SetUID(const std::string& value);
 
-    void CPACSTypeB::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
-    {
-        // read element data
-        if (tixi::TixiCheckElement(tixiHandle, xpath + "/data")) {
-            m_data.ReadCPACS(tixiHandle, xpath + "/data");
-        }
-        else {
-            LOG(ERROR) << "Required element data is missing at xpath " << xpath;
-        }
+        TIGL_EXPORT virtual const boost::optional<std::string>& GetName() const;
+        TIGL_EXPORT virtual void SetName(const boost::optional<std::string>& value);
 
-    }
+    protected:
+        CPACSTypeB* m_parent;
 
-    void CPACSTypeB::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
-    {
-        // write element data
-        tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/data");
-        m_data.WriteCPACS(tixiHandle, xpath + "/data");
+        CTiglUIDManager* m_uidMgr;
 
-    }
+        std::string                  m_uID;
+        boost::optional<std::string> m_name;
 
-    const CPACSDerived& CPACSTypeB::GetData() const
-    {
-        return m_data;
-    }
+    private:
+        CPACSDerived(const CPACSDerived&) = delete;
+        CPACSDerived& operator=(const CPACSDerived&) = delete;
 
-    CPACSDerived& CPACSTypeB::GetData()
-    {
-        return m_data;
-    }
-
+        CPACSDerived(CPACSDerived&&) = delete;
+        CPACSDerived& operator=(CPACSDerived&&) = delete;
+    };
 } // namespace generated
+
+// Aliases in tigl namespace
+using CCPACSDerived = generated::CPACSDerived;
+using CCPACSTypeB = generated::CPACSTypeB;
 } // namespace tigl
 // Copyright (c) 2020 RISC Software GmbH
 //
@@ -264,127 +231,6 @@ namespace generated
 
 // Aliases in tigl namespace
 using CCPACSRoot = generated::CPACSRoot;
-} // namespace tigl
-// Copyright (c) 2020 RISC Software GmbH
-//
-// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).
-// Do not edit, all changes are lost when files are re-generated.
-//
-// Licensed under the Apache License, Version 2.0 (the "License")
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-#include "CPACSRoot.h"
-#include "CTiglError.h"
-#include "CTiglLogging.h"
-#include "CTiglUIDManager.h"
-#include "CTiglUIDObject.h"
-#include "TixiHelper.h"
-
-namespace tigl
-{
-namespace generated
-{
-    CPACSRoot::CPACSRoot(CTiglUIDManager* uidMgr)
-        : m_uidMgr(uidMgr)
-        , m_a(this, m_uidMgr)
-        , m_b(this, m_uidMgr)
-    {
-    }
-
-    CPACSRoot::~CPACSRoot()
-    {
-    }
-
-    const CTiglUIDObject* CPACSRoot::GetNextUIDParent() const
-    {
-        return nullptr;
-    }
-
-    CTiglUIDObject* CPACSRoot::GetNextUIDParent()
-    {
-        return nullptr;
-    }
-
-    CTiglUIDManager& CPACSRoot::GetUIDManager()
-    {
-        if (!m_uidMgr) {
-            throw CTiglError("UIDManager is null");
-        }
-        return *m_uidMgr;
-    }
-
-    const CTiglUIDManager& CPACSRoot::GetUIDManager() const
-    {
-        if (!m_uidMgr) {
-            throw CTiglError("UIDManager is null");
-        }
-        return *m_uidMgr;
-    }
-
-    void CPACSRoot::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
-    {
-        // read element a
-        if (tixi::TixiCheckElement(tixiHandle, xpath + "/a")) {
-            m_a.ReadCPACS(tixiHandle, xpath + "/a");
-        }
-        else {
-            LOG(ERROR) << "Required element a is missing at xpath " << xpath;
-        }
-
-        // read element b
-        if (tixi::TixiCheckElement(tixiHandle, xpath + "/b")) {
-            m_b.ReadCPACS(tixiHandle, xpath + "/b");
-        }
-        else {
-            LOG(ERROR) << "Required element b is missing at xpath " << xpath;
-        }
-
-    }
-
-    void CPACSRoot::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
-    {
-        const std::vector<std::string> childElemOrder = { "a", "b" };
-
-        // write element a
-        tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/a", childElemOrder);
-        m_a.WriteCPACS(tixiHandle, xpath + "/a");
-
-        // write element b
-        tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/b", childElemOrder);
-        m_b.WriteCPACS(tixiHandle, xpath + "/b");
-
-    }
-
-    const CPACSTypeA& CPACSRoot::GetA() const
-    {
-        return m_a;
-    }
-
-    CPACSTypeA& CPACSRoot::GetA()
-    {
-        return m_a;
-    }
-
-    const CPACSTypeB& CPACSRoot::GetB() const
-    {
-        return m_b;
-    }
-
-    CPACSTypeB& CPACSRoot::GetB()
-    {
-        return m_b;
-    }
-
-} // namespace generated
 } // namespace tigl
 // Copyright (c) 2020 RISC Software GmbH
 //
@@ -482,150 +328,35 @@ using CCPACSRoot = generated::CPACSRoot;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cassert>
-#include "CPACSRoot.h"
-#include "CPACSTypeA.h"
-#include "CTiglError.h"
-#include "CTiglLogging.h"
-#include "CTiglUIDManager.h"
-#include "CTiglUIDObject.h"
-#include "TixiHelper.h"
-
-namespace tigl
-{
-namespace generated
-{
-    CPACSTypeA::CPACSTypeA(CPACSRoot* parent, CTiglUIDManager* uidMgr)
-        : m_uidMgr(uidMgr)
-        , m_data(this, m_uidMgr)
-    {
-        //assert(parent != NULL);
-        m_parent = parent;
-    }
-
-    CPACSTypeA::~CPACSTypeA()
-    {
-    }
-
-    const CPACSRoot* CPACSTypeA::GetParent() const
-    {
-        return m_parent;
-    }
-
-    CPACSRoot* CPACSTypeA::GetParent()
-    {
-        return m_parent;
-    }
-
-    const CTiglUIDObject* CPACSTypeA::GetNextUIDParent() const
-    {
-        if (m_parent) {
-            return m_parent->GetNextUIDParent();
-        }
-        return nullptr;
-    }
-
-    CTiglUIDObject* CPACSTypeA::GetNextUIDParent()
-    {
-        if (m_parent) {
-            return m_parent->GetNextUIDParent();
-        }
-        return nullptr;
-    }
-
-    CTiglUIDManager& CPACSTypeA::GetUIDManager()
-    {
-        if (!m_uidMgr) {
-            throw CTiglError("UIDManager is null");
-        }
-        return *m_uidMgr;
-    }
-
-    const CTiglUIDManager& CPACSTypeA::GetUIDManager() const
-    {
-        if (!m_uidMgr) {
-            throw CTiglError("UIDManager is null");
-        }
-        return *m_uidMgr;
-    }
-
-    void CPACSTypeA::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
-    {
-        // read element data
-        if (tixi::TixiCheckElement(tixiHandle, xpath + "/data")) {
-            m_data.ReadCPACS(tixiHandle, xpath + "/data");
-        }
-        else {
-            LOG(ERROR) << "Required element data is missing at xpath " << xpath;
-        }
-
-    }
-
-    void CPACSTypeA::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
-    {
-        // write element data
-        tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/data");
-        m_data.WriteCPACS(tixiHandle, xpath + "/data");
-
-    }
-
-    const CPACSBase& CPACSTypeA::GetData() const
-    {
-        return m_data;
-    }
-
-    CPACSBase& CPACSTypeA::GetData()
-    {
-        return m_data;
-    }
-
-} // namespace generated
-} // namespace tigl
-// Copyright (c) 2020 RISC Software GmbH
-//
-// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).
-// Do not edit, all changes are lost when files are re-generated.
-//
-// Licensed under the Apache License, Version 2.0 (the "License")
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #pragma once
 
 #include <string>
 #include <tixi.h>
-#include "CTiglUIDObject.h"
+#include "CPACSDerived.h"
 #include "tigl_internal.h"
 
 namespace tigl
 {
 class CTiglUIDManager;
+class CTiglUIDObject;
 
 namespace generated
 {
-    class CPACSTypeA;
+    class CPACSRoot;
 
     // This class is used in:
-    // CPACSTypeA
+    // CPACSRoot
 
-    class CPACSBase : public CTiglReqUIDObject
+    class CPACSTypeB
     {
     public:
-        TIGL_EXPORT CPACSBase(CPACSTypeA* parent, CTiglUIDManager* uidMgr);
+        TIGL_EXPORT CPACSTypeB(CPACSRoot* parent, CTiglUIDManager* uidMgr);
 
-        TIGL_EXPORT virtual ~CPACSBase();
+        TIGL_EXPORT virtual ~CPACSTypeB();
 
-        TIGL_EXPORT CPACSTypeA* GetParent();
+        TIGL_EXPORT CPACSRoot* GetParent();
 
-        TIGL_EXPORT const CPACSTypeA* GetParent() const;
+        TIGL_EXPORT const CPACSRoot* GetParent() const;
 
         TIGL_EXPORT virtual CTiglUIDObject* GetNextUIDParent();
         TIGL_EXPORT virtual const CTiglUIDObject* GetNextUIDParent() const;
@@ -636,28 +367,28 @@ namespace generated
         TIGL_EXPORT virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);
         TIGL_EXPORT virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;
 
-        TIGL_EXPORT virtual const std::string& GetUID() const;
-        TIGL_EXPORT virtual void SetUID(const std::string& value);
+        TIGL_EXPORT virtual const CPACSDerived& GetData() const;
+        TIGL_EXPORT virtual CPACSDerived& GetData();
 
     protected:
-        CPACSTypeA* m_parent;
+        CPACSRoot* m_parent;
 
         CTiglUIDManager* m_uidMgr;
 
-        std::string m_uID;
+        CPACSDerived m_data;
 
     private:
-        CPACSBase(const CPACSBase&) = delete;
-        CPACSBase& operator=(const CPACSBase&) = delete;
+        CPACSTypeB(const CPACSTypeB&) = delete;
+        CPACSTypeB& operator=(const CPACSTypeB&) = delete;
 
-        CPACSBase(CPACSBase&&) = delete;
-        CPACSBase& operator=(CPACSBase&&) = delete;
+        CPACSTypeB(CPACSTypeB&&) = delete;
+        CPACSTypeB& operator=(CPACSTypeB&&) = delete;
     };
 } // namespace generated
 
 // Aliases in tigl namespace
-using CCPACSBase = generated::CPACSBase;
-using CCPACSTypeA = generated::CPACSTypeA;
+using CCPACSTypeB = generated::CPACSTypeB;
+using CCPACSRoot = generated::CPACSRoot;
 } // namespace tigl
 // Copyright (c) 2020 RISC Software GmbH
 //
@@ -784,90 +515,6 @@ namespace generated
     }
 
 } // namespace generated
-} // namespace tigl
-// Copyright (c) 2020 RISC Software GmbH
-//
-// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).
-// Do not edit, all changes are lost when files are re-generated.
-//
-// Licensed under the Apache License, Version 2.0 (the "License")
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-#pragma once
-
-#include <boost/optional.hpp>
-#include <boost/utility/in_place_factory.hpp>
-#include <string>
-#include <tixi.h>
-#include "CTiglUIDObject.h"
-#include "tigl_internal.h"
-
-namespace tigl
-{
-class CTiglUIDManager;
-
-namespace generated
-{
-    class CPACSTypeB;
-
-    // This class is used in:
-    // CPACSTypeB
-
-    class CPACSDerived : public CTiglReqUIDObject
-    {
-    public:
-        TIGL_EXPORT CPACSDerived(CPACSTypeB* parent, CTiglUIDManager* uidMgr);
-
-        TIGL_EXPORT virtual ~CPACSDerived();
-
-        TIGL_EXPORT CPACSTypeB* GetParent();
-
-        TIGL_EXPORT const CPACSTypeB* GetParent() const;
-
-        TIGL_EXPORT virtual CTiglUIDObject* GetNextUIDParent();
-        TIGL_EXPORT virtual const CTiglUIDObject* GetNextUIDParent() const;
-
-        TIGL_EXPORT CTiglUIDManager& GetUIDManager();
-        TIGL_EXPORT const CTiglUIDManager& GetUIDManager() const;
-
-        TIGL_EXPORT virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);
-        TIGL_EXPORT virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;
-
-        TIGL_EXPORT virtual const std::string& GetUID() const;
-        TIGL_EXPORT virtual void SetUID(const std::string& value);
-
-        TIGL_EXPORT virtual const boost::optional<std::string>& GetName() const;
-        TIGL_EXPORT virtual void SetName(const boost::optional<std::string>& value);
-
-    protected:
-        CPACSTypeB* m_parent;
-
-        CTiglUIDManager* m_uidMgr;
-
-        std::string                  m_uID;
-        boost::optional<std::string> m_name;
-
-    private:
-        CPACSDerived(const CPACSDerived&) = delete;
-        CPACSDerived& operator=(const CPACSDerived&) = delete;
-
-        CPACSDerived(CPACSDerived&&) = delete;
-        CPACSDerived& operator=(CPACSDerived&&) = delete;
-    };
-} // namespace generated
-
-// Aliases in tigl namespace
-using CCPACSDerived = generated::CPACSDerived;
-using CCPACSTypeB = generated::CPACSTypeB;
 } // namespace tigl
 // Copyright (c) 2020 RISC Software GmbH
 //
@@ -1020,6 +667,359 @@ namespace generated
     void CPACSDerived::SetName(const boost::optional<std::string>& value)
     {
         m_name = value;
+    }
+
+} // namespace generated
+} // namespace tigl
+// Copyright (c) 2020 RISC Software GmbH
+//
+// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).
+// Do not edit, all changes are lost when files are re-generated.
+//
+// Licensed under the Apache License, Version 2.0 (the "License")
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "CPACSRoot.h"
+#include "CTiglError.h"
+#include "CTiglLogging.h"
+#include "CTiglUIDManager.h"
+#include "CTiglUIDObject.h"
+#include "TixiHelper.h"
+
+namespace tigl
+{
+namespace generated
+{
+    CPACSRoot::CPACSRoot(CTiglUIDManager* uidMgr)
+        : m_uidMgr(uidMgr)
+        , m_a(this, m_uidMgr)
+        , m_b(this, m_uidMgr)
+    {
+    }
+
+    CPACSRoot::~CPACSRoot()
+    {
+    }
+
+    const CTiglUIDObject* CPACSRoot::GetNextUIDParent() const
+    {
+        return nullptr;
+    }
+
+    CTiglUIDObject* CPACSRoot::GetNextUIDParent()
+    {
+        return nullptr;
+    }
+
+    CTiglUIDManager& CPACSRoot::GetUIDManager()
+    {
+        if (!m_uidMgr) {
+            throw CTiglError("UIDManager is null");
+        }
+        return *m_uidMgr;
+    }
+
+    const CTiglUIDManager& CPACSRoot::GetUIDManager() const
+    {
+        if (!m_uidMgr) {
+            throw CTiglError("UIDManager is null");
+        }
+        return *m_uidMgr;
+    }
+
+    void CPACSRoot::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
+    {
+        // read element a
+        if (tixi::TixiCheckElement(tixiHandle, xpath + "/a")) {
+            m_a.ReadCPACS(tixiHandle, xpath + "/a");
+        }
+        else {
+            LOG(ERROR) << "Required element a is missing at xpath " << xpath;
+        }
+
+        // read element b
+        if (tixi::TixiCheckElement(tixiHandle, xpath + "/b")) {
+            m_b.ReadCPACS(tixiHandle, xpath + "/b");
+        }
+        else {
+            LOG(ERROR) << "Required element b is missing at xpath " << xpath;
+        }
+
+    }
+
+    void CPACSRoot::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
+    {
+        const std::vector<std::string> childElemOrder = { "a", "b" };
+
+        // write element a
+        tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/a", childElemOrder);
+        m_a.WriteCPACS(tixiHandle, xpath + "/a");
+
+        // write element b
+        tixi::TixiCreateSequenceElementIfNotExists(tixiHandle, xpath + "/b", childElemOrder);
+        m_b.WriteCPACS(tixiHandle, xpath + "/b");
+
+    }
+
+    const CPACSTypeA& CPACSRoot::GetA() const
+    {
+        return m_a;
+    }
+
+    CPACSTypeA& CPACSRoot::GetA()
+    {
+        return m_a;
+    }
+
+    const CPACSTypeB& CPACSRoot::GetB() const
+    {
+        return m_b;
+    }
+
+    CPACSTypeB& CPACSRoot::GetB()
+    {
+        return m_b;
+    }
+
+} // namespace generated
+} // namespace tigl
+// Copyright (c) 2020 RISC Software GmbH
+//
+// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).
+// Do not edit, all changes are lost when files are re-generated.
+//
+// Licensed under the Apache License, Version 2.0 (the "License")
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <cassert>
+#include "CPACSRoot.h"
+#include "CPACSTypeA.h"
+#include "CTiglError.h"
+#include "CTiglLogging.h"
+#include "CTiglUIDManager.h"
+#include "CTiglUIDObject.h"
+#include "TixiHelper.h"
+
+namespace tigl
+{
+namespace generated
+{
+    CPACSTypeA::CPACSTypeA(CPACSRoot* parent, CTiglUIDManager* uidMgr)
+        : m_uidMgr(uidMgr)
+        , m_data(this, m_uidMgr)
+    {
+        //assert(parent != NULL);
+        m_parent = parent;
+    }
+
+    CPACSTypeA::~CPACSTypeA()
+    {
+    }
+
+    const CPACSRoot* CPACSTypeA::GetParent() const
+    {
+        return m_parent;
+    }
+
+    CPACSRoot* CPACSTypeA::GetParent()
+    {
+        return m_parent;
+    }
+
+    const CTiglUIDObject* CPACSTypeA::GetNextUIDParent() const
+    {
+        if (m_parent) {
+            return m_parent->GetNextUIDParent();
+        }
+        return nullptr;
+    }
+
+    CTiglUIDObject* CPACSTypeA::GetNextUIDParent()
+    {
+        if (m_parent) {
+            return m_parent->GetNextUIDParent();
+        }
+        return nullptr;
+    }
+
+    CTiglUIDManager& CPACSTypeA::GetUIDManager()
+    {
+        if (!m_uidMgr) {
+            throw CTiglError("UIDManager is null");
+        }
+        return *m_uidMgr;
+    }
+
+    const CTiglUIDManager& CPACSTypeA::GetUIDManager() const
+    {
+        if (!m_uidMgr) {
+            throw CTiglError("UIDManager is null");
+        }
+        return *m_uidMgr;
+    }
+
+    void CPACSTypeA::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
+    {
+        // read element data
+        if (tixi::TixiCheckElement(tixiHandle, xpath + "/data")) {
+            m_data.ReadCPACS(tixiHandle, xpath + "/data");
+        }
+        else {
+            LOG(ERROR) << "Required element data is missing at xpath " << xpath;
+        }
+
+    }
+
+    void CPACSTypeA::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
+    {
+        // write element data
+        tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/data");
+        m_data.WriteCPACS(tixiHandle, xpath + "/data");
+
+    }
+
+    const CPACSBase& CPACSTypeA::GetData() const
+    {
+        return m_data;
+    }
+
+    CPACSBase& CPACSTypeA::GetData()
+    {
+        return m_data;
+    }
+
+} // namespace generated
+} // namespace tigl
+// Copyright (c) 2020 RISC Software GmbH
+//
+// This file was generated by CPACSGen from CPACS XML Schema (c) German Aerospace Center (DLR/SC).
+// Do not edit, all changes are lost when files are re-generated.
+//
+// Licensed under the Apache License, Version 2.0 (the "License")
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <cassert>
+#include "CPACSRoot.h"
+#include "CPACSTypeB.h"
+#include "CTiglError.h"
+#include "CTiglLogging.h"
+#include "CTiglUIDManager.h"
+#include "CTiglUIDObject.h"
+#include "TixiHelper.h"
+
+namespace tigl
+{
+namespace generated
+{
+    CPACSTypeB::CPACSTypeB(CPACSRoot* parent, CTiglUIDManager* uidMgr)
+        : m_uidMgr(uidMgr)
+        , m_data(this, m_uidMgr)
+    {
+        //assert(parent != NULL);
+        m_parent = parent;
+    }
+
+    CPACSTypeB::~CPACSTypeB()
+    {
+    }
+
+    const CPACSRoot* CPACSTypeB::GetParent() const
+    {
+        return m_parent;
+    }
+
+    CPACSRoot* CPACSTypeB::GetParent()
+    {
+        return m_parent;
+    }
+
+    const CTiglUIDObject* CPACSTypeB::GetNextUIDParent() const
+    {
+        if (m_parent) {
+            return m_parent->GetNextUIDParent();
+        }
+        return nullptr;
+    }
+
+    CTiglUIDObject* CPACSTypeB::GetNextUIDParent()
+    {
+        if (m_parent) {
+            return m_parent->GetNextUIDParent();
+        }
+        return nullptr;
+    }
+
+    CTiglUIDManager& CPACSTypeB::GetUIDManager()
+    {
+        if (!m_uidMgr) {
+            throw CTiglError("UIDManager is null");
+        }
+        return *m_uidMgr;
+    }
+
+    const CTiglUIDManager& CPACSTypeB::GetUIDManager() const
+    {
+        if (!m_uidMgr) {
+            throw CTiglError("UIDManager is null");
+        }
+        return *m_uidMgr;
+    }
+
+    void CPACSTypeB::ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath)
+    {
+        // read element data
+        if (tixi::TixiCheckElement(tixiHandle, xpath + "/data")) {
+            m_data.ReadCPACS(tixiHandle, xpath + "/data");
+        }
+        else {
+            LOG(ERROR) << "Required element data is missing at xpath " << xpath;
+        }
+
+    }
+
+    void CPACSTypeB::WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const
+    {
+        // write element data
+        tixi::TixiCreateElementIfNotExists(tixiHandle, xpath + "/data");
+        m_data.WriteCPACS(tixiHandle, xpath + "/data");
+
+    }
+
+    const CPACSDerived& CPACSTypeB::GetData() const
+    {
+        return m_data;
+    }
+
+    CPACSDerived& CPACSTypeB::GetData()
+    {
+        return m_data;
     }
 
 } // namespace generated

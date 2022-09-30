@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:element name="root" type="RootType"/>
+    
+    <xsd:complexType name="BaseType">
+        <xsd:simpleContent>
+          <xsd:extension base="xsd:string">
+            <xsd:attribute name="uID" type="xsd:string" use="required"/>
+          </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+
+    <xsd:complexType name="DerivedType">
+        <xsd:simpleContent>
+            <xsd:restriction base="BaseType">
+                <xsd:pattern value="\d+"/>
+            </xsd:restriction>
+        </xsd:simpleContent>
+    </xsd:complexType>
+
+    <xsd:complexType name="RootType">
+        <xsd:sequence>
+            <xsd:element name="base" type="BaseType"/>
+            <xsd:element name="derived" type="DerivedType"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>

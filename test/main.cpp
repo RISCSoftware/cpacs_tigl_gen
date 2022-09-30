@@ -65,8 +65,14 @@ BOOST_AUTO_TEST_CASE(uidreferencevector) {
     runTest();
 }
 
-
 BOOST_AUTO_TEST_CASE(cdata) {
     runTest();
 }
 
+BOOST_AUTO_TEST_CASE(simplebasetypewithparent) {
+    runTest();
+}
+
+BOOST_AUTO_TEST_CASE(complextypewithsimplecontent) {
+    runTest();
+}

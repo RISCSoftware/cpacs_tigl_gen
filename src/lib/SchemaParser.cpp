@@ -369,19 +369,17 @@ namespace tigl {
 
                         // readd it
                         m_types.types[simpleContentTypeName] = v;
-
-                        return simpleContentTypeName;
                     }
                     else if (resolvedType.is<ComplexType>())
                     {
                         // in case of a restriction of a complexType directly use the referenced complex type
                         type = resolvedType.as<ComplexType>();
                         type.name = name;
+
+                        // add new type
+                        m_types.types[name] = type;
                     }
-                    else
-                    {
-                        return simpleContentTypeName;
-                    }
+                    return simpleContentTypeName;
                 }
 
                 // add

@@ -72,6 +72,7 @@ BOOST_AUTO_TEST_CASE(cdata) {
 BOOST_AUTO_TEST_CASE(simplebasetypewithparent) {
     runTest();
 }
+
 BOOST_AUTO_TEST_CASE(complextypewithsimplecontent) {
     runTest();
 }

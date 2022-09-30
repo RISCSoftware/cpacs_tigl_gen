@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:element name="root" type="RootType"/>
+
+    <xsd:complexType name="stringVectorBaseType">
+        <xsd:simpleContent>
+            <xsd:extension base="stringBaseType">
+                <xsd:attribute fixed="vector" name="mapType" type="xsd:string"/>
+                <xsd:attribute name="mu" type="xsd:string"/>
+                <xsd:attribute name="delta" type="xsd:string"/>
+                <xsd:attribute name="a" type="xsd:string"/>
+                <xsd:attribute name="b" type="xsd:string"/>
+                <xsd:attribute name="c" type="xsd:string"/>
+                <xsd:attribute name="v" type="xsd:string"/>
+                <xsd:attribute name="w" type="xsd:string"/>
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+
+    <xsd:complexType name="doubleVectorBaseType">
+        <xsd:simpleContent>
+            <xsd:restriction base="stringVectorBaseType">
+                <xsd:pattern value="((\s+)?[-+]?(\d+)?(\.)?(\d+)?(([eE][-+]?)?\d+)?(\s+)?|(\s+)?(NaN)(\s+)?)(;(((\s+)?[-+]?(\d+)?(\.)?(\d+)?(([eE][-+]?)?\d+)?(\s+)?)|(\s+)?(NaN)(\s+)?))*"/>
+            </xsd:restriction>
+        </xsd:simpleContent>
+    </xsd:complexType>
+	
+	<xsd:complexType name="RootType">
+		<xsd:sequence>
+			<xsd:element minOccurs="0" maxOccurs="1" name="stringVector" type="stringVectorBaseType"/>
+			<xsd:element minOccurs="0" maxOccurs="1" name="doubleVector" type="doubleVectorBaseType"/>
+		</xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>

@@ -1,0 +1,3 @@
+// contains types from the schema which should be substituted instantly
+
+stringBaseType    std::string

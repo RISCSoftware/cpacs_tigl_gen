@@ -163,7 +163,7 @@ namespace tigl {
                         Field m;
                         m.originXPath = g.xpath;
                         m.cpacsName = "";
-                        m.namePostfix = "simpleContent";
+                        m.namePostfix = "value";
                         m.minOccurs = 1;
                         m.maxOccurs = 1;
                         m.xmlTypeName = g.type;

@@ -346,32 +346,42 @@ namespace tigl {
                 if (type.attributes.empty() && type.base.empty() && type.content.is<SimpleContent>()) {
                     // this is just an empty type with a simple content, just use the type generated for the simple content
                     const auto& sc = type.content.as<SimpleContent>();
-                    auto name = sc.type;
+                    auto simpleContentTypeName = sc.type;
 
                     // if the inner typ is an enum, replace outer type, otherwise we assume it is a primitive type
-                    auto& resolvedType = m_types.types[name];
-                    if (resolvedType.is<SimpleType>() && !resolvedType.as<SimpleType>().restrictionValues.empty()) {
+                    auto& resolvedType = m_types.types[simpleContentTypeName];
+                    if ((resolvedType.is<SimpleType>() && !resolvedType.as<SimpleType>().restrictionValues.empty())) {
 
                         // move simple content type out of type map
                         auto v = std::move(resolvedType);
-                        m_types.types.erase(name);
+                        m_types.types.erase(simpleContentTypeName);
 
                         // strip simple content suffix, if exists
-                        const auto it = name.rfind(c_simpleContentTypeSuffx);
+                        const auto it = simpleContentTypeName.rfind(c_simpleContentTypeSuffx);
                         if (it == std::string::npos)
                             throw std::logic_error("Expected type of simple content type to have " + c_simpleContentTypeSuffx + " suffix");
-                        name.erase(it);
-                        name += "Type"; // readd Type suffix
+                        simpleContentTypeName.erase(it);
+                        simpleContentTypeName += "Type"; // readd Type suffix
 
                         // rename simple content type to outer type
                         assert(v.is<SimpleType>());
-                        v.as<SimpleType>().name = name;
+                        v.as<SimpleType>().name = simpleContentTypeName;
 
                         // readd it
-                        m_types.types[name] = v;
-                    }
+                        m_types.types[simpleContentTypeName] = v;
 
-                    return name;
+                        return simpleContentTypeName;
+                    }
+                    else if (resolvedType.is<ComplexType>())
+                    {
+                        // in case of a restriction of a complexType directly use the referenced complex type
+                        type = resolvedType.as<ComplexType>();
+                        type.name = name;
+                    }
+                    else
+                    {
+                        return simpleContentTypeName;
+                    }
                 }
 
                 // add

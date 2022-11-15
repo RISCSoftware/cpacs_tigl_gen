@@ -13,6 +13,15 @@ set(BOOST_ROOT "" CACHE PATH "Boost installation prefix")
 set(TIXI_PATH  "" CACHE PATH "Tixi installation prefix")
 set(TIGL_PATH  "" CACHE PATH "Tigl installation prefix")
 
+# special handling for enforcing old c++ ABI on RHEL7 (required when using a self-built gcc without 
+string (REGEX MATCH "\\.el7\\." SYSTEM_RHEL7 ${CMAKE_SYSTEM})
+if (SYSTEM_RHEL7)
+    OPTION(ENFORCE_OLD_CXX_ABI "Enforce old CXX ABI (_GLIBCXX_USE_CXX11_ABI=0)" ON)
+    if (ENFORCE_OLD_CXX_ABI)
+        add_definitions("-D_GLIBCXX_USE_CXX11_ABI=0")
+    endif()
+endif()
+
 # find boost
 set(Boost_USE_STATIC_LIBS ON CACHE BOOL "Find static or dynamic libs. Static libs require lib prefix.")
 find_package (Boost REQUIRED COMPONENTS system filesystem date_time regex unit_test_framework)

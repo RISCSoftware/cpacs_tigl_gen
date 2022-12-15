@@ -76,3 +76,7 @@ BOOST_AUTO_TEST_CASE(simplebasetypewithparent) {
 BOOST_AUTO_TEST_CASE(complextypewithsimplecontent) {
     runTest();
 }
+
+BOOST_AUTO_TEST_CASE(collapsedifferentenums) {
+    runTest();
+}

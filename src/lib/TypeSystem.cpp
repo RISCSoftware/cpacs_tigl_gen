@@ -367,6 +367,7 @@ namespace tigl {
                 enumVec.push_back(p.second);
 
             std::unordered_map<std::string, std::string> replacedEnums;
+            std::set<std::string> replacedEnumNames;
 
             for (std::size_t i = 0; i < enumVec.size(); i++) {
                 auto& e1 = enumVec[i];
@@ -413,7 +414,8 @@ namespace tigl {
                             // choose new name
                             const auto newName = [&] {
                                 // if the stripped name is not already taken, use it. Otherwise, take the shorter of the two enum names
-                                if (m_classes.count(e1StrippedName) == 0 && m_enums.count(e1StrippedName) == 0)
+                                if (m_classes.count(e1StrippedName) == 0 && m_enums.count(e1StrippedName) == 0 && 
+                                    (replacedEnumNames.count(e1StrippedName) == 0 || e1.name == e1StrippedName || e2.name == e1StrippedName)) // ensure correct type in case stripped name was already used in previous loop run
                                     return e1StrippedName;
                                 else
                                     return std::min(e1.name, e2.name);
@@ -422,6 +424,7 @@ namespace tigl {
                             // register replacements
                             if (e1.name != newName) replacedEnums[e1.name] = newName;
                             if (e2.name != newName) replacedEnums[e2.name] = newName;
+                            replacedEnumNames.insert(newName);
 
                             std::cout << "\t" << e1.name << " and " << e2.name << " to " << newName << std::endl;
 

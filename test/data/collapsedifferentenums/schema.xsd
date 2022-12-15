@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:element name="root" type="RootType"/>
+
+    <xsd:complexType name="BaseType">
+        <xsd:attribute name="id" type="xsd:string"/>
+    </xsd:complexType>
+
+    <xsd:complexType name="TypeA">
+        <xsd:complexContent>
+            <xsd:extension base="BaseType">
+                <xsd:attribute name="color">
+                    <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                            <xsd:enumeration value="red"/>
+                            <xsd:enumeration value="green"/>
+                            <xsd:enumeration value="blue"/>
+                        </xsd:restriction>
+                    </xsd:simpleType>
+                </xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+    <xsd:complexType name="TypeB">
+        <xsd:complexContent>
+            <xsd:extension base="BaseType">
+                <xsd:attribute name="color">
+                    <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                            <xsd:enumeration value="red"/>
+                            <xsd:enumeration value="green"/>
+                            <xsd:enumeration value="blue"/>
+                        </xsd:restriction>
+                    </xsd:simpleType>
+                </xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+
+    <xsd:complexType name="TypeC">
+        <xsd:complexContent>
+            <xsd:extension base="BaseType">
+                <xsd:attribute name="color">
+                    <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                            <xsd:enumeration value="cyan"/>
+                            <xsd:enumeration value="magenta"/>
+                            <xsd:enumeration value="yellow"/>
+                        </xsd:restriction>
+                    </xsd:simpleType>
+                </xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+    </xsd:complexType>
+
+    <xsd:complexType name="TypeD">
+        <xsd:complexContent>
+            <xsd:extension base="BaseType">
+                <xsd:attribute name="color">
+                    <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                            <xsd:enumeration value="cyan"/>
+                            <xsd:enumeration value="magenta"/>
+                            <xsd:enumeration value="yellow"/>
+                        </xsd:restriction>
+                    </xsd:simpleType>
+                </xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+    </xsd:complexType>
+
+    <xsd:complexType name="RootType">
+        <xsd:sequence>
+            <xsd:element name="a" type="TypeA"/>
+            <xsd:element name="b" type="TypeB"/>
+            <xsd:element name="c" type="TypeC"/>
+            <xsd:element name="d" type="TypeD"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>

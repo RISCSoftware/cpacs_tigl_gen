@@ -1,5 +1,6 @@
 #include "Filesystem.h"
 
+#include <algorithm>
 #include <fstream>
 #include <utility>
 

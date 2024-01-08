@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <fstream>
 
 auto readTextFile(const boost::filesystem::path& path) -> std::string {
     std::ifstream f(path.string());

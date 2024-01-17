@@ -80,3 +80,7 @@ BOOST_AUTO_TEST_CASE(complextypewithsimplecontent) {
 BOOST_AUTO_TEST_CASE(collapsedifferentenums) {
     runTest();
 }
+
+BOOST_AUTO_TEST_CASE(optionalchoice) {
+    runTest();
+}

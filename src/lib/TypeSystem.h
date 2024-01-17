@@ -103,6 +103,7 @@ namespace tigl {
     using ChoiceElements = std::vector<boost::variant<ChoiceElement, boost::recursive_wrapper<Choice>>>;
 
     struct Choice {
+        unsigned int minOccurs;
         std::vector<ChoiceElements> options;
     };
 

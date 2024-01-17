@@ -64,6 +64,20 @@ namespace tigl {
                 // </choice>
                 Choice ch;
                 ch.xpath = xpath;
+
+                // minOccurs
+                if (!document.checkAttribute(xpath, "minOccurs"))
+                    ch.minOccurs = 1;
+                else {
+                  const auto minOccurs = document.textAttribute(xpath, "minOccurs");
+                  const auto minOccursInt = std::stoi(minOccurs);
+                  if (minOccursInt < 0)
+                      throw std::runtime_error("minOccurs is negative: " + xpath);
+                  else if (minOccursInt > 1)
+                      throw std::runtime_error("support for minOccurs>1 not implemented for choices yet: " + xpath);
+                  ch.minOccurs = minOccursInt;
+                }
+
                 document.forEachChild(xpath, "xsd:element", [&](const std::string& xpath) {
                     ch.elements.push_back(readElement(xpath, containingTypeName));
                 });

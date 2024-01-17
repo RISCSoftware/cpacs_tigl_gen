@@ -117,6 +117,7 @@ namespace tigl {
                         const auto countBefore = members.size();
 
                         Choice choice;
+                        choice.minOccurs = c.minOccurs;
                         for (const auto& v : c.elements | boost::adaptors::indexed(1)) {
                             // collect members of one choice
                             auto indices = choiceIndices;

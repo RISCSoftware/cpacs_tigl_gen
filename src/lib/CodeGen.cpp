@@ -1063,16 +1063,52 @@ namespace tigl {
                                 cpp << "true // " << f.fieldName() << " is optional in choice";
                         }
 
-                        void operator()(const Choice& c) {
+                        void operator()(const Choice& ch) {
                             cpp << "(";
                             {
                                 Scope s(cpp);
-                                for (const auto& cc : c.options) {
-                                    (*this)(cc, c);
-                                    if (&cc != &c.options.back())
+                                boost::optional<Scope> additionalScope;
+
+                                if (ch.minOccurs == 0) {
+                                  cpp << "// all uninitialized is valid since choice is optional!";
+                                  cpp << "!(";
+                                    {
+                                        Scope s(cpp);
+        
+                                        RecursiveColletor parentCollector;
+                                        parentCollector(ch);
+                                        auto& allIndices = parentCollector.indices;
+    
+                                        auto unique = [](std::vector<std::size_t>& v) {
+                                            std::sort(std::begin(v), std::end(v));
+                                            const auto it = std::unique(std::begin(v), std::end(v));
+                                            v.erase(it, std::end(v));
+                                        };
+                                        unique(allIndices);
+    
+                                        for (const auto& i : allIndices) {
+                                            writeIsFieldThere(cpp, c.fields[i]);
+                                            if (&i != &allIndices.back())
+                                                cpp << "||";
+                                        }
+                                    }
+                                    cpp << ")";
+                                    cpp << "||";
+                                    cpp << "(";
+                                    additionalScope.emplace(cpp);
+                                }
+    
+                                for (const auto &ces : ch.options) {
+                                    (*this)(ces, ch);
+                                    if (&ces != &ch.options.back())
                                         cpp << "+";
                                 }
                                 cpp << "== 1";
+
+                                if (additionalScope) {
+                                  additionalScope.reset();
+                                  cpp << ")";
+                                }
                             }
                             cpp << ")";
                         }

@@ -158,34 +158,36 @@ namespace generated
     {
         return
         (
-            // all uninitialized is valid since choice is optional
-            !(
-                m_a_choice1.is_initialized()
-                ||
-                m_b_choice2.is_initialized()
-            )
-            ||
             (
-                (
-                    // mandatory elements of this choice must be there
+                // all uninitialized is valid since choice is optional!
+                !(
                     m_a_choice1.is_initialized()
-                    &&
-                    // elements of other choices must not be there
-                    !(
-                        m_b_choice2.is_initialized()
-                    )
-                )
-                +
-                (
-                    // mandatory elements of this choice must be there
+                    ||
                     m_b_choice2.is_initialized()
-                    &&
-                    // elements of other choices must not be there
-                    !(
-                        m_a_choice1.is_initialized()
-                    )
                 )
-                == 1
+                ||
+                (
+                    (
+                        // mandatory elements of this choice must be there
+                        m_a_choice1.is_initialized()
+                        &&
+                        // elements of other choices must not be there
+                        !(
+                            m_b_choice2.is_initialized()
+                        )
+                    )
+                    +
+                    (
+                        // mandatory elements of this choice must be there
+                        m_b_choice2.is_initialized()
+                        &&
+                        // elements of other choices must not be there
+                        !(
+                            m_a_choice1.is_initialized()
+                        )
+                    )
+                    == 1
+                )
             )
         )
         ;

@@ -384,7 +384,7 @@ namespace tigl {
                     {
                         Scope s(cpp);
                         cpp << "index--;";
-                        cpp << "if (index < 0 || index >= Get" << capitalizeFirstLetter(f.name()) << "Count()) {";
+                        cpp << "if (index < 0 || index >= Get" << capitalizeFirstLetter(f.cpacsName) << "Count()) {";
                         {
                             Scope s(cpp);
                             cpp << "throw CTiglError(\"Invalid indexs in " << getterSetterType(f) << "::Get" << capitalizeFirstLetter(f.cpacsName) << "\", TIGL_INDEX_ERROR);";

@@ -373,7 +373,7 @@ namespace tigl {
                     cpp << "{";
                     {
                         Scope s(cpp);
-                        cpp << f.fieldName() << ".size();";
+                        cpp << "return " << f.fieldName() << ".size();";
                     }
                     cpp << "}";
                     cpp << EmptyLine;
@@ -387,7 +387,7 @@ namespace tigl {
                         cpp << "if (index < 0 || index >= Get" << capitalizeFirstLetter(f.cpacsName) << "Count()) {";
                         {
                             Scope s(cpp);
-                            cpp << "throw CTiglError(\"Invalid indexs in " << getterSetterType(f) << "::Get" << capitalizeFirstLetter(f.cpacsName) << "\", TIGL_INDEX_ERROR);";
+                            cpp << "throw CTiglError(\"Invalid index in " << getterSetterType(f) << "::Get" << capitalizeFirstLetter(f.cpacsName) << "\", TIGL_INDEX_ERROR);";
                         }
                          cpp << "}";
                          cpp << "return *" << f.fieldName() << "[index];";

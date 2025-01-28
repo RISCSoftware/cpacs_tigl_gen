@@ -57,18 +57,24 @@ namespace generated
 
         TIGL_EXPORT virtual const std::vector<int>& GetEs() const;
         TIGL_EXPORT virtual std::vector<int>& GetEs();
+        TIGL_EXPORT int GetECount() const;
+        TIGL_EXPORT int& GetE(int index) const;
 
         TIGL_EXPORT virtual const boost::optional<int>& GetF() const;
         TIGL_EXPORT virtual void SetF(const boost::optional<int>& value);
 
         TIGL_EXPORT virtual const std::vector<int>& GetGs() const;
         TIGL_EXPORT virtual std::vector<int>& GetGs();
+        TIGL_EXPORT int GetGCount() const;
+        TIGL_EXPORT int& GetG(int index) const;
 
         TIGL_EXPORT virtual const int& GetH() const;
         TIGL_EXPORT virtual void SetH(const int& value);
 
         TIGL_EXPORT virtual const std::vector<int>& GetIs() const;
         TIGL_EXPORT virtual std::vector<int>& GetIs();
+        TIGL_EXPORT int GetICount() const;
+        TIGL_EXPORT int& GetI(int index) const;
 
     protected:
         int                  m_a;
@@ -306,6 +312,21 @@ namespace generated
         return m_es;
     }
 
+    int CPACSRoot::GetECount() const
+    {
+        return m_es.size();
+    }
+
+    int& CPACSRoot::GetE(int index) const
+    {
+        index--;
+        if (index < 0 || index >= GetECount()) {
+            throw CTiglError("Invalid index in std::vector<int>::GetE", TIGL_INDEX_ERROR);
+        }
+        return *m_es[index];
+    }
+
+
     const boost::optional<int>& CPACSRoot::GetF() const
     {
         return m_f;
@@ -326,6 +347,21 @@ namespace generated
         return m_gs;
     }
 
+    int CPACSRoot::GetGCount() const
+    {
+        return m_gs.size();
+    }
+
+    int& CPACSRoot::GetG(int index) const
+    {
+        index--;
+        if (index < 0 || index >= GetGCount()) {
+            throw CTiglError("Invalid index in std::vector<int>::GetG", TIGL_INDEX_ERROR);
+        }
+        return *m_gs[index];
+    }
+
+
     const int& CPACSRoot::GetH() const
     {
         return m_h;
@@ -345,6 +381,21 @@ namespace generated
     {
         return m_is;
     }
+
+    int CPACSRoot::GetICount() const
+    {
+        return m_is.size();
+    }
+
+    int& CPACSRoot::GetI(int index) const
+    {
+        index--;
+        if (index < 0 || index >= GetICount()) {
+            throw CTiglError("Invalid index in std::vector<int>::GetI", TIGL_INDEX_ERROR);
+        }
+        return *m_is[index];
+    }
+
 
 } // namespace generated
 } // namespace tigl

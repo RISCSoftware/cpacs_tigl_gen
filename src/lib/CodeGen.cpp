@@ -200,7 +200,7 @@ namespace tigl {
                     return typeName;
                 case Cardinality::Vector:
                 {
-                    if (m_types.classes.find(field.typeName) != std::end(m_types.classes))
+                    if (vectorInnerTypeIsUniquePtr(field))
                         return "std::vector<std::unique_ptr<" + typeName + ">>";
                     else
                         return "std::vector<" + typeName + ">";
@@ -218,6 +218,12 @@ namespace tigl {
             if (field.cardinality() != Cardinality::Vector)
                 throw std::logic_error("Requested vector inner type for non-vector type");
             return customReplacedType(field);
+        }
+
+        auto vectorInnerTypeIsUniquePtr(const Field& field) const -> bool {
+            if (field.cardinality() != Cardinality::Vector)
+                throw std::logic_error("Requested vector inner type for non-vector type");
+            return m_types.classes.find(field.typeName) != std::end(m_types.classes);
         }
 
         void writeDocumentation(IndentingStreamWrapper& hpp, const std::string& documentation) const {
@@ -256,8 +262,10 @@ namespace tigl {
                 } //generate accessors for vector types
                 else if( f.cardinality() == Cardinality::Vector && f.xmlTypeName !=c_uidRefType) {
                     hpp << "TIGL_EXPORT virtual " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "();";
-                    hpp << "TIGL_EXPORT int Get" << capitalizeFirstLetter(f.cpacsName) << "Count() const;";
-                    hpp << "TIGL_EXPORT " << vectorInnerType(f) << "& Get" << capitalizeFirstLetter(f.cpacsName) << "(int index) const;";
+                    hpp << EmptyLine;
+                    hpp << "TIGL_EXPORT virtual size_t Get" << capitalizeFirstLetter(f.cpacsName) << "Count() const;";
+                    hpp << "TIGL_EXPORT virtual const " << vectorInnerType(f) << "& Get" << capitalizeFirstLetter(f.cpacsName) << "(size_t index) const;";
+                    hpp << "TIGL_EXPORT virtual " << vectorInnerType(f) << "& Get" << capitalizeFirstLetter(f.cpacsName) << "(size_t index);";
                 } // generate special accessors for uid reference vectors
                 else if (f.cardinality() == Cardinality::Vector && f.xmlTypeName == c_uidRefType) {
                     hpp << "TIGL_EXPORT virtual void AddTo" << capitalizeFirstLetter(f.name()) << "(const " << vectorInnerType(f) << "& value);";
@@ -357,7 +365,7 @@ namespace tigl {
                     }
                     cpp << "}";
                 }
-                else if( f.cardinality() == Cardinality::Vector && f.xmlTypeName !=c_uidRefType) {  //Check if this is necessary, or if the code belongs below with the "else" block
+                else if( f.cardinality() == Cardinality::Vector && f.xmlTypeName !=c_uidRefType) {
                     //getter for classType
                     cpp << getterSetterType(f) << "& " << className << "::Get" << capitalizeFirstLetter(f.name()) << "()";
                     cpp << "{";
@@ -369,7 +377,7 @@ namespace tigl {
                     cpp << EmptyLine;
 
                     // Getter for element count in vector type;
-                    cpp << "int " << className << "::Get" << capitalizeFirstLetter(f.cpacsName) << "Count() const";
+                    cpp << "size_t " << className << "::Get" << capitalizeFirstLetter(f.cpacsName) << "Count() const";
                     cpp << "{";
                     {
                         Scope s(cpp);
@@ -378,22 +386,32 @@ namespace tigl {
                     cpp << "}";
                     cpp << EmptyLine;
 
-                    // Getter for elements in vector type by index;
-                    cpp << vectorInnerType(f) << "& " << className << "::Get" << capitalizeFirstLetter(f.cpacsName) << "(int index) const";
-                    cpp << "{";
-                    {
-                        Scope s(cpp);
-                        cpp << "index--;";
-                        cpp << "if (index < 0 || index >= Get" << capitalizeFirstLetter(f.cpacsName) << "Count()) {";
+                    //Getters for elements in vector type by index;
+                    for (auto isConst : { false, true }) {
+                        if(isConst){
+                            cpp << "const " << vectorInnerType(f) << "& " << className << "::Get" << capitalizeFirstLetter(f.cpacsName) << "(size_t index) const";
+                        } else {
+                            cpp << vectorInnerType(f) << "& " << className << "::Get" << capitalizeFirstLetter(f.cpacsName) << "(size_t index)";
+                        }
+                        cpp << "{";
                         {
                             Scope s(cpp);
-                            cpp << "throw CTiglError(\"Invalid index in " << getterSetterType(f) << "::Get" << capitalizeFirstLetter(f.cpacsName) << "\", TIGL_INDEX_ERROR);";
-                        }
+                            cpp << "index--;";
+                            cpp << "if (index < 0 || index >= Get" << capitalizeFirstLetter(f.cpacsName) << "Count()) {";
+                            {
+                                Scope s(cpp);
+                                cpp << "throw CTiglError(\"Invalid index in " << getterSetterType(f) << "::Get" << capitalizeFirstLetter(f.cpacsName) << "\", TIGL_INDEX_ERROR);";
+                            }
+                             cpp << "}";
+                             if (vectorInnerTypeIsUniquePtr(f)) {
+                                cpp << "return *" << f.fieldName() << "[index];";
+                             } else {
+                                cpp << "return " << f.fieldName() << "[index];";
+                             }
+                         }
                          cpp << "}";
-                         cpp << "return *" << f.fieldName() << "[index];";
-                     }
-                     cpp << "}";
-                     cpp << EmptyLine;
+                         cpp << EmptyLine;
+                    }
 
 
                 }// generate special accessors for uid reference vectors

@@ -56,8 +56,8 @@ namespace tigl {
                 if (!ns.empty())
                     throw NotImplementedException("Nested input directories are not implemented. Only 1 level of subdirectories (namespaces) is allowed.");
 
-                const auto leafDir = e.path().leaf().string();
-                processDirectory(e.path().string(), runtimeDirectory, outputDirectory, typeSystemGraphVisFile, fs, leafDir);
+                const auto fileDir = e.path().filename().string();
+                processDirectory(e.path().string(), runtimeDirectory, outputDirectory, typeSystemGraphVisFile, fs, fileDir);
             }
         }
     }

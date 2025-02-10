@@ -8,7 +8,7 @@ addons:
     sources:
       - sourceline: 'ppa:mhier/libboost-latest'
     packages:
-      - boost1.67
+      - boost1.85
 
 before_install:
   - curl http://download.opensuse.org/repositories/science:/dlr/xUbuntu_14.04/Release.key | sudo apt-key add -
